@@ -1,0 +1,71 @@
+# GitHub Pages: the landing page, the web interface's demo (tools/build_demo.py) and the browser flasher with the
+# factory image of the latest release's zip (a release's files cannot be fetched from another origin: the
+# flasher serves its own copy), and the licences of what they serve (licences/).
+name: pages
+
+on:
+  push:
+    branches: [main]
+    paths: [www/**, demo/**, site/**, components/app_display/src/icon_set.bin, tools/build_demo.py, .github/workflows/pages.yml]
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Icon set   # made by the firmware build otherwise, not in the repository
+        run: |
+          sudo apt-get install -y librsvg2-bin
+          pip install pillow numpy
+          python3 tools/gen_display_assets.py --image components/app_display/src/icon_set.bin
+      - name: Demo
+        run: python3 tools/build_demo.py _site/demo
+      - name: Landing page and flasher
+        run: |
+          cp site/index.html _site/
+          mkdir -p _site/flash
+          cp site/flash/index.html _site/flash/
+      - name: The latest release's factory image, and the licences that go with it
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p _site/licences
+          cp LICENSE THIRD-PARTY-NOTICES.md boards/nspanel/nextion/assets/fonts/MDI-LICENSE.txt _site/licences/
+          tag=$(gh release view --repo "$GITHUB_REPOSITORY" --json tagName -q .tagName 2>/dev/null || true)
+          if [ -n "$tag" ]; then
+            gh release download "$tag" --repo "$GITHUB_REPOSITORY" --pattern 'ohpanel-*.zip' --dir /tmp/release
+            unzip -q /tmp/release/ohpanel-*.zip -d /tmp/release
+            cp /tmp/release/ohpanel-*/ohpanel-nspanel-eu-factory-*.bin _site/flash/ohpanel-nspanel-eu-factory.bin
+            cp /tmp/release/ohpanel-*/licences/* _site/licences/
+            cat > _site/flash/manifest.json <<EOF
+          {"name": "OHpanel", "version": "${tag#v}", "new_install_prompt_erase": true,
+           "builds": [{"chipFamily": "ESP32", "parts": [{"path": "ohpanel-nspanel-eu-factory.bin", "offset": 0}]}]}
+          EOF
+          else
+            echo "no release yet: the flasher says so"
+          fi
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

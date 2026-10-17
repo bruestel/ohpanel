@@ -1,0 +1,865 @@
+{
+  "version": 1,
+  "display": {
+    "language": "en",
+    "background": "aurora",
+    "home_after": 300,
+    "screen": {
+      "brightness": 80,
+      "idle_brightness": 40,
+      "idle_after": 120,
+      "night": {
+        "from": "22:00",
+        "to": "06:00"
+      }
+    },
+    "date_format": "%a, %e %b"
+  },
+  "home": {
+    "relays": [
+      {
+        "label": "Ceiling",
+        "item": "Kitchen_Ceiling"
+      },
+      {
+        "label": "Counter",
+        "item": "Kitchen_Counter_Switch",
+        "relay": false
+      }
+    ],
+    "outdoor_temperature": {
+      "item": "Weather_Temperature"
+    },
+    "outdoor_low": {
+      "item": "Weather_Today_Min"
+    },
+    "outdoor_high": {
+      "item": "Weather_Today_Max"
+    },
+    "weather_icon": {
+      "item": "Weather_Icon",
+      "codes": "openweathermap"
+    },
+    "weather_page": "weather",
+    "values": [
+      {
+        "icon": "water-percent",
+        "item": "Kitchen_Humidity",
+        "decimals": 0
+      },
+      {
+        "icon": "home-thermometer-outline",
+        "item": "Kitchen_Temperature",
+        "decimals": 1
+      }
+    ],
+    "status_icons": [
+      {
+        "item": "Plants_Warning",
+        "icon": "sprout",
+        "color": "yellow"
+      },
+      {
+        "item": "Window_Bath",
+        "icon": "window-open-variant",
+        "color": "red",
+        "on": "OPEN"
+      }
+    ],
+    "shortcuts": [
+      {
+        "item": "Speaker_State",
+        "icon": [
+          "ohpanel-equalizer-retro-1",
+          "ohpanel-equalizer-retro-2",
+          "ohpanel-equalizer-retro-3",
+          "ohpanel-equalizer-retro-4",
+          "ohpanel-equalizer-retro-5",
+          "ohpanel-equalizer-retro-6",
+          "ohpanel-equalizer-retro-7",
+          "ohpanel-equalizer-retro-8"
+        ],
+        "interval": 250,
+        "color": "#e1a551",
+        "open": "speaker",
+        "on": "PLAYING"
+      },
+      {
+        "item": "Washer_State",
+        "icon": [
+          "ohpanel-washer-1",
+          "ohpanel-washer-2",
+          "ohpanel-washer-3",
+          "ohpanel-washer-4",
+          "ohpanel-washer-5",
+          "ohpanel-washer-6",
+          "ohpanel-washer-7",
+          "ohpanel-washer-8"
+        ],
+        "interval": 250,
+        "color": "white",
+        "open": "washer",
+        "on": [
+          "Run",
+          "Pause",
+          "Finished"
+        ],
+        "value_style": [
+          {
+            "equals": "Finished",
+            "icon": "ohpanel-washer-1",
+            "blink": 1000
+          }
+        ]
+      },
+      {
+        "item": "Waste_Paper_Alarm",
+        "icon": "delete",
+        "color": "blue",
+        "open": "waste"
+      },
+      {
+        "item": "Waste_Organic_Alarm",
+        "icon": "delete",
+        "color": "brown",
+        "open": "waste"
+      }
+    ],
+    "info": [
+      {
+        "left": {
+          "item": "Bus1_Line",
+          "bg": "red"
+        },
+        "main": {
+          "item": "Bus1_Destination"
+        },
+        "right": {
+          "item": "Bus1_Departure"
+        }
+      },
+      {
+        "left": {
+          "item": "Bus2_Line",
+          "bg": "blue"
+        },
+        "main": {
+          "item": "Bus2_Destination"
+        },
+        "right": {
+          "item": "Bus2_Departure"
+        }
+      }
+    ]
+  },
+  "swipe": [
+    "home",
+    "kitchen",
+    "blinds",
+    "house"
+  ],
+  "pages": [
+    {
+      "id": "kitchen",
+      "type": "buttons",
+      "title": "Kitchen",
+      "buttons": [
+        {
+          "label": "Ceiling",
+          "icon": "ceiling-light",
+          "item": "Kitchen_Ceiling"
+        },
+        {
+          "label": "Counter",
+          "icon": "led-strip-variant",
+          "item": "Kitchen_Counter_Switch",
+          "action": "open",
+          "open": "counter"
+        },
+        {
+          "label": "Player",
+          "icon": "music-box",
+          "open": "speaker",
+          "always_active": true,
+          "layout": "center"
+        },
+        {
+          "label": "Radio",
+          "icon": "radio",
+          "open": "radio",
+          "always_active": true,
+          "layout": "center"
+        },
+        {
+          "label": "Dishwasher",
+          "icon": "dishwasher",
+          "item": "Dishwasher_State",
+          "value": "on_off",
+          "value_style": [
+            {
+              "equals": "Run",
+              "active": true
+            },
+            {
+              "active": false
+            }
+          ]
+        },
+        {
+          "label": "Blind",
+          "icon": "roller-shade",
+          "item": "Blind_Kitchen",
+          "action": "open",
+          "open": "blind-kitchen"
+        },
+        {
+          "label": "Heating",
+          "icon": "radiator",
+          "item": "Thermostat_Kitchen_Heating",
+          "action": "open",
+          "open": "thermostat"
+        },
+        {
+          "label": "Settings",
+          "icon": "cog-outline",
+          "open": "settings",
+          "always_active": true,
+          "layout": "center"
+        }
+      ]
+    },
+    {
+      "id": "counter",
+      "type": "light",
+      "title": "Counter light",
+      "icon": "led-strip-variant",
+      "switch": {
+        "item": "Kitchen_Counter_Switch"
+      },
+      "brightness": {
+        "item": "Kitchen_Counter_Brightness"
+      },
+      "color_temperature": {
+        "item": "Kitchen_Counter_ColorTemp"
+      },
+      "unit": "kelvin",
+      "color": {
+        "item": "Kitchen_Counter_Color"
+      }
+    },
+    {
+      "id": "thermostat",
+      "type": "thermostat",
+      "title": "Kitchen",
+      "item": "Thermostat_Kitchen_Setpoint",
+      "current": {
+        "item": "Kitchen_Temperature"
+      },
+      "heating": {
+        "item": "Thermostat_Kitchen_Heating"
+      },
+      "mode": {
+        "item": "Thermostat_Kitchen_Mode",
+        "value_style": [
+          {
+            "equals": "auto",
+            "locked": true
+          }
+        ]
+      },
+      "modes": [
+        {
+          "label": "Auto",
+          "value": "auto"
+        },
+        {
+          "label": "Manual",
+          "value": "manual"
+        },
+        {
+          "label": "Off",
+          "value": "off"
+        }
+      ],
+      "style": "gradient"
+    },
+    {
+      "id": "speaker",
+      "type": "media",
+      "title": "Kitchen speaker",
+      "icon": "speaker",
+      "control": {
+        "item": "Speaker_Control"
+      },
+      "volume": {
+        "item": "Speaker_Volume"
+      },
+      "mute": {
+        "item": "Speaker_Mute"
+      },
+      "track": {
+        "item": "Speaker_Title"
+      },
+      "artist": {
+        "item": "Speaker_Artist"
+      },
+      "album": {
+        "item": "Speaker_Album"
+      },
+      "favorites": "radio",
+      "play": {
+        "item": "Speaker_PlayUri"
+      }
+    },
+    {
+      "id": "radio",
+      "type": "media_favorites",
+      "title": "Radio",
+      "stations": {
+        "item": "Radio_Stations"
+      },
+      "player": "speaker"
+    },
+    {
+      "id": "blinds",
+      "type": "buttons",
+      "title": "Blinds & awning",
+      "buttons": [
+        {
+          "label": "Living L",
+          "icon": "roller-shade",
+          "item": "Blind_Living_Left",
+          "action": "open",
+          "open": "blind-living-left"
+        },
+        {
+          "label": "Living R",
+          "icon": "roller-shade",
+          "item": "Blind_Living_Right",
+          "action": "open",
+          "open": "blind-living-right"
+        },
+        {
+          "label": "Kitchen",
+          "icon": "roller-shade",
+          "item": "Blind_Kitchen",
+          "action": "open",
+          "open": "blind-kitchen"
+        },
+        {
+          "label": "Bedroom",
+          "icon": "roller-shade",
+          "item": "Blind_Bedroom",
+          "action": "open",
+          "open": "blind-bedroom"
+        },
+        {
+          "label": "Awning",
+          "icon": "awning-outline",
+          "item": "Awning_Terrace",
+          "action": "open",
+          "open": "awning"
+        },
+        null,
+        {
+          "label": "Front",
+          "icon": "sun-angle-outline",
+          "open": "blinds-front",
+          "always_active": true,
+          "layout": "center"
+        },
+        {
+          "label": "All",
+          "icon": "home-outline",
+          "open": "blinds-all",
+          "always_active": true,
+          "layout": "center"
+        }
+      ]
+    },
+    {
+      "id": "blind-living-left",
+      "type": "cover",
+      "title": "Living room left",
+      "item": "Blind_Living_Left"
+    },
+    {
+      "id": "blind-living-right",
+      "type": "cover",
+      "title": "Living room right",
+      "item": "Blind_Living_Right"
+    },
+    {
+      "id": "blind-kitchen",
+      "type": "cover",
+      "title": "Kitchen blind",
+      "item": "Blind_Kitchen",
+      "presets": [
+        {
+          "label": "Sun",
+          "position": 60
+        },
+        {
+          "label": "Shade",
+          "position": 85
+        }
+      ]
+    },
+    {
+      "id": "blind-bedroom",
+      "type": "cover",
+      "title": "Bedroom blind",
+      "item": "Blind_Bedroom"
+    },
+    {
+      "id": "awning",
+      "type": "cover",
+      "title": "Terrace awning",
+      "item": "Awning_Terrace",
+      "style": "awning"
+    },
+    {
+      "id": "blinds-front",
+      "type": "cover",
+      "title": "Front sun protection",
+      "group": "gBlinds_Front"
+    },
+    {
+      "id": "blinds-all",
+      "type": "cover",
+      "title": "All blinds",
+      "group": "gBlinds"
+    },
+    {
+      "id": "house",
+      "type": "buttons",
+      "title": "House",
+      "buttons": [
+        {
+          "label": "Plants",
+          "icon": "sprout",
+          "color": "green",
+          "open": "plants",
+          "always_active": true,
+          "layout": "center"
+        },
+        {
+          "label": "Energy",
+          "icon": "solar-power-variant",
+          "color": "#ffac07",
+          "open": "energy",
+          "always_active": true,
+          "layout": "center"
+        },
+        {
+          "label": "Waste",
+          "icon": "delete",
+          "open": "waste",
+          "always_active": true,
+          "layout": "center"
+        },
+        {
+          "label": "Washer",
+          "icon": "washing-machine",
+          "item": "Washer_State",
+          "action": "open",
+          "open": "washer",
+          "value": "none",
+          "value_style": [
+            {
+              "equals": "Run",
+              "active": true
+            },
+            {
+              "active": false
+            }
+          ],
+          "layout": "center"
+        },
+        {
+          "label": "Weather",
+          "icon": "weather-partly-cloudy",
+          "open": "weather",
+          "always_active": true,
+          "layout": "center"
+        },
+        null,
+        {
+          "label": "Guest WiFi",
+          "icon": "wifi-plus",
+          "open": "guest-wifi",
+          "always_active": true,
+          "layout": "center"
+        },
+        {
+          "label": "Info",
+          "icon": "information-outline",
+          "open": "info",
+          "always_active": true,
+          "layout": "center"
+        }
+      ]
+    },
+    {
+      "id": "energy",
+      "type": "entities",
+      "title": "Energy",
+      "style": "cards",
+      "rows": [
+        {
+          "item": "Grid_Power",
+          "label": "Grid",
+          "icon": "transmission-tower",
+          "format": "%.0f W",
+          "value_style": [
+            {
+              "above": 0,
+              "color": "#f27c7c"
+            },
+            {
+              "below": 0,
+              "color": "#7fd18b"
+            }
+          ]
+        },
+        {
+          "item": "Solar_Power",
+          "label": "Solar",
+          "icon": "solar-power",
+          "format": "%.0f W",
+          "value_style": [
+            {
+              "above": 0,
+              "color": "#7fd18b"
+            }
+          ]
+        },
+        {
+          "item": "Battery_Level",
+          "label": "Battery",
+          "icon": "battery-high",
+          "format": "%.0f %%"
+        },
+        {
+          "item": "House_Power",
+          "label": "House",
+          "icon": "home-lightning-bolt-outline",
+          "format": "%.0f W"
+        },
+        {
+          "item": "Grid_Import_Today",
+          "label": "Import today",
+          "icon": "transmission-tower-import",
+          "format": "%.1f kWh"
+        },
+        {
+          "item": "Grid_Export_Today",
+          "label": "Export today",
+          "icon": "transmission-tower-export",
+          "format": "%.1f kWh"
+        },
+        {
+          "item": "Solar_Today",
+          "label": "Solar today",
+          "icon": "solar-panel",
+          "format": "%.1f kWh"
+        },
+        {
+          "item": "Solar_Yesterday",
+          "label": "Solar yesterday",
+          "icon": "solar-panel",
+          "format": "%.1f kWh"
+        }
+      ]
+    },
+    {
+      "id": "plants",
+      "type": "entities",
+      "title": "Plants",
+      "style": "rows",
+      "rows": [
+        {
+          "item": "Plant_Ficus",
+          "label": "Living room > Ficus",
+          "icon": "sprout",
+          "value_style": [
+            {
+              "at_most": 20,
+              "color": "red"
+            },
+            {
+              "at_most": 30,
+              "color": "yellow"
+            },
+            {
+              "color": "green"
+            }
+          ]
+        },
+        {
+          "item": "Plant_Monstera",
+          "label": "Living room > Monstera",
+          "icon": "sprout",
+          "value_style": [
+            {
+              "at_most": 20,
+              "color": "red"
+            },
+            {
+              "at_most": 30,
+              "color": "yellow"
+            },
+            {
+              "color": "green"
+            }
+          ]
+        },
+        {
+          "item": "Plant_Basil",
+          "label": "Kitchen > Basil",
+          "icon": "sprout",
+          "value_style": [
+            {
+              "at_most": 20,
+              "color": "red"
+            },
+            {
+              "at_most": 30,
+              "color": "yellow"
+            },
+            {
+              "color": "green"
+            }
+          ]
+        },
+        {
+          "item": "Plant_Orchid",
+          "label": "Bath > Orchid",
+          "icon": "flower-outline",
+          "value_style": [
+            {
+              "at_most": 20,
+              "color": "red"
+            },
+            {
+              "at_most": 30,
+              "color": "yellow"
+            },
+            {
+              "color": "green"
+            }
+          ]
+        },
+        {
+          "item": "Plant_Lemon",
+          "label": "Terrace > Lemon tree",
+          "icon": "fruit-citrus",
+          "value_style": [
+            {
+              "at_most": 20,
+              "color": "red"
+            },
+            {
+              "at_most": 30,
+              "color": "yellow"
+            },
+            {
+              "color": "green"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "waste",
+      "type": "entities",
+      "title": "Waste collection",
+      "style": "cards",
+      "rows": [
+        {
+          "item": "Waste_Residual_Next",
+          "label": "Residual",
+          "icon": "delete",
+          "color": "white",
+          "format": "date",
+          "value_style": [
+            {
+              "within_days": 1,
+              "color": "yellow"
+            }
+          ]
+        },
+        {
+          "item": "Waste_Organic_Next",
+          "label": "Organic",
+          "icon": "delete",
+          "color": "brown",
+          "format": "date",
+          "value_style": [
+            {
+              "within_days": 1,
+              "color": "yellow"
+            }
+          ]
+        },
+        {
+          "item": "Waste_Plastic_Next",
+          "label": "Plastic",
+          "icon": "delete",
+          "color": "yellow",
+          "format": "date",
+          "value_style": [
+            {
+              "within_days": 1,
+              "color": "yellow"
+            }
+          ]
+        },
+        {
+          "item": "Waste_Paper_Next",
+          "label": "Paper",
+          "icon": "delete",
+          "color": "blue",
+          "format": "date",
+          "value_style": [
+            {
+              "within_days": 1,
+              "color": "yellow"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "washer",
+      "type": "entities",
+      "title": "Washing machine",
+      "rows": [
+        {
+          "item": "Washer_State",
+          "label": "State",
+          "icon": "washing-machine"
+        },
+        {
+          "item": "Washer_Program",
+          "label": "Program",
+          "icon": "format-list-bulleted"
+        },
+        {
+          "item": "Washer_Progress",
+          "label": "Progress",
+          "icon": "progress-clock",
+          "format": "%.0f %%"
+        },
+        {
+          "item": "Washer_Remaining",
+          "label": "Remaining",
+          "icon": "timer-sand"
+        },
+        {
+          "item": "Washer_Load",
+          "label": "Load",
+          "icon": "weight-kilogram"
+        }
+      ]
+    },
+    {
+      "id": "weather",
+      "type": "weather",
+      "title": "Weather",
+      "days": [
+        {
+          "day": 0,
+          "icon": {
+            "item": "Weather_Icon",
+            "codes": "openweathermap"
+          },
+          "max": {
+            "item": "Weather_Today_Max"
+          },
+          "min": {
+            "item": "Weather_Today_Min"
+          },
+          "condition": {
+            "item": "Weather_Today_Condition"
+          },
+          "extras": [
+            {
+              "icon": "weather-windy-variant",
+              "item": "Weather_Today_Wind",
+              "label": "Wind"
+            },
+            {
+              "icon": "weather-rainy",
+              "item": "Weather_Today_Rain",
+              "label": "Rain",
+              "color": "#4fc3f7"
+            },
+            {
+              "icon": "white-balance-sunny",
+              "item": "Weather_Today_UV",
+              "label": "UV",
+              "color": "#ffb74d"
+            }
+          ]
+        },
+        {
+          "day": 1,
+          "icon": {
+            "item": "Weather_Tomorrow_Icon",
+            "codes": "openweathermap"
+          },
+          "max": {
+            "item": "Weather_Tomorrow_Max"
+          },
+          "min": {
+            "item": "Weather_Tomorrow_Min"
+          },
+          "condition": {
+            "item": "Weather_Tomorrow_Condition"
+          },
+          "extras": [
+            {
+              "icon": "weather-windy-variant",
+              "item": "Weather_Tomorrow_Wind",
+              "label": "Wind"
+            },
+            {
+              "icon": "weather-rainy",
+              "item": "Weather_Tomorrow_Rain",
+              "label": "Rain",
+              "color": "#4fc3f7"
+            }
+          ]
+        },
+        {
+          "day": 2,
+          "icon": {
+            "item": "Weather_Day2_Icon",
+            "codes": "openweathermap"
+          },
+          "max": {
+            "item": "Weather_Day2_Max"
+          },
+          "min": {
+            "item": "Weather_Day2_Min"
+          },
+          "condition": {
+            "item": "Weather_Day2_Condition"
+          }
+        }
+      ]
+    },
+    {
+      "id": "guest-wifi",
+      "type": "qr",
+      "title": "Guest WiFi",
+      "caption": [
+        "WiFi: {ssid}",
+        "Password: {password}"
+      ],
+      "text": "WIFI:T:WPA;S:Guests;P:welcome-home;;",
+      "style": "dots"
+    }
+  ]
+}

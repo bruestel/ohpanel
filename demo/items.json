@@ -1,0 +1,492 @@
+{
+  "_comment": "The demo's openHAB: per item its type, label and state (as /api/v1/openhab/states gives it: state, display, type, numeric, unit). Invented, for the demo and the screenshots.",
+  "items": {
+    "Kitchen_Ceiling": {
+      "itype": "Switch",
+      "label": "Kitchen ceiling light",
+      "state": "ON"
+    },
+    "Kitchen_Counter_Switch": {
+      "itype": "Switch",
+      "label": "Counter light",
+      "state": "ON"
+    },
+    "Kitchen_Counter_Brightness": {
+      "itype": "Dimmer",
+      "label": "Counter light brightness",
+      "state": "70"
+    },
+    "Kitchen_Counter_ColorTemp": {
+      "itype": "Number:Temperature",
+      "label": "Counter light colour temperature",
+      "state": "3200 K",
+      "min": 2700,
+      "max": 6500
+    },
+    "Kitchen_Counter_Color": {
+      "itype": "Color",
+      "label": "Counter light colour",
+      "state": "35,60,70"
+    },
+    "Kitchen_Temperature": {
+      "itype": "Number:Temperature",
+      "label": "Kitchen temperature",
+      "state": "21.4 °C"
+    },
+    "Kitchen_Humidity": {
+      "itype": "Number:Dimensionless",
+      "label": "Kitchen humidity",
+      "state": "48 %"
+    },
+    "Weather_Temperature": {
+      "itype": "Number:Temperature",
+      "label": "Outdoor temperature",
+      "state": "14.2 °C"
+    },
+    "Weather_Icon": {
+      "itype": "String",
+      "label": "Weather icon",
+      "state": "02d"
+    },
+    "Weather_Today_Min": {
+      "itype": "Number:Temperature",
+      "label": "Today low",
+      "state": "8.1 °C"
+    },
+    "Weather_Today_Max": {
+      "itype": "Number:Temperature",
+      "label": "Today high",
+      "state": "17.6 °C"
+    },
+    "Weather_Today_Condition": {
+      "itype": "String",
+      "label": "Today",
+      "state": "few clouds"
+    },
+    "Weather_Today_Wind": {
+      "itype": "Number:Speed",
+      "label": "Wind today",
+      "state": "12 km/h"
+    },
+    "Weather_Today_Rain": {
+      "itype": "Number:Length",
+      "label": "Rain today",
+      "state": "0.2 mm"
+    },
+    "Weather_Today_UV": {
+      "itype": "Number",
+      "label": "UV today",
+      "state": "3"
+    },
+    "Weather_Tomorrow_Icon": {
+      "itype": "String",
+      "label": "Weather icon tomorrow",
+      "state": "10d"
+    },
+    "Weather_Tomorrow_Min": {
+      "itype": "Number:Temperature",
+      "label": "Tomorrow low",
+      "state": "9.4 °C"
+    },
+    "Weather_Tomorrow_Max": {
+      "itype": "Number:Temperature",
+      "label": "Tomorrow high",
+      "state": "15.2 °C"
+    },
+    "Weather_Tomorrow_Condition": {
+      "itype": "String",
+      "label": "Tomorrow",
+      "state": "light rain"
+    },
+    "Weather_Tomorrow_Wind": {
+      "itype": "Number:Speed",
+      "label": "Wind tomorrow",
+      "state": "21 km/h"
+    },
+    "Weather_Tomorrow_Rain": {
+      "itype": "Number:Length",
+      "label": "Rain tomorrow",
+      "state": "4.6 mm"
+    },
+    "Weather_Day2_Icon": {
+      "itype": "String",
+      "label": "Weather icon in two days",
+      "state": "01d"
+    },
+    "Weather_Day2_Min": {
+      "itype": "Number:Temperature",
+      "label": "Low in two days",
+      "state": "7.0 °C"
+    },
+    "Weather_Day2_Max": {
+      "itype": "Number:Temperature",
+      "label": "High in two days",
+      "state": "19.8 °C"
+    },
+    "Weather_Day2_Condition": {
+      "itype": "String",
+      "label": "In two days",
+      "state": "clear sky"
+    },
+    "Plants_Warning": {
+      "itype": "Switch",
+      "label": "A plant needs water",
+      "state": "ON"
+    },
+    "Window_Bath": {
+      "itype": "Contact",
+      "label": "Bathroom window",
+      "state": "CLOSED"
+    },
+    "Speaker_State": {
+      "itype": "String",
+      "label": "Kitchen speaker state",
+      "state": "PLAYING"
+    },
+    "Speaker_Control": {
+      "itype": "Player",
+      "label": "Kitchen speaker",
+      "state": "PLAY"
+    },
+    "Speaker_Volume": {
+      "itype": "Dimmer",
+      "label": "Kitchen speaker volume",
+      "state": "25"
+    },
+    "Speaker_Mute": {
+      "itype": "Switch",
+      "label": "Kitchen speaker mute",
+      "state": "OFF"
+    },
+    "Speaker_Title": {
+      "itype": "String",
+      "label": "Title",
+      "state": "Morning Light"
+    },
+    "Speaker_Artist": {
+      "itype": "String",
+      "label": "Artist",
+      "state": "The Example Band"
+    },
+    "Speaker_Album": {
+      "itype": "String",
+      "label": "Album",
+      "state": "Open Windows"
+    },
+    "Speaker_PlayUri": {
+      "itype": "String",
+      "label": "Play URI",
+      "state": ""
+    },
+    "Radio_Stations": {
+      "itype": "String",
+      "label": "Radio stations",
+      "state": ""
+    },
+    "Washer_State": {
+      "itype": "String",
+      "label": "Washer state",
+      "state": "Run"
+    },
+    "Washer_Program": {
+      "itype": "String",
+      "label": "Washer program",
+      "state": "Cotton 40 °C"
+    },
+    "Washer_Progress": {
+      "itype": "Number:Dimensionless",
+      "label": "Washer progress",
+      "state": "62 %"
+    },
+    "Washer_Remaining": {
+      "itype": "String",
+      "label": "Washer remaining",
+      "state": "0:47"
+    },
+    "Washer_Load": {
+      "itype": "String",
+      "label": "Washer load",
+      "state": "4.5 kg"
+    },
+    "Dishwasher_State": {
+      "itype": "String",
+      "label": "Dishwasher state",
+      "state": "Ready"
+    },
+    "Waste_Paper_Alarm": {
+      "itype": "Switch",
+      "label": "Paper collection tomorrow",
+      "state": "ON"
+    },
+    "Waste_Organic_Alarm": {
+      "itype": "Switch",
+      "label": "Organic collection tomorrow",
+      "state": "OFF"
+    },
+    "Waste_Residual_Next": {
+      "itype": "DateTime",
+      "label": "Residual waste",
+      "state": "@days:5"
+    },
+    "Waste_Organic_Next": {
+      "itype": "DateTime",
+      "label": "Organic waste",
+      "state": "@days:8"
+    },
+    "Waste_Plastic_Next": {
+      "itype": "DateTime",
+      "label": "Plastic",
+      "state": "@days:12"
+    },
+    "Waste_Paper_Next": {
+      "itype": "DateTime",
+      "label": "Paper",
+      "state": "@days:1"
+    },
+    "Bus1_Line": {
+      "itype": "String",
+      "label": "Next bus line",
+      "state": "42"
+    },
+    "Bus1_Destination": {
+      "itype": "String",
+      "label": "Next bus destination",
+      "state": "Central Station"
+    },
+    "Bus1_Departure": {
+      "itype": "String",
+      "label": "Next bus departure",
+      "state": "@clock:+6"
+    },
+    "Bus2_Line": {
+      "itype": "String",
+      "label": "Second bus line",
+      "state": "7"
+    },
+    "Bus2_Destination": {
+      "itype": "String",
+      "label": "Second bus destination",
+      "state": "Harbour"
+    },
+    "Bus2_Departure": {
+      "itype": "String",
+      "label": "Second bus departure",
+      "state": "@clock:+14"
+    },
+    "Thermostat_Kitchen_Setpoint": {
+      "itype": "Number:Temperature",
+      "label": "Kitchen target",
+      "state": "21.5 °C",
+      "min": 5,
+      "max": 30,
+      "step": 0.5
+    },
+    "Thermostat_Kitchen_Heating": {
+      "itype": "Switch",
+      "label": "Kitchen heating",
+      "state": "ON"
+    },
+    "Thermostat_Kitchen_Mode": {
+      "itype": "String",
+      "label": "Kitchen heating mode",
+      "state": "manual"
+    },
+    "Blind_Living_Left": {
+      "itype": "Rollershutter",
+      "label": "Living room left",
+      "state": "0"
+    },
+    "Blind_Living_Right": {
+      "itype": "Rollershutter",
+      "label": "Living room right",
+      "state": "40"
+    },
+    "Blind_Kitchen": {
+      "itype": "Rollershutter",
+      "label": "Kitchen",
+      "state": "60"
+    },
+    "Blind_Bedroom": {
+      "itype": "Rollershutter",
+      "label": "Bedroom",
+      "state": "100"
+    },
+    "Awning_Terrace": {
+      "itype": "Rollershutter",
+      "label": "Terrace awning",
+      "state": "45"
+    },
+    "gBlinds_Front": {
+      "itype": "Group:Rollershutter",
+      "label": "Front sun protection",
+      "state": "NULL"
+    },
+    "gBlinds": {
+      "itype": "Group:Rollershutter",
+      "label": "All blinds",
+      "state": "NULL"
+    },
+    "Grid_Power": {
+      "itype": "Number:Power",
+      "label": "Grid",
+      "state": "-412 W"
+    },
+    "Solar_Power": {
+      "itype": "Number:Power",
+      "label": "Solar",
+      "state": "2840 W"
+    },
+    "Battery_Level": {
+      "itype": "Number:Dimensionless",
+      "label": "Battery",
+      "state": "78 %"
+    },
+    "House_Power": {
+      "itype": "Number:Power",
+      "label": "House",
+      "state": "960 W"
+    },
+    "Grid_Import_Today": {
+      "itype": "Number:Energy",
+      "label": "Import today",
+      "state": "2.4 kWh"
+    },
+    "Grid_Export_Today": {
+      "itype": "Number:Energy",
+      "label": "Export today",
+      "state": "6.8 kWh"
+    },
+    "Solar_Today": {
+      "itype": "Number:Energy",
+      "label": "Solar today",
+      "state": "12.6 kWh"
+    },
+    "Solar_Yesterday": {
+      "itype": "Number:Energy",
+      "label": "Solar yesterday",
+      "state": "15.1 kWh"
+    },
+    "Plant_Ficus": {
+      "itype": "Number:Dimensionless",
+      "label": "Ficus soil moisture",
+      "state": "44 %"
+    },
+    "Plant_Monstera": {
+      "itype": "Number:Dimensionless",
+      "label": "Monstera soil moisture",
+      "state": "27 %"
+    },
+    "Plant_Basil": {
+      "itype": "Number:Dimensionless",
+      "label": "Basil soil moisture",
+      "state": "18 %"
+    },
+    "Plant_Orchid": {
+      "itype": "Number:Dimensionless",
+      "label": "Orchid soil moisture",
+      "state": "36 %"
+    },
+    "Plant_Lemon": {
+      "itype": "Number:Dimensionless",
+      "label": "Lemon tree soil moisture",
+      "state": "52 %"
+    }
+  },
+  "groups": {
+    "gBlinds_Front": {
+      "members": [
+        "Blind_Living_Left",
+        "Blind_Living_Right",
+        "Blind_Kitchen"
+      ],
+      "metadata": {
+        "cover": {
+          "value": " ",
+          "config": {
+            "presets": "50 %=50, 65 %=65, 75 %=75"
+          }
+        }
+      }
+    },
+    "gBlinds": {
+      "members": [
+        "Blind_Living_Left",
+        "Blind_Living_Right",
+        "Blind_Kitchen",
+        "Blind_Bedroom",
+        "Awning_Terrace"
+      ]
+    }
+  },
+  "member_metadata": {
+    "Awning_Terrace": {
+      "cover": {
+        "value": " ",
+        "config": {
+          "style": "awning",
+          "label": "Awning"
+        }
+      }
+    }
+  },
+  "options": {
+    "Radio_Stations": [
+      {
+        "value": "demo://jazz",
+        "label": "jazz",
+        "short": "Jazz",
+        "name": "Smooth Jazz",
+        "icon": "saxophone"
+      },
+      {
+        "value": "demo://news",
+        "label": "news",
+        "short": "News",
+        "name": "City News",
+        "icon": "newspaper-variant-outline"
+      },
+      {
+        "value": "demo://classic",
+        "label": "classic",
+        "short": "Classical",
+        "name": "Classical Hour",
+        "icon": "violin"
+      },
+      {
+        "value": "demo://chill",
+        "label": "chill",
+        "short": "Chill",
+        "name": "Chill Lounge",
+        "icon": "palm-tree"
+      },
+      {
+        "value": "demo://rock",
+        "label": "rock",
+        "short": "Rock",
+        "name": "Rock Classics",
+        "icon": "guitar-electric"
+      },
+      {
+        "value": "demo://kids",
+        "label": "kids",
+        "short": "Kids",
+        "name": "Kids Radio",
+        "icon": "teddy-bear"
+      }
+    ],
+    "Thermostat_Kitchen_Mode": [
+      {
+        "value": "auto",
+        "label": "Auto"
+      },
+      {
+        "value": "manual",
+        "label": "Manual"
+      },
+      {
+        "value": "off",
+        "label": "Off"
+      }
+    ]
+  }
+}

@@ -1,0 +1,160 @@
+# sdkconfig defaults for the NSPanel (ESP32-D0WD-V3).
+# PlatformIO regenerates sdkconfig.<env> from this file; that generated file is
+# gitignored on purpose.
+
+# --- Flash ---------------------------------------------------------------
+# The NSPanel has 4 MB. Must be set explicitly: the ESP-IDF default is
+# 2 MB, which silently contradicts a partition table reaching to 0x400000.
+CONFIG_ESPTOOLPY_FLASHSIZE_4MB=y
+CONFIG_ESPTOOLPY_FLASHSIZE="4MB"
+
+CONFIG_PARTITION_TABLE_CUSTOM=y
+CONFIG_PARTITION_TABLE_CUSTOM_FILENAME="boards/nspanel/partitions.csv"
+CONFIG_PARTITION_TABLE_OFFSET=0x8000
+
+# --- Toolchain ---------------------------------------------------------------
+CONFIG_COMPILER_OPTIMIZATION_SIZE=y
+CONFIG_COMPILER_CXX_EXCEPTIONS=n
+CONFIG_COMPILER_CXX_RTTI=n
+
+# --- PSRAM -------------------------------------------------------------------
+# The NSPanel carries 2 MB PSRAM, but its CLK/CS are not on the D0WD defaults
+# (GPIO17/16): those two pins drive the Nextion display UART. The board routes
+# PSRAM CLK to GPIO5 and CS to GPIO18 (same values as Tasmota's nspanel build).
+# The Arduino core cannot use it because these pins are compiled into its libs.
+# Optional, so a board without working PSRAM still boots.
+CONFIG_SPIRAM=y
+CONFIG_SPIRAM_IGNORE_NOTFOUND=y
+CONFIG_D0WD_PSRAM_CLK_IO=5
+CONFIG_D0WD_PSRAM_CS_IO=18
+CONFIG_SPIRAM_USE_MALLOC=y
+# Internal RAM is what runs short (task stacks, WiFi's static buffers, the
+# upload task), PSRAM is mostly idle: plain allocations above 32 bytes --
+# configuration, item states, strings, the display's lookup tables -- go to
+# PSRAM (default: everything below 16 KB internal), and WiFi/lwIP put their
+# dynamic buffers there. Measured with openHAB connected: 42 -> 94 KB internal
+# free with 256 bytes (2026-10-07). By 2026-10-13 the small allocations below
+# 256 -- a std::map node each, the manifest's pictures, text widths and boxes
+# (hundreds more with the panel info's cards and the entity pages), a group's
+# members -- had taken it down to 35 KB, 32 KB of which malloc keeps back: no
+# room left for WiFi to send a large answer, nor to restart after an update.
+# Whatever needs internal memory (DMA, ISRs, task stacks) asks for it explicitly.
+CONFIG_SPIRAM_MALLOC_ALWAYSINTERNAL=32
+CONFIG_SPIRAM_TRY_ALLOCATE_WIFI_LWIP=y
+
+# --- FreeRTOS ----------------------------------------------------------------
+# 1 ms tick granularity for the display UART handling and timers.
+CONFIG_FREERTOS_HZ=1000
+
+CONFIG_ESP_MAIN_TASK_STACK_SIZE=8192
+CONFIG_ESP_TASK_WDT_INIT=y
+
+# --- OTA ---------------------------------------------------------------------
+CONFIG_BOOTLOADER_APP_ROLLBACK_ENABLE=y
+
+# --- Logging -----------------------------------------------------------------
+# The maximum matches the default: there is no runtime switch to raise it, so
+# compiling DEBUG strings in would be flash spent on lines that can never be
+# printed. Debugging means rebuilding with this raised, which is what somebody
+# attaching a serial cable is doing anyway.
+CONFIG_LOG_MAXIMUM_LEVEL_INFO=y
+CONFIG_LOG_DEFAULT_LEVEL_INFO=y
+
+# --- Coredump ----------------------------------------------------------------
+CONFIG_ESP_COREDUMP_ENABLE_TO_FLASH=y
+CONFIG_ESP_COREDUMP_DATA_FORMAT_ELF=y
+
+# --- HTTP server -------------------------------------------------------------
+CONFIG_HTTPD_MAX_REQ_HDR_LEN=1024
+# Sockets: the web server's 7, its listener, the openHAB event stream, commands, mDNS, option fetches -- and,
+# while the openHAB page looks for servers, its checks (https and http): 13 ran out while a browser loaded a page.
+# The https server adds its 3, its listener and its control socket.
+CONFIG_LWIP_MAX_SOCKETS=24
+# https: a browser resumes its TLS session with a ticket instead of a full ECDSA handshake on every new connection
+CONFIG_ESP_TLS_SERVER_SESSION_TICKETS=y
+
+# IPv6: addresses by SLAAC (router advertisements), DHCPv6 only for what it tells besides (DNS servers; lwIP has
+# no stateful DHCPv6). Four addresses: link-local, a unique local, a global one -- and a second prefix while a
+# network renumbers.
+CONFIG_LWIP_IPV6_AUTOCONFIG=y
+CONFIG_LWIP_IPV6_DHCP6=y
+# The DNS servers a router announces (RDNSS): an IPv6-only network without DHCPv6 has no other
+CONFIG_LWIP_IPV6_RDNSS_MAX_DNS_SERVERS=2
+CONFIG_LWIP_IPV6_NUM_ADDRESSES=4
+
+# --- Clock ---------------------------------------------------------------------
+# Ask the router for a time server via DHCP option 42 before reaching for a
+# public pool: it works on a network without internet access, and it is the
+# politer default. Two slots so the DHCP answer and the fallback coexist.
+CONFIG_LWIP_DHCP_GET_NTP_SRV=y
+CONFIG_LWIP_SNTP_MAX_SERVERS=2
+
+# --- Diagnostics --------------------------------------------------------------
+# Stack headroom per task, so a task creeping towards its limit is visible long
+# before it overflows. Behind a wall panel there is no console to notice it on.
+CONFIG_FREERTOS_USE_TRACE_FACILITY=y
+# CPU time per task (/api/v1/health, the web interface's CPU load and task
+# list): a 64-bit microsecond counter (32 bits run over after 71 minutes) and
+# the core a task is pinned to.
+CONFIG_FREERTOS_GENERATE_RUN_TIME_STATS=y
+CONFIG_FREERTOS_RUN_TIME_COUNTER_TYPE_U64=y
+CONFIG_FREERTOS_VTASKLIST_INCLUDE_COREID=y
+# Watch the main loop, not just the idle tasks: a loop that stops running leaves
+# a device that looks alive but does nothing, which is worse than a reboot.
+CONFIG_ESP_TASK_WDT_TIMEOUT_S=15
+# Without this the watchdog only prints a warning and the device stays hung --
+# verified by deliberately hanging the main loop, which produced a message every
+# 15 s and no recovery. A panic reboots and records a core dump.
+CONFIG_ESP_TASK_WDT_EN=y
+CONFIG_ESP_TASK_WDT_PANIC=y
+
+# openHAB over https without a certificate check, when the settings ask for it
+# (appcfg::Tls::Insecure): esp-tls then takes any certificate where neither the
+# CA bundle nor a CA is given. The other modes always give one of them.
+CONFIG_ESP_TLS_INSECURE=y
+CONFIG_ESP_TLS_SKIP_SERVER_CERT_VERIFY=y
+# The CA bundle for openHAB behind a public certificate (appcfg::Tls default
+# mode): the common CAs only (Espressif's selection, ~99 % of sites, Let's
+# Encrypt among them), not all of Mozilla's -- 17 KB instead of 67 KB.
+# PlatformIO makes .pio/build/nspanel/x509_crt_bundle only when it is missing:
+# after changing the bundle's settings, delete it.
+CONFIG_MBEDTLS_CERTIFICATE_BUNDLE_DEFAULT_CMN=y
+# Chains that end in a cross-signed root (Google's GTS Root R1 signed by
+# GlobalSign, for one) are checked against the bundle too.
+CONFIG_MBEDTLS_CERTIFICATE_BUNDLE_CROSS_SIGNED_VERIFY=y
+
+# TLS memory in PSRAM: two connections at once (the event stream and a
+# command) do not fit the internal RAM over https.
+CONFIG_MBEDTLS_EXTERNAL_MEM_ALLOC=y
+
+# --- https for the web interface ---------------------------------------------
+# The panel's own CA and server certificate are made on the device
+# (components/app_web/src/Tls.cpp): writing certificates needs X.509 creation;
+# the interface is served on 443 too (esp_https_server).
+CONFIG_ESP_HTTPS_SERVER_ENABLE=y
+CONFIG_MBEDTLS_X509_CREATE_C=y
+CONFIG_MBEDTLS_X509_CRT_WRITE_C=y
+
+# Roaming where the network leads it: 802.11k (radio measurements) and 802.11v (BSS transition), app_net Net.cpp
+CONFIG_ESP_WIFI_11KV_SUPPORT=y
+
+# --- left out: features nothing here uses -------------------------------------
+# The hotspot is open (app_net), so WPA3 on it never runs; SAE-PK is for public
+# WPA3 hotspots, OWE ("Enhanced Open") networks are rare.
+# CONFIG_ESP_WIFI_SOFTAP_SAE_SUPPORT is not set
+# CONFIG_ESP_WIFI_ENABLE_SAE_PK is not set
+# CONFIG_ESP_WIFI_ENABLE_WPA3_OWE_STA is not set
+# TLS needs none of these (AES-GCM and ChaCha20 suites); Wi-Fi's CCMP has its own code.
+# CONFIG_MBEDTLS_CCM_C is not set
+# CONFIG_MBEDTLS_CIPHER_MODE_CFB is not set
+# CONFIG_MBEDTLS_CIPHER_MODE_OFB is not set
+# CONFIG_MBEDTLS_CIPHER_MODE_XTS is not set
+# Curves no certificate here uses: P-256, P-384 and 25519 stay.
+# CONFIG_MBEDTLS_ECP_DP_SECP521R1_ENABLED is not set
+# CONFIG_MBEDTLS_ECP_DP_SECP256K1_ENABLED is not set
+# CONFIG_MBEDTLS_ECP_DP_BP256R1_ENABLED is not set
+# CONFIG_MBEDTLS_ECP_DP_BP384R1_ENABLED is not set
+# CONFIG_MBEDTLS_ECP_DP_BP512R1_ENABLED is not set
+
+# The core dump partition is 32 KB (boards/nspanel/partitions.csv): the crashed task and seven more fit.
+CONFIG_ESP_COREDUMP_MAX_TASKS_NUM=8

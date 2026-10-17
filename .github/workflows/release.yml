@@ -1,0 +1,52 @@
+# A tag v<version>: the firmware built, the release zip made (tools/make_release.py: the images, the display design
+# kept in boards/nspanel/nextion/display/, the licences) and published with the notes of docs/releases/<version>.md.
+# Then the Pages site again, so the browser flasher serves the new factory image (a release made with the workflow's
+# own token starts no other workflow by itself).
+name: release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+  actions: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # git describe: the firmware's version
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/cache@v4
+        with:
+          path: ~/.platformio
+          key: pio-${{ hashFiles('platformio.ini', 'dependencies.lock', 'sdkconfig.defaults') }}
+      - name: PlatformIO, and rsvg-convert for OHpanel's own icons
+        run: |
+          sudo apt-get install -y librsvg2-bin
+          pip install platformio pillow numpy "esptool>=4.8,<5"   # esptool: the factory image (tools/merge_factory.py)
+      - name: Firmware
+        run: |
+          pio run -e nspanel
+          ls .pio/build/nspanel/ohpanel-nspanel-eu-factory-*.bin   # the factory image made too
+      - name: Host tests
+        run: test/host/run.sh
+      - name: Release zip
+        run: python3 tools/make_release.py
+      - name: Publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          notes="docs/releases/$version.md"
+          if [ -f "$notes" ]; then set -- --notes-file "$notes"; else set -- --generate-notes; fi
+          gh release create "$GITHUB_REF_NAME" "dist/ohpanel-$version.zip" --title "OHpanel $version" "$@"
+      - name: Pages
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run pages.yml --ref main

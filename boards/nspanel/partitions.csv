@@ -1,0 +1,24 @@
+# OHpanel partition table -- 4 MB flash, two OTA slots (rollback requires both).
+#
+# nvs and otadata right after the partition table, where the Arduino firmware
+# had them too. A panel coming from that firmware is flashed completely (erase
+# first); its settings are not adopted.
+#
+# The OTA slots are 1.94 MB each, as large as the flash allows: the firmware, with the icon set
+# embedded (tools/gen_display_assets.py), is about 1.8 MB. An app partition starts on a 64 KB boundary,
+# so the two slots take everything between 64 KB and the last 64 KB, which hold the panel
+# configuration (panel: an NVS partition, the configuration deflated -- a few KB, components/app_store)
+# and the core dump (the crashed task and seven more, CONFIG_ESP_COREDUMP_MAX_TASKS_NUM).
+#
+# Changed in October 2026, twice: the icon set and the recovery display firmware had partitions of
+# their own (assets, recovery) and the slots were 1.5 MB; then the configuration was a file on a
+# 256 KB LittleFS partition (storage), the slots 1.81 MB and the core dump 64 KB. A panel with an older
+# table is flashed over serial once (docs/flashing.md); OTA cannot change the table.
+#
+# Name,     Type, SubType,  Offset,   Size,     Flags
+nvs,        data, nvs,      0x9000,   0x5000,
+otadata,    data, ota,      0xe000,   0x2000,
+ota_0,      app,  ota_0,    0x10000,  0x1F0000,
+ota_1,      app,  ota_1,    0x200000, 0x1F0000,
+panel,      data, nvs,      0x3F0000, 0x8000,
+coredump,   data, coredump, 0x3F8000, 0x8000,

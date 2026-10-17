@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>OHpanel flasher</title>
+<meta name="description" content="Flash OHpanel onto a Sonoff NSPanel EU from the browser">
+<script type="module" src="https://unpkg.com/esp-web-tools@10.1.1/dist/web/install-button.js?module"></script>
+<style>
+:root{--bg:#f4f4f6;--card:#fff;--fg:#1c1c1e;--dim:#6d6d72;--line:#e2e2e6;--accent:#e64a19;--warn:#fff4e5;--warn-line:#f0b46b}
+@media (prefers-color-scheme:dark){:root{--bg:#121214;--card:#1c1c1f;--fg:#f2f2f4;--dim:#9a9aa0;--line:#2c2c30;--warn:#2a2116;--warn-line:#8a5a23}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.55 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+main{max-width:720px;margin:0 auto;padding:32px 16px 56px}
+header{display:flex;align-items:center;gap:14px;margin-bottom:22px}
+header svg{width:52px;height:52px;flex:none}
+h1{font-size:26px;margin:0}
+header p{margin:2px 0 0;color:var(--dim)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px 22px;margin:16px 0}
+h2{font-size:18px;margin:0 0 10px}
+ol{margin:0;padding-left:22px}
+li{margin:6px 0}
+code{font:14px ui-monospace,SFMono-Regular,Menlo,monospace;background:var(--bg);padding:1px 5px;border-radius:5px}
+.warn{background:var(--warn);border:1px solid var(--warn-line);border-radius:12px;padding:12px 16px;margin:16px 0}
+.install{display:flex;flex-wrap:wrap;align-items:center;gap:16px}
+#version{color:var(--dim);font-size:14px}
+esp-web-install-button button,.btn{font:600 16px system-ui,sans-serif;color:#fff;background:var(--accent);border:0;border-radius:10px;
+  padding:12px 22px;cursor:pointer}
+esp-web-install-button{--esp-tools-button-color:#e64a19;--esp-tools-button-border-radius:10px}
+a{color:var(--accent)}
+.muted{color:var(--dim);font-size:14px}
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <svg viewBox="0 0 64 64" aria-hidden="true"><rect x="2" y="2" width="60" height="60" rx="14" fill="#E64A19"/><rect x="9" y="9" width="46" height="30.7" rx="3.5" fill="#fff"/><rect x="14" y="15" width="14" height="4" rx="2" fill="#E64A19"/><rect x="14" y="22" width="22" height="3" rx="1.5" fill="#F3A486"/><rect x="14" y="28" width="17" height="3" rx="1.5" fill="#F3A486"/><rect x="9" y="44" width="22" height="11" rx="3.5" fill="#fff"/><rect x="33" y="44" width="22" height="11" rx="3.5" fill="#fff"/></svg>
+    <div><h1>OHpanel flasher</h1><p>The first installation on a Sonoff NSPanel EU, from the browser</p></div>
+  </header>
+
+  <div class="warn"><b>Mains off.</b> Take the panel off the wall and disconnect it from mains before you open it.
+    The serial adapter powers it with 3.3&nbsp;V &mdash; never connect both.</div>
+
+  <div class="card">
+    <h2>Before you click</h2>
+    <ol>
+      <li>Open the panel and connect a 3.3&nbsp;V USB serial adapter: GND&ndash;GND, ESP_RX&ndash;TX, ESP_TX&ndash;RX,
+        3V3&ndash;3.3&nbsp;V (<a href="https://github.com/bruestel/ohpanel/blob/main/docs/install.md#connect-the-serial-adapter">with photos</a>).</li>
+      <li>Tie <code>IO0</code> to ground, then plug the adapter in: the panel waits in its bootloader.</li>
+      <li>Use Chrome or Edge on a computer (the browser needs Web Serial).</li>
+    </ol>
+  </div>
+
+  <div class="card">
+    <h2>Install</h2>
+    <div class="install">
+      <esp-web-install-button manifest="manifest.json">
+        <button slot="activate" class="btn">Connect &amp; install OHpanel</button>
+        <span slot="unsupported">This browser cannot talk to a serial port: use Chrome or Edge on a computer, or
+          <a href="https://github.com/bruestel/ohpanel/blob/main/docs/install.md#flash">esptool</a>.</span>
+        <span slot="not-allowed">The flasher needs a secure page (https).</span>
+      </esp-web-install-button>
+      <span id="version"></span>
+    </div>
+    <p class="muted">Tick <i>Erase device</i> when the panel ran other firmware before (Sonoff's, Tasmota, ESPHome).
+      The factory image comes from the <a href="https://github.com/bruestel/ohpanel/releases/latest">latest release</a>.</p>
+  </div>
+
+  <div class="card">
+    <h2>Afterwards</h2>
+    <ol>
+      <li>Take the wire off <code>IO0</code>, unplug the adapter and plug it in again: OHpanel starts.</li>
+      <li>Close the panel and put it back on the wall.</li>
+      <li>Join its open WiFi <code>ohpanel-xxxxxx</code>, choose your network, connect openHAB and write the display
+        design (<code>ohpanel-nspanel-eu-display-&lt;version&gt;.tft</code>, about 15 minutes) &mdash;
+        <a href="https://github.com/bruestel/ohpanel/blob/main/docs/install.md#join-your-wifi">step by step</a>.</li>
+    </ol>
+  </div>
+
+  <p class="muted"><a href="../demo/">Try the web interface in the demo</a> ·
+    <a href="https://github.com/bruestel/ohpanel">OHpanel on GitHub</a> ·
+    <a href="../licences/THIRD-PARTY-NOTICES.md">Licences</a> (the image contains third-party code)</p>
+</main>
+<script>
+fetch('manifest.json').then(r => r.ok ? r.json() : null).then(m => {
+  document.getElementById('version').textContent = m ? 'Version ' + m.version : 'No release yet.';
+}).catch(() => { document.getElementById('version').textContent = 'No release yet.'; });
+</script>
+</body>
+</html>

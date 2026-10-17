@@ -1,0 +1,37 @@
+event: ready
+id: 0
+data: 7dabf1f4-d984-46af-bfa6-effa30fdd91b
+
+data: {"Inverter_GridVoltage":{"state":"233.7 V","numericState":233.7,"unit":"V","type":"Quantity"},"Panel_LivingRoom__DimmedBrightness":{"state":"80","displayState":"80 %","numericState":80.0,"type":"Percent"},"PV_Battery_L2_Power":{"state":"-304 W","numericState":-304.0,"unit":"W","type":"Quantity"},"gPVBatteryPower":{"state":"-912","displayState":"-912 W","numericState":-912.0,"type":"Decimal"},"weatherTomorrowRainVolume":{"state":"0 m","displayState":"0.0 m","numericState":0.0,"unit":"m","type":"Quantity"},"Panel_Office__ReturnHomeTimer":{"state":"60 s","numericState":60.0,"unit":"s","type":"Quantity"},"weatherTodayWindSpeed":{"state":"10.548 km/h","displayState":"10.5 km/h","numericState":10.548,"unit":"km/h","type":"Quantity"},"gBathroomThermostat":{"state":"NULL","type":"UnDef"},"Roller_Shutter_L2_Bedroom__Control":{"state":"0","numericState":0.0,"type":"Percent"},"calendar_tomorrow_event5_title":{"state":"UNDEF","type":"UnDef"},"Temperature_Sensor_LaundryRoom__Pressure":{"state":"1017.8 hPa","numericState":1017.8,"unit":"hPa","type":"Quantity"},"Plant_Sensor_28_Battery":{"state":"15 %","numericState":15.0,"unit":"%","type":"Quantity"},"Washer_DoorState":{"state":"CLOSED","displayState":"closed","type":"OpenClosed"},"PV_Battery_L1_Power":{"state":"-303 W","numericState":-303.0,"unit":"W","type":"Quantity"},"Presence_Sensor_Corridor__Motion":{"state":"OFF","type":"OnOff"},"PV_Battery_L3_Power":{"state":"-305 W","numericState":-305.0,"unit":"W","type":"Quantity"},"Plant_Sensor_13_Light":{"state":"12775 lx","numericState":12775.0,"unit":"lx","type":"Quantity"},"Water_Meter_Main_Value":{"state":"123.45678 m³","displayState":"123.4568 m³","numericState":123.45678,"unit":"m³","type":"Quantity"},"Sensor_LivingRoom__Formaldehyde":{"state":"2 µg/m³","numericState":2.0,"unit":"µg/m³","type":"Quantity"},"Panel_Kitchen__Heap":{"state":"206992 B","numericState":206992.0,"unit":"B","type":"Quantity"},"EnergyMeter_PV2__EnergyYesterday":{"state":"1.33 kWh","numericState":1.33,"unit":"kWh","type":"Quantity"},"Plant_Sensor_13_Conductivity":{"state":"67 μS/cm","displayState":"67 µS/cm","numericState":67.0,"unit":"μS/cm","type":"Quantity"},"Plant_Sensor_13_Moisture_Last_Update":{"state":"2026-10-05T12:49:55.040383879+0200","displayState":"05.10.2026 12:49:55","type":"DateTime"},"Irrigation_Valve_5__Flow":{"state":"0 m³/h","numericState":0.0,"unit":"m³/h","type":"Quantity"},"Thermostat_Bathroom__Temperature":{"state":"23.1 °C","numericState":23.1,"unit":"°C","type":"Quantity"},"Washer_Load":{"state":"5.9 kg","numericState":5.9,"unit":"kg","type":"Quantity"},"Remote_Workshop__Link_Quality":{"state":"156","numericState":156.0,"type":"Decimal"},"Inverter_PV1Current":{"state":"4.6 A","numericState":4.6,"unit":"A","type":"Quantity"}}
+
+event: alive
+data: {"type":"ALIVE","interval":10}
+
+data: {"Inverter_GridVoltage":{"state":"234.5 V","numericState":234.5,"unit":"V","type":"Quantity"}}
+
+data: {"Inverter_PV1Current":{"state":"4.3 A","numericState":4.3,"unit":"A","type":"Quantity"}}
+
+event: alive
+data: {"type":"ALIVE","interval":10}
+
+data: {"gPVBatteryPower":{"state":"-910","displayState":"-910 W","numericState":-910.0,"type":"Decimal"}}
+
+data: {"PV_Battery_L3_Power":{"state":"-303 W","numericState":-303.0,"unit":"W","type":"Quantity"}}
+
+data: {"PV_Battery_L1_Power":{"state":"-301 W","numericState":-301.0,"unit":"W","type":"Quantity"}}
+
+data: {"gPVBatteryPower":{"state":"-908","displayState":"-908 W","numericState":-908.0,"type":"Decimal"}}
+
+data: {"Panel_Kitchen__Heap":{"state":"205196 B","numericState":205196.0,"unit":"B","type":"Quantity"}}
+
+data: {"Plant_Sensor_13_Light":{"state":"17425 lx","numericState":17425.0,"unit":"lx","type":"Quantity"}}
+
+data: {"PV_Battery_L2_Power":{"state":"-298 W","numericState":-298.0,"unit":"W","type":"Quantity"}}
+
+data: {"gPVBatteryPower":{"state":"-902","displayState":"-902 W","numericState":-902.0,"type":"Decimal"}}
+
+data: {"gPVBatteryPower":{"state":"-902","displayState":"-902 W","numericState":-902.0,"type":"Decimal"}}
+
+event: alive
+data: {"type":"ALIVE","interval":10}
+

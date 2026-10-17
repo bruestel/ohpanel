@@ -1,0 +1,721 @@
+{
+  "version": 1,
+  "display": {
+    "language": "de",
+    "date_format": "%a, %e. %b %y",
+    "time_format": "%H:%M",
+    "background": "aurora"
+  },
+  "home": {
+    "relays": [
+      {
+        "label": "Light"
+      },
+      {
+        "label": "Desk lamp"
+      }
+    ],
+    "values": [
+      {
+        "icon": "home-thermometer-outline",
+        "item": "Office_Temperature"
+      }
+    ],
+    "outdoor_temperature": {
+      "item": "gOutdoorTemperature"
+    },
+    "outdoor_high": {
+      "item": "weatherTodayMaxTemperature"
+    },
+    "outdoor_low": {
+      "item": "weatherTodayMinTemperature"
+    },
+    "weather_icon": {
+      "item": "weatherCurrentConditionIconId",
+      "codes": "openweathermap"
+    },
+    "weather_page": "weather",
+    "status_icons": [
+      null,
+      {
+        "item": "homePlantsWarning",
+        "icon": "sprout",
+        "color": "yellow"
+      },
+      {
+        "item": "homePlantsCritical",
+        "icon": "sprout",
+        "color": "red"
+      }
+    ],
+    "shortcuts": [
+      {
+        "item": "officeSpeakerState",
+        "icon": "music-circle",
+        "color": "blue",
+        "open": "speaker"
+      },
+      null,
+      {
+        "icon": "wifi-plus",
+        "open": "guest-wifi"
+      },
+      {
+        "item": "wasteResidualDisposalAlarm",
+        "icon": "delete",
+        "color": "white",
+        "open": "waste"
+      },
+      {
+        "item": "wasteBioDisposalAlarm",
+        "icon": "delete",
+        "color": "brown",
+        "open": "waste"
+      },
+      {
+        "item": "wasteYellowDisposalAlarm",
+        "icon": "delete",
+        "color": "yellow",
+        "open": "waste"
+      },
+      {
+        "item": "wastePaperDisposalAlarm",
+        "icon": "delete",
+        "color": "blue",
+        "open": "waste"
+      }
+    ],
+    "info": [
+      {
+        "left": {
+          "item": "nextDepartureLine"
+        },
+        "main": {
+          "item": "nextDepartureDestination"
+        },
+        "right": {
+          "item": "nextDepartureTime"
+        }
+      },
+      {
+        "left": {
+          "item": "secondDepartureLine"
+        },
+        "main": {
+          "item": "secondDepartureDestination"
+        },
+        "right": {
+          "item": "secondDepartureTime"
+        }
+      }
+    ]
+  },
+  "swipe": [
+    "home",
+    "lights",
+    "plants-covers",
+    "misc",
+    "radio"
+  ],
+  "pages": [
+    {
+      "id": "lights",
+      "type": "buttons",
+      "title": "Office and bedroom lamp",
+      "buttons": [
+        {
+          "label": "Desk",
+          "icon": "desk-lamp",
+          "item": "DeskLamp_Switch"
+        },
+        {
+          "label": "Desk brt.",
+          "icon": "brightness-6",
+          "item": "DeskLamp_Switch",
+          "open": "desk-lamp"
+        }
+      ]
+    },
+    {
+      "id": "plants-covers",
+      "type": "buttons",
+      "title": "Plants & blind",
+      "buttons": [
+        {
+          "label": "House",
+          "icon": "sprout",
+          "color": "green",
+          "open": "plants-indoor"
+        },
+        {
+          "label": "Garden",
+          "icon": "grass",
+          "color": "green",
+          "open": "plants-garden"
+        },
+        null,
+        {
+          "label": "L. blind",
+          "icon": "roller-shade",
+          "item": "Blind_Left",
+          "open": "cover-left",
+          "value": "percent",
+          "always_active": true
+        },
+        {
+          "label": "R. blind",
+          "icon": "roller-shade",
+          "item": "Blind_Right",
+          "open": "cover-right",
+          "value": "percent",
+          "always_active": true
+        },
+        {
+          "label": "Bedroom",
+          "icon": "roller-shade",
+          "item": "Blind_Bedroom",
+          "open": "cover-bedroom",
+          "value": "percent",
+          "always_active": true
+        },
+        {
+          "label": "Box room",
+          "icon": "roller-shade",
+          "item": "Blind_BoxRoom",
+          "open": "cover-laundry",
+          "value": "percent",
+          "always_active": true
+        },
+        {
+          "label": "Attic bl.",
+          "icon": "roller-shade",
+          "open": "cover-attic",
+          "always_active": true
+        }
+      ]
+    },
+    {
+      "id": "misc",
+      "type": "buttons",
+      "title": "More",
+      "buttons": [
+        {
+          "label": "Bins",
+          "icon": "delete",
+          "open": "waste",
+          "always_active": true
+        },
+        {
+          "label": "Vacuum",
+          "icon": "robot-vacuum",
+          "item": "Vacuum_Action",
+          "value": "none"
+        },
+        null,
+        {
+          "label": "Schedule",
+          "icon": "account-school",
+          "open": "schedule",
+          "always_active": true
+        },
+        {
+          "label": "PV",
+          "icon": "solar-power-variant",
+          "color": "yellow",
+          "open": "pv",
+          "always_active": true
+        },
+        {
+          "label": "Info",
+          "icon": "information-outline",
+          "open": "info",
+          "always_active": true
+        }
+      ]
+    },
+    {
+      "id": "radio",
+      "type": "buttons",
+      "title": "Radio & speaker",
+      "buttons": [
+        {
+          "label": "Radio 1",
+          "icon": "radio",
+          "item": "playRadioOffice1",
+          "value": "none"
+        },
+        {
+          "label": "Radio 2",
+          "icon": "radio",
+          "item": "playRadioOffice2",
+          "value": "none"
+        },
+        {
+          "label": "Radio 3",
+          "icon": "radio",
+          "item": "playRadioOffice3",
+          "value": "none"
+        },
+        {
+          "label": "Radio 4",
+          "icon": "radio",
+          "item": "playRadioOffice4",
+          "value": "none"
+        },
+        {
+          "label": "Radio 5",
+          "icon": "radio",
+          "item": "playRadioOffice5",
+          "value": "none"
+        },
+        {
+          "label": "Radio 6",
+          "icon": "radio",
+          "item": "playRadioOffice6",
+          "value": "none"
+        },
+        {
+          "label": "Radio 7",
+          "icon": "radio",
+          "item": "playRadioOffice7",
+          "value": "none"
+        },
+        {
+          "label": "Speaker",
+          "icon": "speaker",
+          "color": "dark-grey",
+          "open": "speaker",
+          "always_active": true
+        }
+      ]
+    },
+    {
+      "id": "waste",
+      "type": "entities",
+      "title": "Bin collection",
+      "rows": [
+        {
+          "item": "wasteResidualNextDisposal",
+          "label": "Residual",
+          "icon": "delete",
+          "color": "white",
+          "format": "date",
+          "value_style": [
+            {
+              "within_days": 1,
+              "color": "yellow"
+            }
+          ]
+        },
+        {
+          "item": "wasteBioNextDisposal",
+          "label": "Organic",
+          "icon": "delete",
+          "color": "brown",
+          "format": "date",
+          "value_style": [
+            {
+              "within_days": 1,
+              "color": "yellow"
+            }
+          ]
+        },
+        {
+          "item": "wasteYellowNextDisposal",
+          "label": "Plastic",
+          "icon": "delete",
+          "color": "yellow",
+          "format": "date",
+          "value_style": [
+            {
+              "within_days": 1,
+              "color": "yellow"
+            }
+          ]
+        },
+        {
+          "item": "wastePaperNextDisposal",
+          "label": "Paper",
+          "icon": "delete",
+          "color": "blue",
+          "format": "date",
+          "value_style": [
+            {
+              "within_days": 1,
+              "color": "yellow"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "pv",
+      "type": "entities",
+      "title": "Solar power",
+      "rows": [
+        {
+          "item": "PV_Production_ActivePowerTotal",
+          "label": "Solar output",
+          "icon": "solar-power",
+          "value_style": [
+            {
+              "below": 0,
+              "color": "red"
+            },
+            {
+              "color": "green"
+            }
+          ]
+        },
+        {
+          "item": "PV_Grid_ActivePowerTotal",
+          "label": "Grid power",
+          "icon": "transmission-tower",
+          "value_style": [
+            {
+              "above": 0,
+              "color": "red"
+            },
+            {
+              "color": "green"
+            }
+          ]
+        },
+        {
+          "item": "PV_Battery_L1_Level",
+          "label": "Battery (L1)",
+          "icon": "home-battery-outline"
+        },
+        {
+          "item": "PV_Battery_L2_Level",
+          "label": "Battery (L2)",
+          "icon": "home-battery-outline"
+        },
+        {
+          "item": "PV_Battery_L3_Level",
+          "label": "Battery (L3)",
+          "icon": "home-battery-outline"
+        },
+        {
+          "item": "Grid_ImportToday",
+          "label": "Imported (grid)",
+          "icon": "transmission-tower-import"
+        },
+        {
+          "item": "Grid_ExportToday",
+          "label": "Exported (grid)",
+          "icon": "transmission-tower-export"
+        }
+      ]
+    },
+    {
+      "id": "schedule",
+      "type": "entities",
+      "title": "Schedule",
+      "wide": true,
+      "rows": [
+        {
+          "item": "ScheduleCurrentLabel",
+          "icon": "calendar-today",
+          "color": "blue",
+          "value_style": [
+            {
+              "color": "blue"
+            }
+          ]
+        },
+        null,
+        {
+          "item": "ScheduleCurrentSlot1"
+        },
+        {
+          "item": "ScheduleCurrentSlot2"
+        },
+        {
+          "item": "ScheduleCurrentSlot3"
+        },
+        {
+          "item": "ScheduleCurrentSlot4"
+        },
+        {
+          "item": "ScheduleCurrentSlot5"
+        },
+        {
+          "item": "ScheduleCurrentSlot6"
+        },
+        {
+          "item": "ScheduleNextLabel",
+          "icon": "calendar-today",
+          "color": "blue",
+          "value_style": [
+            {
+              "color": "blue"
+            }
+          ]
+        },
+        null,
+        {
+          "item": "ScheduleNextSlot1"
+        },
+        {
+          "item": "ScheduleNextSlot2"
+        },
+        {
+          "item": "ScheduleNextSlot3"
+        },
+        {
+          "item": "ScheduleNextSlot4"
+        },
+        {
+          "item": "ScheduleNextSlot5"
+        },
+        {
+          "item": "ScheduleNextSlot6"
+        }
+      ]
+    },
+    {
+      "id": "plants-indoor",
+      "type": "entities",
+      "title": "Plant sensors (indoor)",
+      "style": "rows",
+      "group": "gPlantsIndoor",
+      "metadata": "plant",
+      "label": "{room} > {short_name}",
+      "icon": "sprout",
+      "value_style": [
+        {
+          "at_most": "@critical",
+          "color": "red"
+        },
+        {
+          "at_most": "@warn",
+          "color": "yellow"
+        },
+        {
+          "color": "green"
+        }
+      ]
+    },
+    {
+      "id": "plants-garden",
+      "type": "entities",
+      "title": "Plant sensors (outdoor)",
+      "style": "rows",
+      "group": "gPlantsGarden",
+      "metadata": "plant",
+      "label": "{room} > {short_name}",
+      "icon": "sprout",
+      "value_style": [
+        {
+          "at_most": "@critical",
+          "color": "red"
+        },
+        {
+          "at_most": "@warn",
+          "color": "yellow"
+        },
+        {
+          "color": "green"
+        }
+      ]
+    },
+    {
+      "id": "desk-lamp",
+      "type": "light",
+      "title": "Desk lamp",
+      "icon": "desk-lamp",
+      "brightness": {
+        "item": "DeskLamp_Brightness"
+      }
+    },
+    {
+      "id": "cover-left",
+      "type": "cover",
+      "title": "Left blind",
+      "icon": "roller-shade",
+      "item": "Blind_Left"
+    },
+    {
+      "id": "cover-right",
+      "type": "cover",
+      "title": "Right blind",
+      "icon": "roller-shade",
+      "item": "Blind_Right"
+    },
+    {
+      "id": "cover-bedroom",
+      "type": "cover",
+      "title": "Bedroom blind",
+      "icon": "roller-shade",
+      "item": "Blind_Bedroom"
+    },
+    {
+      "id": "cover-laundry",
+      "type": "cover",
+      "title": "Box room blind",
+      "icon": "roller-shade",
+      "item": "Blind_BoxRoom"
+    },
+    {
+      "id": "cover-attic",
+      "type": "cover",
+      "title": "Attic blinds",
+      "icon": "roller-shade",
+      "item": "gBlindsAttic",
+      "hide_slider": true
+    },
+    {
+      "id": "speaker",
+      "type": "media",
+      "title": "Speaker",
+      "icon": "speaker",
+      "control": {
+        "item": "officeSpeakerControl"
+      },
+      "mute": {
+        "item": "officeSpeakerMute"
+      },
+      "volume": {
+        "item": "officeSpeakerVolume"
+      },
+      "track": {
+        "item": "officeSpeakerCurrentTitle"
+      },
+      "artist": {
+        "item": "officeSpeakerCurrentArtist"
+      }
+    },
+    {
+      "id": "weather",
+      "type": "weather",
+      "title": "Weather",
+      "days": [
+        {
+          "day": 0,
+          "icon": {
+            "item": "weatherTodayConditionIconId",
+            "codes": "openweathermap"
+          },
+          "min": {
+            "item": "weatherTodayMinTemperature"
+          },
+          "max": {
+            "item": "weatherTodayMaxTemperature"
+          },
+          "condition": {
+            "item": "weatherTodayCondition"
+          },
+          "extras": [
+            {
+              "icon": "weather-windy-variant",
+              "item": "weatherTodayWindSpeed",
+              "label": "Wind"
+            },
+            {
+              "icon": "weather-windy",
+              "item": "weatherTodayGustSpeed",
+              "label": "Gusts"
+            },
+            {
+              "icon": "weather-pouring",
+              "item": "weatherTodayRainVolume",
+              "label": "Rain"
+            },
+            {
+              "icon": "white-balance-sunny",
+              "item": "weatherTodayUvindex",
+              "label": "UV index"
+            }
+          ]
+        },
+        {
+          "day": 1,
+          "icon": {
+            "item": "weatherTomorrowConditionIconId",
+            "codes": "openweathermap"
+          },
+          "min": {
+            "item": "weatherTomorrowMinTemperature"
+          },
+          "max": {
+            "item": "weatherTomorrowMaxTemperature"
+          },
+          "condition": {
+            "item": "weatherTomorrowCondition"
+          },
+          "extras": [
+            {
+              "icon": "weather-windy-variant",
+              "item": "weatherTomorrowWindSpeed",
+              "label": "Wind"
+            },
+            {
+              "icon": "weather-windy",
+              "item": "weatherTomorrowGustSpeed",
+              "label": "Gusts"
+            },
+            {
+              "icon": "weather-pouring",
+              "item": "weatherTomorrowRainVolume",
+              "label": "Rain"
+            },
+            {
+              "icon": "white-balance-sunny",
+              "item": "weatherTomorrowUvindex",
+              "label": "UV index"
+            }
+          ]
+        },
+        {
+          "day": 2,
+          "icon": {
+            "item": "weatherDay2ConditionIconId",
+            "codes": "openweathermap"
+          },
+          "min": {
+            "item": "weatherDay2MinTemperature"
+          },
+          "max": {
+            "item": "weatherDay2MaxTemperature"
+          },
+          "condition": {
+            "item": "weatherDay2Condition"
+          },
+          "extras": [
+            {
+              "icon": "weather-windy-variant",
+              "item": "weatherDay2WindSpeed",
+              "label": "Wind"
+            },
+            {
+              "icon": "weather-windy",
+              "item": "weatherDay2GustSpeed",
+              "label": "Gusts"
+            },
+            {
+              "icon": "weather-pouring",
+              "item": "weatherDay2RainVolume",
+              "label": "Rain"
+            },
+            {
+              "icon": "white-balance-sunny",
+              "item": "weatherDay2Uvindex",
+              "label": "UV index"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "guest-wifi",
+      "type": "qr",
+      "title": "Guest WiFi",
+      "text": "WIFI:S:guest;T:WPA;P:<password>;;"
+    },
+    {
+      "id": "info",
+      "type": "system"
+    }
+  ]
+}

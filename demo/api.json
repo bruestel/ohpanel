@@ -1,0 +1,352 @@
+{
+ "info": {
+  "device": "ohpanel-kitchen",
+  "uptime_s": 93784,
+  "heap": 113155,
+  "heap_min": 60751,
+  "heap_total": 329267,
+  "heap_largest": 69632,
+  "cpu": {
+   "mhz": 160,
+   "time_us": 11605643145,
+   "idle_us": [
+    10665001170,
+    11432407469
+   ]
+  },
+  "psram": 2097152,
+  "psram_free": 1250020,
+  "version": "demo",
+  "relays": [
+   true,
+   false
+  ],
+  "net": {
+   "state": "connected",
+   "channel": 6,
+   "ip": "192.168.1.42",
+   "ssid": "HomeWiFi",
+   "rssi": -58,
+   "provisioning": false,
+   "ip_config": {
+    "mode": "dhcp",
+    "address": "",
+    "prefix": 24,
+    "gateway": "",
+    "dns1": "",
+    "dns2": "",
+    "ipv6": true
+   },
+   "mode": "dhcp",
+   "fallback": false,
+   "prefix": 24,
+   "gateway": "192.168.1.1",
+   "dns1": "192.168.1.1",
+   "dns2": "",
+   "dns3": "",
+   "gateway6": "",
+   "time_servers": [
+    {
+     "server": "192.168.1.1",
+     "source": "dhcp"
+    },
+    {
+     "server": "pool.ntp.org",
+     "source": "pool"
+    }
+   ],
+   "ipv6": [
+    {
+     "address": "fd00::42",
+     "kind": "unique-local"
+    },
+    {
+     "address": "fe80::3ee9:eff:fe00:42",
+     "kind": "link-local"
+    }
+   ],
+   "configured_ssid": "HomeWiFi",
+   "security": "auto",
+   "network_security": "wpa2"
+  },
+  "https": {
+   "running": true,
+   "force": true
+  },
+  "time": {
+   "synced": true,
+   "epoch_ms": 0,
+   "ntp_server": "",
+   "tz_name": "Europe/Berlin"
+  },
+  "openhab": {
+   "url": "http://openhab.local:8080",
+   "connected": true,
+   "subscribed": 96,
+   "received": 96,
+   "reconnects": 0,
+   "last_error": ""
+  },
+  "auth": {
+   "enabled": false,
+   "has_password": false,
+   "user": "admin"
+  },
+  "temperature": {
+   "celsius": 21.4,
+   "raw": 21.4,
+   "offset_tenths": 0,
+   "item": ""
+  },
+  "display": {
+   "design_expected": "57afa022",
+   "link_baud": 921600,
+   "log_commands": false,
+   "design": "57afa022",
+   "design_current": true,
+   "model": "NX4832F035_011C",
+   "firmware": "115",
+   "mcu": "61744",
+   "serial": "45B0DEMO00000001",
+   "flash": 16777216
+  },
+  "transfer": {
+   "running": false,
+   "kind": "",
+   "done": 0,
+   "total": 0,
+   "elapsed_ms": 0
+  }
+ },
+ "health": {
+  "boot_reason": "software restart",
+  "crashed": false,
+  "uptime_s": 93784,
+  "heap": 113155,
+  "heap_min": 60751,
+  "heap_largest": 69632,
+  "crash": null,
+  "coredump": 0,
+  "watchdog": true,
+  "tx_power": 0,
+  "cpu_mhz": 160,
+  "cores": 2,
+  "run_time": 11607135808,
+  "tasks": [
+   {
+    "name": "httpd",
+    "stack_free": 6908,
+    "prio": 5,
+    "core": -1,
+    "run_time": 20392681
+   },
+   {
+    "name": "IDLE1",
+    "stack_free": 816,
+    "prio": 0,
+    "core": 1,
+    "run_time": 11432575021
+   },
+   {
+    "name": "IDLE0",
+    "stack_free": 820,
+    "prio": 0,
+    "core": 0,
+    "run_time": 10666136510
+   },
+   {
+    "name": "display",
+    "stack_free": 3404,
+    "prio": 4,
+    "core": -1,
+    "run_time": 83805973
+   },
+   {
+    "name": "oh_stream",
+    "stack_free": 3704,
+    "prio": 5,
+    "core": -1,
+    "run_time": 239107795
+   },
+   {
+    "name": "nextion_rx",
+    "stack_free": 2556,
+    "prio": 6,
+    "core": -1,
+    "run_time": 41228342
+   },
+   {
+    "name": "tcpip",
+    "stack_free": 1856,
+    "prio": 18,
+    "core": -1,
+    "run_time": 85891639
+   },
+   {
+    "name": "mdns",
+    "stack_free": 1720,
+    "prio": 1,
+    "core": 0,
+    "run_time": 39061220
+   },
+   {
+    "name": "main",
+    "stack_free": 5416,
+    "prio": 1,
+    "core": 0,
+    "run_time": 97443958
+   },
+   {
+    "name": "cover",
+    "stack_free": 2844,
+    "prio": 3,
+    "core": 1,
+    "run_time": 5295833
+   },
+   {
+    "name": "httpd",
+    "stack_free": 9332,
+    "prio": 5,
+    "core": -1,
+    "run_time": 1165
+   },
+   {
+    "name": "tls",
+    "stack_free": 2416,
+    "prio": 3,
+    "core": -1,
+    "run_time": 1453630
+   },
+   {
+    "name": "ipc0",
+    "stack_free": 476,
+    "prio": 24,
+    "core": 0,
+    "run_time": 357850
+   },
+   {
+    "name": "wifi",
+    "stack_free": 4188,
+    "prio": 23,
+    "core": 0,
+    "run_time": 430003688
+   },
+   {
+    "name": "sys_evt",
+    "stack_free": 892,
+    "prio": 20,
+    "core": 0,
+    "run_time": 2176893
+   },
+   {
+    "name": "esp_timer",
+    "stack_free": 3308,
+    "prio": 22,
+    "core": 0,
+    "run_time": 43106049
+   },
+   {
+    "name": "ipc1",
+    "stack_free": 476,
+    "prio": 24,
+    "core": 1,
+    "run_time": 2977265
+   },
+   {
+    "name": "oh_worker",
+    "stack_free": 4584,
+    "prio": 5,
+    "core": -1,
+    "run_time": 3173665
+   },
+   {
+    "name": "Tmr Svc",
+    "stack_free": 1628,
+    "prio": 1,
+    "core": -1,
+    "run_time": 145
+   }
+  ]
+ },
+ "tls": {
+  "ca": {
+   "subject": "CN=OHpanel ohpanel-kitchen CA, O=OHpanel",
+   "fingerprint": "A1:B2:C3:D4:A1:B2:C3:D4:A1:B2:C3:D4:A1:B2:C3:D4:A1:B2:C3:D4:A1:B2:C3:D4:A1:B2:C3:D4:A1:B2:C3:D4",
+   "valid_to": "2049-12-31",
+   "own": false
+  },
+  "server": {
+   "fingerprint": "0F:1E:2D:3C:0F:1E:2D:3C:0F:1E:2D:3C:0F:1E:2D:3C:0F:1E:2D:3C:0F:1E:2D:3C:0F:1E:2D:3C:0F:1E:2D:3C",
+   "valid_to": "2049-12-31",
+   "names": [
+    "192.168.4.1",
+    "192.168.1.42",
+    "ohpanel-kitchen.local"
+   ]
+  },
+  "running": true,
+  "force": false,
+  "hosts": []
+ },
+ "ota_status": {
+  "partition": "ota_1",
+  "version": "demo",
+  "built": "Oct 17 2026",
+  "pending_verify": false,
+  "slot_size": 1900544
+ },
+ "config_openhab": {
+  "url": "http://openhab.local:8080",
+  "has_token": true,
+  "tls": "none",
+  "ca": "",
+  "check_name": true,
+  "ca_info": ""
+ },
+ "wifi_scan": [
+  {
+   "ssid": "HomeWiFi",
+   "rssi": -52,
+   "secured": true,
+   "security": "wpa2"
+  },
+  {
+   "ssid": "HomeWiFi-Guest",
+   "rssi": -55,
+   "secured": true,
+   "security": "wpa2"
+  },
+  {
+   "ssid": "Neighbour",
+   "rssi": -71,
+   "secured": true,
+   "security": "wpa2/wpa3"
+  },
+  {
+   "ssid": "Printer-Direct",
+   "rssi": -80,
+   "secured": false,
+   "security": "open"
+  }
+ ],
+ "openhab_scan": {
+  "servers": [
+   {
+    "name": "openhab",
+    "hostname": "openhab.local",
+    "address": "192.168.1.10",
+    "http": 8080,
+    "https": 8443,
+    "tls": {
+     "found": false
+    },
+    "http_ok": true,
+    "version": "5.1.4"
+   }
+  ]
+ },
+ "log": {
+  "next": 1497,
+  "text": "I (1412) ohpanel: ohpanel demo (Oct 17 2026 10:00:00)\nI (1418) ohpanel: ESP-IDF 6.0.1, 2 core(s), rev v3.1, 4 MB flash, 2048 KB PSRAM\nI (1426) diag: Boot reason: power on\nI (1515) appstore: Storage mounted: 1 files, 24576 of 262144 bytes used\nI (1522) appnet: Timezone Europe/Berlin (CET-1CEST,M3.5.0,M10.5.0/3)\nI (2170) icons: 7497 icons, set e0a8070c\nI (2174) nextion: Display on UART2 (TX 16, RX 17) at 921600 baud\nI (3290) display: display link: search -> identify\nI (3292) display: display found at 921600 baud\nI (3330) display: Display NX4832F035_011C, firmware 115, serial 45B0DEMO00000001\nI (3331) display: display link: identify -> up\nI (3505) appnet: state: connecting\nI (3550) appweb: HTTP server up, auth off\nI (4300) appweb: HTTPS server up\nI (4650) appnet: Connected, IP 192.168.1.42, hostname \"ohpanel-kitchen\"\nI (4660) appnet: Link: WiFi 4 (11n), rssi -58, channel 6\nI (4680) appnet: SNTP started: 192.168.1.1 from DHCP, fallback pool.ntp.org\nI (4720) appnet: Also reachable at http://ohpanel-kitchen.local/\nI (5210) appnet: IPv6 address fd00::42\nI (7100) appnet: Clock set from NTP: 2026-10-17 08:00:03 UTC\nI (7950) appoh: Stream open, connection 00000000-0000-0000-0000-000000000000\nI (10800) appoh: Subscribed to 96 items\nI (63600) ohpanel: net: connected 192.168.1.42\nI (63605) ohpanel: openHAB: connected, 96/96 items, 0 reconnects\nI (63606) ohpanel: health: heap 114023 (min 92811), psram free 1301240, boot: power on\nI (66150) netwatch: Gateway answers; watching the network"
+ }
+}

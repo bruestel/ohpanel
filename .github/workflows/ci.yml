@@ -1,0 +1,40 @@
+# Every push and pull request: the host tests, the web interface's start, the firmware build and the demo.
+name: ci
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # git describe: the firmware's version
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/cache@v4
+        with:
+          path: ~/.platformio
+          key: pio-${{ hashFiles('platformio.ini', 'dependencies.lock', 'sdkconfig.defaults') }}
+      - name: PlatformIO, and rsvg-convert for OHpanel's own icons
+        run: |
+          sudo apt-get install -y librsvg2-bin
+          pip install platformio pillow numpy "esptool>=4.8,<5"   # esptool: the factory image (tools/merge_factory.py)
+      - name: Firmware   # first: it fetches cJSON (managed_components) and makes the icon set, which the tests use
+        run: |
+          pio run -e nspanel
+          ls .pio/build/nspanel/ohpanel-nspanel-eu-factory-*.bin   # the factory image made too
+      - name: Host tests
+        run: test/host/run.sh
+      - name: Web interface
+        run: node tools/check_ui.js
+      - name: Texts current
+        run: python3 tools/gen_texts.py --check
+      - name: Demo
+        run: python3 tools/build_demo.py
