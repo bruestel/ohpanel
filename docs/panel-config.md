@@ -4,7 +4,8 @@ Everything a panel shows (pages, buttons, entries, the home screen) is one
 JSON document, stored on the panel and edited in its web interface (tab
 *Panel*). One firmware serves every room; the rooms differ only in this file.
 [`demo/config.json`](../demo/config.json) is an example with every page type, the one the
-[demo](https://bruestel.github.io/ohpanel/demo/) shows.
+[demo](https://bruestel.github.io/ohpanel/demo/) shows; [openHAB items for the example](openhab-items.md) has the
+items it names, as an `.items` file.
 
 States and labels come from openHAB: the panel subscribes to every item the
 configuration names and shows openHAB's formatted value (`displayState`: the
@@ -265,8 +266,8 @@ Plant sensors, for instance, in a `.items` file:
 
 ```
 Group gPlantsIndoor "Plants indoor"
-Number:Dimensionless Mi_Flora_5_Moisture "Soil moisture" (gPlantsIndoor)
-    { plant="Ficus" [zone="EG", room="Wohnzimmer", short_name="Ficus", sensor=5, warn=25, critical=20, order=4] }
+Number:Dimensionless Plant_Ficus_Moisture "Soil moisture" (gPlantsIndoor)
+    { plant="Ficus" [room="Living room", short_name="Ficus", warn=25, critical=20, order=4] }
 ```
 
 ```json
@@ -368,7 +369,7 @@ title), `style`, `reverse`, `from`, `moving` (an item's name, for a group's memb
 `"Sun=70, Shade=100"`) and, for a group's rows, `label`:
 
 ```
-Rollershutter TerraceAwning "Markise" { cover=" " [style="awning", presets="Sun=60, Shade=100"] }
+Rollershutter Awning_Terrace "Terrace awning" { cover=" " [style="awning", presets="Sun=60, Shade=100"] }
 ```
 
 **A group** (`"group"`) shows the whole group at the top (taller, larger

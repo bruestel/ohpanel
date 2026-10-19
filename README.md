@@ -91,6 +91,7 @@ The [installation guide](docs/install.md) has every step, and what to do when on
 
 - [Installation](docs/install.md): from the box to the first page
 - [Panel configuration](docs/panel-config.md): pages, home screen, display settings, the JSON reference
+- [openHAB items for the example](docs/openhab-items.md): the items of the example configuration, as an `.items` file
 - [Weather codes and icons](docs/weather-codes.md): which icon each code of an openHAB weather add-on shows
 - [Flashing in detail](docs/flashing.md): what is on the flash, esptool and PlatformIO, migrating
 - [Crash analysis](docs/crash-analysis.md): core dumps
