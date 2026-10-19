@@ -11,6 +11,7 @@
 #include <freertos/task.h>
 
 #include <algorithm>
+#include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #include <vector>
@@ -36,6 +37,20 @@ constexpr int kSyncGiveUp = 3;
    design of ours), 9600 (the Nextion default: another design, or one without
    a valid design). */
 constexpr int kOtherRates[] = {115200, 9600};
+
+/* Sonoff's own design (still on the display of a panel from the shop or
+   with Tasmota) runs in protocol reparse mode (recmod=1): the display passes
+   every byte to the design and executes no command, so it answers nothing
+   but buffer overflows (0x24). This string makes it leave that mode until it
+   restarts -- what Tasmota and the NSPanel HA Blueprint send before an
+   upload too. */
+void leave_reparse_mode(uart_port_t port) {
+  static const char kLeave[] = "\xFF\xFF\xFF" "DRAKJHSUYDGBNCJHGJKSHBDN\xFF\xFF\xFF"
+                               "recmod=0\xFF\xFF\xFF" "recmod=0\xFF\xFF\xFF";
+  uart_write_bytes(port, kLeave, sizeof(kLeave) - 1);
+  uart_wait_tx_done(port, pdMS_TO_TICKS(200));
+  vTaskDelay(pdMS_TO_TICKS(100));
+}
 
 }  // namespace
 
@@ -89,22 +104,29 @@ bool Display::ping() {
 
 bool Display::lost() const { return sync_misses_ >= kSyncGiveUp; }
 
-/* The rate in use first, then the design's, then the others. Called with the
-   mutex held. */
+/* The rate in use first, then the design's, then the others; answering at
+   none, the same once more after asking it to leave protocol reparse mode
+   (Sonoff's design). Called with the mutex held. */
 int Display::locate_locked() {
   std::vector<int> rates = {baud_, cfg_.baud};
   for (const int r : kOtherRates)
     rates.push_back(r);
-  for (size_t i = 0; i < rates.size(); i++) {
-    if (std::find(rates.begin(), rates.begin() + i, rates[i]) != rates.begin() + i)
-      continue;   // tried already
-    if (rates[i] != baud_) {
-      uart_set_baudrate(cfg_.port, rates[i]);
-      baud_ = rates[i];
-    }
-    if (ping_locked(200)) {
-      sync_misses_ = 0;
-      return baud_;
+  for (const bool leave : {false, true}) {
+    for (size_t i = 0; i < rates.size(); i++) {
+      if (std::find(rates.begin(), rates.begin() + i, rates[i]) != rates.begin() + i)
+        continue;   // tried already
+      if (rates[i] != baud_) {
+        uart_set_baudrate(cfg_.port, rates[i]);
+        baud_ = rates[i];
+      }
+      if (leave)
+        leave_reparse_mode(cfg_.port);
+      if (ping_locked(200)) {
+        sync_misses_ = 0;
+        if (leave)
+          ESP_LOGW(TAG, "the display ran in protocol reparse mode (Sonoff's design) -- left it");
+        return baud_;
+      }
     }
   }
   return 0;
@@ -203,18 +225,35 @@ void raw(uart_port_t port, const std::string &command) {
 }
 }  // namespace
 
+/* Only 0x05 confirms a block. Anything else is skipped: a display that does
+   not take the upload (one in protocol reparse mode) still sends status
+   bytes -- buffer overflows, 0x24 --, and taking those for confirmations
+   "wrote" the whole file into nowhere. */
 bool Display::wait_ack(uint32_t timeout_ms, std::string *error) {
-  uint8_t b = 0;
-  const int n = uart_read_bytes(cfg_.port, &b, 1, pdMS_TO_TICKS(timeout_ms));
-  if (n == 1) {
-    // 0x05: block accepted. The proven path treated any byte as the go-ahead; so does this,
-    // but it says so when the display answers something else.
-    if (b != 0x05)
+  const int64_t until = esp_timer_get_time() + int64_t(timeout_ms) * 1000;
+  int other = -1;   // the first other byte, for the error
+  for (;;) {
+    const int64_t left_us = until - esp_timer_get_time();
+    if (left_us <= 0)
+      break;
+    uint8_t b = 0;
+    if (uart_read_bytes(cfg_.port, &b, 1, pdMS_TO_TICKS(left_us / 1000 + 1)) != 1)
+      break;
+    if (b == 0x05)
+      return true;
+    if (other < 0) {
+      other = b;
       ESP_LOGW(TAG, "upload: display answered 0x%02X instead of 0x05", b);
-    return true;
+    }
   }
-  if (error)
+  if (error) {
     *error = "the display did not confirm (timeout after " + std::to_string(upload_done_) + " bytes)";
+    if (other >= 0) {
+      char hex[8];
+      snprintf(hex, sizeof(hex), "0x%02X", other);
+      *error += "; it answered " + std::string(hex) + " instead";
+    }
+  }
   return false;
 }
 
@@ -250,6 +289,7 @@ bool Display::upload_begin(size_t size, int baud, std::string *error) {
       rates.push_back(r);
   for (size_t i = 0; i < rates.size(); i++) {
     uart_set_baudrate(cfg_.port, rates[i]);
+    leave_reparse_mode(cfg_.port);   // does no harm where it is not in it
     raw(cfg_.port, "");
     raw(cfg_.port, "connect");
     vTaskDelay(pdMS_TO_TICKS(300));

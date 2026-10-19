@@ -1,7 +1,7 @@
 # A tag v<version>: the firmware built, the release zip made (tools/make_release.py: the images, the display design
 # kept in boards/nspanel/nextion/display/, the licences) and published with the notes of docs/releases/<version>.md.
 # Then the Pages site again, so the browser flasher serves the new factory image (a release made with the workflow's
-# own token starts no other workflow by itself).
+# own token starts no other workflow by itself). A tag with a suffix (v0.9.1-rc1) is a pre-release: no Pages.
 name: release
 
 on:
@@ -45,8 +45,10 @@ jobs:
           version="${GITHUB_REF_NAME#v}"
           notes="docs/releases/$version.md"
           if [ -f "$notes" ]; then set -- --notes-file "$notes"; else set -- --generate-notes; fi
+          case "$version" in *-*) set -- "$@" --prerelease ;; esac   # v0.9.1-rc1: a test build, not the latest
           gh release create "$GITHUB_REF_NAME" "dist/ohpanel-$version.zip" --title "OHpanel $version" "$@"
       - name: Pages
+        if: ${{ !contains(github.ref_name, '-') }}   # the browser flasher keeps the latest release
         env:
           GH_TOKEN: ${{ github.token }}
         run: gh workflow run pages.yml --ref main

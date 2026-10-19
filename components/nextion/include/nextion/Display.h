@@ -76,7 +76,9 @@ class Display {
   /* Looks for the display at the rates it may run at -- Config::baud (the
      design's), then 115200 and 9600 (an older or another design, a display
      without a valid one) -- and keeps the link at the one it answers at.
-     Returns that rate, 0 if it answers at none. */
+     Answering at none, it asks the display to leave protocol reparse mode
+     (Sonoff's design, see Display.cpp) and tries again. Returns that rate, 0
+     if it answers at none. */
   int locate();
   /* Whether it answers at the rate in use. */
   bool ping();
