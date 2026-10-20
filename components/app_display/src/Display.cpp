@@ -550,11 +550,19 @@ void send_raw(const std::string &command) {
 // the display restarts after an upload, with its boot page: nothing of ours to draw on
 static void display_away() { post(new Job{Job::Kind::Away, {}, {}, {}, 0, false}); }
 
+/* The display switched off and on first, every time: an upload then meets it as it starts, not in what it
+   was told since -- protocol reparse mode, which the firmware before switches on (Sonoff's, Tasmota's
+   driver) and a restart of the ESP alone does not end, a rate changed, an upload broken off. A design
+   that enters that mode by itself is asked to leave it (nextion::Display::upload_begin). */
 bool tft_begin(size_t size, int baud, std::string *error) {
   display_away();
+  if (g_hooks.power_cycle) {
+    ESP_LOGI(TAG, "switching the display off and on before the upload");
+    g_hooks.power_cycle();
+  }
   if (g_display.upload_begin(size, baud, error))
     return true;
-  // no answer at any rate: perhaps stuck in an upload broken off -- once more after switching it off and on
+  // no answer at any rate: once more after switching it off and on
   if (!g_hooks.power_cycle)
     return false;
   ESP_LOGW(TAG, "the display does not take the upload -- switching it off and on, then again");

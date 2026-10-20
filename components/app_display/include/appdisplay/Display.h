@@ -57,7 +57,8 @@ struct DesignCheck {
 DesignCheck design_check();
 
 /* Writing a display firmware (.tft) -- see nextion::Display. Called from the
-   web server's task; the display logic pauses meanwhile. */
+   web server's task; the display logic pauses meanwhile. tft_begin switches
+   the display off and on first (about 2.3 s), so the upload meets it fresh. */
 bool tft_begin(size_t size, int baud, std::string *error);
 bool tft_write(const uint8_t *data, size_t len, std::string *error);
 bool tft_end(std::string *error);

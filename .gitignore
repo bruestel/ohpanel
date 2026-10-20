@@ -62,3 +62,7 @@ docs/TODO.md
 
 # Claude Code, local
 .claude/
+
+# Sonoff's own display design (from the web archive) and test designs that behave like it, for local tests only:
+# Sonoff's firmware, not ours to publish
+boards/nspanel/nextion/stock/
