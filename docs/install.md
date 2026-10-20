@@ -72,7 +72,8 @@ panel gets power, the ESP32 starts its bootloader and waits for the flash.
 ## Flash
 
 Coming from other firmware (Sonoff's own, Tasmota, ESPHome), erase the flash first: their settings are not
-taken over.
+taken over. Flash over the serial port even where the other firmware could take OHpanel over WiFi (Tasmota's
+update can): that keeps its partition table, in which OHpanel cannot store its configuration nor update itself.
 
 **In the browser** (Chrome or Edge): open the [OHpanel flasher](https://bruestel.github.io/ohpanel/flash/),
 click *Connect*, choose the adapter's port and *Install OHpanel*. Tick *Erase device* to erase it first.
