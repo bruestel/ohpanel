@@ -1449,7 +1449,10 @@ void Engine::act_button(const cJSON *page, int index) {
    own instead of following the stale one. "relay": false only commands the
    item. */
 void Engine::hardware_button(int index) {
-  touched_ms_ = now_ms_;  // someone is at the panel (idle())
+  // someone is at the panel (idle()) -- but a screen that is off stays off: the light switched at night
+  // does not light the room with the display too; a touch wakes it
+  if (!asleep_)
+    touched_ms_ = now_ms_;
   const cJSON *r = slot(member(config_, "home"), "relays", index);
   const std::string item = str(r, "item");
   const bool switches = !r || flag(r, "relay", true);

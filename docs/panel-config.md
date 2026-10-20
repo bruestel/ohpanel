@@ -108,7 +108,8 @@ with a `format` it shows the whole text instead.
 | `night` | `{"from", "to"}` or `{"item"}` | off at night, once idle: by the clock (`"23:00"` .. `"06:00"`, across midnight too) or while a Switch item is ON |
 
 Off (at night, or idle at 0 %), the display shows a black page; a touch on
-it only wakes the screen (it presses nothing) and opens home. A number with an
+it only wakes the screen (it presses nothing) and opens home. The two front
+buttons switch as always but leave it off. A number with an
 `item` (a Dimmer or Number) is kept in step with it: what openHAB says wins,
 also after a restart, and is kept in the configuration; a change made here
 (the web interface) is sent to the item.

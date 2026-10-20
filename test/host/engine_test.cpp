@@ -1869,6 +1869,11 @@ int main(int argc, char **argv) {
     CHECK(e.asleep());                                 // the black page loading is no touch: it stays off
     e.idle(t += 60000);
     CHECK(e.asleep());
+    e.hardware_button(0);
+    e.idle(t += 100);
+    CHECK(e.asleep() && e.brightness() == 0);          // a front button switches, the screen stays off
+    e.hardware_button(0);                              // (the relay back as it was)
+    e.idle(t += 100);
     e.on_message(event("blank", "wake", "release"));
     e.idle(t += 100);
     CHECK(!e.asleep() && e.brightness() == 85);
