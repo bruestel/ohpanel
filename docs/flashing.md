@@ -113,3 +113,12 @@ A firmware update over WiFi (Settings > Firmware,
 interface says so on every page and names the file: write
 `ohpanel-nspanel-eu-display-<version>.tft` of the same release under Settings >
 Firmware > Display firmware.
+
+A panel takes only its own variant's firmware: an NSPanel EU refuses `ohpanel-nspanel-us-firmware-...` and the other
+way round. Both have the same hardware, so to try one variant's design on the other panel the API takes it all the
+same with `any_variant=1` (not in the web interface; firmware that is not OHpanel's is still refused):
+
+    curl -u <user>:<password> --data-binary @ohpanel-nspanel-us-firmware-<version>.bin \
+        "https://<panel>/api/v1/ota?any_variant=1"
+
+then write that variant's display design. Back the same way.

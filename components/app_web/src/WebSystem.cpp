@@ -53,6 +53,8 @@ esp_err_t post_ota(httpd_req_t *req) {   // in_own_task: the password checked al
     return ota_fail(req, 0, "image larger than the OTA slot -- one for another partition table, which only a "
                             "serial flash brings (docs/flashing.md)");
 
+  const bool any_variant = query_param(req, "any_variant") == "1";   // see the project name's check below
+
   esp_ota_handle_t handle = 0;
   esp_err_t err = esp_ota_begin(target, total, &handle);
   if (err != ESP_OK)
@@ -97,12 +99,19 @@ esp_err_t post_ota(httpd_req_t *req) {   // in_own_task: the password checked al
       const esp_app_desc_t *self = esp_app_get_description();
       if (std::strncmp(desc->project_name, self->project_name, sizeof(desc->project_name)) != 0) {
         /* another panel variant's (CMakeLists.txt: "ohpanel" the NSPanel EU's, "ohpanel-us" the US's), or not
-           OHpanel at all */
+           OHpanel at all. The other variant's only with ?any_variant=1 (not in the web interface): the hardware
+           is the same, only the display design is turned otherwise -- to try one panel's design on the other. */
         const std::string other(desc->project_name, strnlen(desc->project_name, sizeof(desc->project_name)));
-        *why = other.rfind("ohpanel", 0) == 0
-                   ? "firmware for another panel (" + other + "); this one takes " + self->project_name
-                   : "firmware is for a different project";
-        return false;
+        const bool ours = other == "ohpanel" || other.rfind("ohpanel-", 0) == 0;
+        if (!ours) {
+          *why = "firmware is for a different project";
+          return false;
+        }
+        if (!any_variant) {
+          *why = "firmware for another panel (" + other + "); this one takes " + self->project_name;
+          return false;
+        }
+        ESP_LOGW(TAG, "OTA: firmware of another panel variant (%s), as asked", other.c_str());
       }
       ESP_LOGI(TAG, "Incoming version: %s", desc->version);
       checked = true;
