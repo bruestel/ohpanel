@@ -107,7 +107,7 @@ std::string text_of(const cJSON *o, const char *key) {
   return v ? v : "";
 }
 
-void fetch_task(void *arg) {
+void fetch_item(void *arg) {
   std::unique_ptr<std::string> item(static_cast<std::string *>(arg));
   const appcfg::OpenHab cfg = appcfg::openhab();
   std::vector<Option> out;
@@ -198,6 +198,12 @@ void fetch_task(void *arg) {
     if (listener)
       listener(*item);
   }
+}
+
+/* vTaskDelete() does not return: a destructor after it in the same function never runs. Each fetch left its
+   locals behind -- the options, the metadata, the settings with the CA --, some 40 KB of PSRAM a refresh. */
+void fetch_task(void *arg) {
+  fetch_item(arg);
   vTaskDelete(nullptr);
 }
 
