@@ -2,14 +2,14 @@
 One image for a first, serial flash: the bootloader, the partition table, the
 OTA data and the firmware (the icon set embedded), merged at their offsets:
 
-    .pio/build/nspanel/ohpanel-nspanel-eu-factory-<version>.bin     written at 0x0
+    .pio/build/<env>/ohpanel-nspanel-<variant>-factory-<version>.bin     written at 0x0
 
     esptool --chip esp32 write_flash 0x0 ohpanel-nspanel-eu-factory-<version>.bin
 
 and the firmware alone, for an update over the web interface, under its release
-name: .pio/build/nspanel/ohpanel-nspanel-eu-firmware-<version>.bin. The board is
-the environment's custom_board (platformio.ini), the version the firmware's
-(version_stamp.py).
+name: .pio/build/<env>/ohpanel-nspanel-<variant>-firmware-<version>.bin. The
+variant is the environment's custom_variant (platformio.ini, tools/variant.py),
+the version the firmware's (version_stamp.py).
 
 The gaps between the parts are filled with 0xFF: writing it erases the nvs
 partition (WiFi, passwords, openHAB) too -- right for a first flash, not for a
@@ -23,8 +23,11 @@ from FLASH_EXTRA_IMAGES, which the platform fills.
 import pathlib
 import shutil
 import subprocess
+import sys
 
 Import("env")  # noqa: F821  (injected by PlatformIO)
+sys.path.insert(0, str(pathlib.Path(env.subst("$PROJECT_DIR")) / "tools"))  # noqa: F821
+import variant  # noqa: E402
 
 
 def merge(target, source, env):
@@ -39,7 +42,7 @@ def merge(target, source, env):
         if needed not in names:
             print(f"merge_factory: {needed} is missing, no factory image")
             return
-    board = env.GetProjectOption("custom_board", "nspanel-eu")
+    board = variant.board(variant.current(env))
     stamp = build / "ohpanel-version.txt"   # version_stamp.py
     version = stamp.read_text().strip() if stamp.exists() else "unknown"
     if version[:1] == "v" and version[1:2].isdigit():

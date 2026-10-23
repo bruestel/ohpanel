@@ -15219,6 +15219,13 @@
    ]
   }
  },
+ "screen": {
+  "w": 480,
+  "h": 320,
+  "visible_w": 450,
+  "visible_h": 320
+ },
+ "variant": "eu",
  "objects": {
   "home": [
    "swipe",
@@ -16030,5 +16037,5 @@
    "busy_tm"
   ]
  },
- "design": "bc629e1e"
+ "design": "4508cd3f"
 }

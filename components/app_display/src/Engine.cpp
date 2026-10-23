@@ -251,6 +251,12 @@ bool Engine::load_design(const char *manifest_json, const char *weather_json) {
     return cJSON_IsNumber(v) ? v->valueint : dflt;
   };
   weather_line_ = {wnum("x0", 0), std::max(1, wnum("step", 1)), wnum("n", 0), wnum("font", 0), wnum("high_x", 0)};
+  const cJSON *sc = member(m, "screen");
+  const auto snum = [sc](const char *key, int dflt) {
+    const cJSON *v = member(sc, key);
+    return cJSON_IsNumber(v) && v->valueint > 0 ? v->valueint : dflt;
+  };
+  display_size_ = {snum("w", 480), snum("h", 320), snum("visible_w", 450), snum("visible_h", 320)};
   fit_.clear();
   const cJSON *fit = member(m, "fit");
   for (const cJSON *pg = cJSON_IsObject(fit) ? fit->child : nullptr; pg; pg = pg->next)
@@ -1577,12 +1583,14 @@ void Engine::draw_note() {
   if (!note_ || note_drawn_ || !started_ || asleep_ || status_.setup || !expected_.empty() || shown_.empty() ||
       shown_ == "boot" || shown_ == "blank")
     return;
-  constexpr int kVisibleW = 450;  // the panel's frame covers the rest (boards/nspanel/nextion/layout.py VISIBLE_W)
-  constexpr int kW = 400, kX = (kVisibleW - kW) / 2, kR = 12, kPad = 14, kTitleH = 44, kLineH = 28, kMaxH = 296, kTop = 24;
+  // in what of the screen shows (manifest "screen": the NSPanel EU's frame covers its rightmost 30 px)
+  const int kW = std::min(400, display_size_.visible_w - 24), kX = (display_size_.visible_w - kW) / 2;
+  const int kMaxH = std::min(296, display_size_.visible_h - 24);
+  constexpr int kR = 12, kPad = 14, kTitleH = 44, kLineH = 28, kTop = 24;
   constexpr int kLeft = 14, kEdge = 2;  // the frame: on the left, elsewhere
   constexpr int kTitleFont = 4, kTextFont = 3, kCard = 8452, kText = 65535;
   const Note &n = *note_;
-  constexpr int kInX = kX + kLeft + 14;  // the texts' left edge
+  const int kInX = kX + kLeft + 14;  // the texts' left edge
   const int inner = kX + kW - kEdge - 12 - kInX;
   const int title_h = n.what.title.empty() ? 0 : kTitleH;
   std::vector<std::string> lines = wrap(kTextFont, n.what.text, inner);
@@ -1593,7 +1601,7 @@ void Engine::draw_note() {
   for (size_t i = 0; i < lines.size(); i++)  // a word too long for a line, the last line of a longer text
     lines[i] = shorten(kTextFont, lines[i], inner, more && i + 1 == lines.size());
   const int h = 2 * kPad + title_h + static_cast<int>(lines.size()) * kLineH;
-  const int y = std::min(kTop, (320 - h) / 2);
+  const int y = std::min(kTop, (display_size_.visible_h - h) / 2);
   const auto put = [this](const std::string &c) {
     if (link_)
       sink_.send(c);

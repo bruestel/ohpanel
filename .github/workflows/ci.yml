@@ -28,8 +28,8 @@ jobs:
           pip install platformio pillow numpy "esptool>=4.8,<5"   # esptool: the factory image (tools/merge_factory.py)
       - name: Firmware   # first: it fetches cJSON (managed_components) and makes the icon set, which the tests use
         run: |
-          pio run -e nspanel
-          ls .pio/build/nspanel/ohpanel-nspanel-eu-factory-*.bin   # the factory image made too
+          pio run $(python3 tools/variant.py)   # every panel variant with a display design (tools/variant.py)
+          ls .pio/build/nspanel*/ohpanel-nspanel-*-factory-*.bin   # the factory images made too
       - name: Host tests
         run: test/host/run.sh
       - name: Web interface

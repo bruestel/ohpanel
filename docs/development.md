@@ -5,11 +5,11 @@ compiled with the Nextion Editor under wine.
 
 ## Building
 
-    pio run -e nspanel              # the firmware (the icon set embedded)
-    pio run -e nspanel -t upload    # flash it over the serial port
-    test/host/run.sh                # the host tests (the display logic, the formats, the schema, openHAB, the Nextion protocol)
-    node tools/check_ui.js          # the web interface starts on every entry point
-    boards/nspanel/nextion/build.sh # the display design (needs the Nextion Editor under wine, ~25 min)
+    pio run -e nspanel                 # the firmware for the NSPanel EU (the icon set embedded)
+    pio run -e nspanel -t upload       # flash it over the serial port
+    test/host/run.sh                   # the host tests (the display logic, the formats, the schema, openHAB, the Nextion protocol)
+    node tools/check_ui.js             # the web interface starts on every entry point
+    boards/nspanel/nextion/build.sh eu # the display design (needs the Nextion Editor under wine, ~25 min)
 
 A build writes, in `.pio/build/nspanel/`:
 
@@ -19,9 +19,21 @@ A build writes, in `.pio/build/nspanel/`:
 | `ohpanel-nspanel-eu-factory-<version>.bin` | the first flash, at offset 0 (bootloader, partition table, firmware) |
 
 and `boards/nspanel/nextion/build.sh` writes `build/ohpanel-nspanel-eu-display-<version>.tft`, the display
-design; its version is the one the firmware expects (`display-manifest.json`), and the web interface asks for
-the file by that name when the display runs another one. The board's name in the files comes from
-`custom_board` in `platformio.ini`.
+design; its version is the one the firmware expects (`display-manifest-eu.json`), and the web interface asks for
+the file by that name when the display runs another one. The version is a hash of the design's content: a change
+to the recipe that leaves the design as it was keeps it, and panels need no new display firmware for it.
+
+### Panel variants
+
+Each panel variant has a firmware and a display design of its own (`tools/variant.py`): `eu`, the NSPanel EU
+(landscape, its frame hiding the rightmost 30 px; environment `nspanel`), and `us`, the NSPanel US (portrait;
+environment `nspanel-us`, its design not laid out yet). The variant is `custom_variant` of the environment in
+`platformio.ini`; it picks the display manifest (`boards/nspanel/nextion/display-manifest-<variant>.json`) and the
+preview's layout (`www/layout-<variant>.json`), names the release files (`ohpanel-nspanel-<variant>-...`) and the
+firmware's project (`CMakeLists.txt`: `ohpanel` for the EU, `ohpanel-us` for the US) -- so a panel refuses an update
+meant for the other variant. `boards/nspanel/nextion/build.sh <variant>` builds the variant's design
+(`boards/nspanel/nextion/layout.py` lays it out by `OHPANEL_VARIANT`); CI and the release build every variant that
+has one (`pio run $(python3 tools/variant.py)`).
 
 ## The panel's languages
 
@@ -67,8 +79,8 @@ A release has two downloads: the sources (GitHub adds them) and one `ohpanel-<ve
 and the licences that must go with every copy of them (the fonts' licences ask for that). The workflow
 `release.yml` makes it from a tag:
 
-    boards/nspanel/nextion/build.sh       # only after a change to the display design: the Nextion Editor under wine
-    git add boards/nspanel/nextion/display boards/nspanel/nextion/display-manifest.json www/layout.json
+    boards/nspanel/nextion/build.sh eu    # only after a change to the display design: the Nextion Editor under wine
+    git add boards/nspanel/nextion/display boards/nspanel/nextion/display-manifest-*.json www/layout-*.json
     $EDITOR docs/releases/1.0.0.md        # the release notes (without them GitHub writes some)
     git commit ... && git tag v1.0.0 && git push && git push --tags
 

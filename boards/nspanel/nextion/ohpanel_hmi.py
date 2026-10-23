@@ -14,7 +14,7 @@ expects), every line of code, the fonts (boards/nspanel/nextion/fonts.py) and
 Program.s. Positions come from boards/nspanel/nextion/layout.py, which the
 picture composer (boards/nspanel/nextion/assets/compose.py) shares.
 
-It also writes boards/nspanel/nextion/display-manifest.json: what the firmware and the web
+It also writes boards/nspanel/nextion/display-manifest-<variant>.json: what the firmware and the web
 interface need to know about the built design -- picture ids of the
 backgrounds and of the pictures composed onto them, page ids, and per page
 the objects that crop from the background and therefore follow a background
@@ -68,7 +68,7 @@ import fonts  # noqa: E402
 import zifont  # noqa: E402
 
 BACKGROUNDS = os.path.join(HERE, "assets", "backgrounds")
-MANIFEST = os.path.join(HERE, "display-manifest.json")
+MANIFEST = os.path.join(HERE, f"display-manifest-{layout.VARIANT}.json")   # the panel variant's (layout.py)
 
 # The background the design ships with; the firmware switches pages to the
 # configured one at runtime (page pic and the picc of every cropped object).
@@ -106,7 +106,7 @@ PROGRESS = 106                            # a progress bar: val 0..100, filled i
 SCROLL = 55                               # scrolling text: the display moves it on by itself
 SCROLL_STEP, SCROLL_MS = 3, 80            # 3 px every 80 ms (the least the display takes): 37 px a second
 SEED_PAGE = "page0"
-DIRECTION = 270   # the display turned as the NSPanel mounts it (the seed's too; set again, to be sure)
+DIRECTION = layout.DIRECTION   # the display turned as the panel mounts it (the seed's 270; set again, to be sure)
 BAUD = 921600     # the serial link's speed (the firmware's nextion::Config::baud); the TFT upload proved the line at it
 TEMPLATES: dict = {}
 BG = 0          # the default background's picture id (main())
@@ -1143,7 +1143,7 @@ def program(p: Project, version: str, bg: int, close_pic: int) -> None:
     default background's, background_globals()). Then the serial line's speed
     -- BAUD, for this run only ("baud=", not the stored "bauds="): the
     firmware talks to the design at it from the display's first byte on and
-    never switches --, the touch panel's offset on the NSPanel EU, and the
+    never switches --, the touch panel's offset (on the NSPanel EU), and the
     black page: the display knows neither the background nor the theme
     configured until the firmware has found it and sent them, so it shows
     nothing of its own before (its boot page in the default theme flashed
@@ -1163,7 +1163,7 @@ def program(p: Project, version: str, bg: int, close_pic: int) -> None:
         f"baud={BAUD}//the serial line's speed, from here on",
         "recmod=0//commands, not raw data",
         "printh 00 00 00 ff ff ff 88 ff ff ff//started, ready",
-        "lcd_dev fffb 0002 0000 0020//the touch panel's offset on the NSPanel EU",
+        *([f"lcd_dev {layout.TOUCH_OFFSET}//the touch panel's offset on the NSPanel EU"] if layout.TOUCH_OFFSET else []),
         "page blank//black until the firmware takes over",
         "",
     ])
@@ -1301,18 +1301,20 @@ def fit(p: Project, path: str) -> tuple[dict, dict]:
     return out, dict(sorted(widths.items()))
 
 
+# Program.s while the design's version is worked out (design_hash): the version cannot be part of what it is made from
+NO_VERSION = "00000000"
+
+
 def design_hash(path: str) -> str:
-    """The design's version: what it is built from -- the content of the input
-    project (the seed with the imported pictures), this recipe, the layout it
-    places things by and what the fonts are made from. The container itself
-    is left out, it changes with every save of the Editor without its content
-    changing."""
+    """The design's version: the content of the built project (`path`, saved
+    with NO_VERSION in Program.s) -- every page, picture and font, Program.s,
+    the display's direction: all the TFT is compiled from. So a change to the
+    recipe that leaves the design as it was keeps its version, and a panel
+    needs no new display firmware for it. The container itself is left out,
+    it changes with every save without its content changing."""
     h = hashlib.sha256()
     for name, data in sorted(read_container(open(path, "rb").read()).items()):
         h.update(name.encode() + b"\0" + data)
-    h.update(open(os.path.abspath(__file__), "rb").read())
-    h.update(open(layout.__file__, "rb").read())
-    h.update(fonts.fingerprint().encode())
     return h.hexdigest()[:8]
 
 
@@ -1363,8 +1365,6 @@ def main():
     hidden_until_drawn(p, {pid for bg in pictures.values() for slot in bg.values() for pid in slot.values()})
     check_icons(p)
 
-    version = design_hash(src)
-    print(f"design version: {version}")
     print("composites:", sum(len(v) for s in pictures.values() for v in s.values()), "pictures")
     keep = set(bg_ids.values()) | {pid for bg in pictures.values() for slot in bg.values() for pid in slot.values()}
     mapping = prune(p, keep)
@@ -1372,10 +1372,13 @@ def main():
     BG = bg_ids[DEFAULT_BACKGROUND]   # what the pages show from here on (the manifest's crop lists)
     pictures = {bg: {slot: {name: mapping[pid] for name, pid in pics.items()} for slot, pics in slots.items()}
                 for bg, slots in pictures.items()}
-    program(p, version, bg_ids[DEFAULT_BACKGROUND], pictures[DEFAULT_BACKGROUND]["close"]["x"])
-
     os.makedirs(os.path.dirname(os.path.abspath(out)), exist_ok=True)
+    program(p, NO_VERSION, bg_ids[DEFAULT_BACKGROUND], pictures[DEFAULT_BACKGROUND]["close"]["x"])
     changed = p.save(out)
+    version = design_hash(out)
+    print(f"design version: {version}")
+    program(p, version, bg_ids[DEFAULT_BACKGROUND], pictures[DEFAULT_BACKGROUND]["close"]["x"])
+    p.save(out)
     print(f"{out}: {len(changed)} sections changed")
 
     m = manifest(p, bg_ids, pictures)
@@ -1387,6 +1390,9 @@ def main():
     m["weather_line"] = {"x0": layout.WEATHER_LINE_LOW_X0, "step": layout.WEATHER_LINE_STEP,
                          "n": layout.WEATHER_LINE_STEPS, "font": 4, "high_x": layout.WEATHER_LINE_HIGH[0]}
     m["boxes"] = drawn_boxes(p)
+    # the display as the design is turned, and what of it shows (Engine::draw_note centres its card in that)
+    m["screen"] = {"w": layout.SCREEN_W, "h": layout.SCREEN_H, "visible_w": layout.VISIBLE_W, "visible_h": layout.VISIBLE_H}
+    m["variant"] = layout.VARIANT
     # every object by page: what the firmware may name (tools/check_names.py checks Engine*.cpp against it)
     m["objects"] = {name: [o.name for o in page.objects()[1:]] for name, page in p.pages.items()}
     m["design"] = version

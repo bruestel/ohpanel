@@ -31,6 +31,7 @@ extern "C" {
 extern const unsigned char display_manifest_json_z[], weather_icons_json_z[];
 extern const uint32_t display_manifest_json_z_size, display_manifest_json_size;
 extern const uint32_t weather_icons_json_z_size, weather_icons_json_size;
+extern const char display_variant[];
 }
 
 namespace appdisplay {
@@ -530,6 +531,8 @@ DesignCheck design_check() {
 }
 
 int link_baud() { return g_display.baud(); }
+
+const char *variant() { return display_variant; }
 
 bool display_info(nextion::DeviceInfo &out) {
   std::lock_guard<std::mutex> lock(g_info_mx);

@@ -4,11 +4,14 @@
 Writes the geometry, fonts and colours of every visible object on the pages
 the panel configuration fills, the pictures they show (from the full-size
 previews the Nextion Editor stores next to every picture), the selectable
-backgrounds (from boards/nspanel/nextion/display-manifest.json, written by the build) and the
+backgrounds (from boards/nspanel/nextion/display-manifest-<variant>.json, written by the build) and the
 weather icon sets (boards/nspanel/nextion/weather-icons.json), as JSON for the
 web interface, which loads it from /api/v1/layout (the firmware embeds it):
 
-  hmi2layout.py build/ohpanel.HMI www/layout.json      (part of boards/nspanel/nextion/build.sh)
+  hmi2layout.py build/ohpanel.HMI www/layout-eu.json   (part of boards/nspanel/nextion/build.sh)
+
+for the panel variant of OHPANEL_VARIANT (boards/nspanel/nextion/layout.py), which the layout names
+with the display's size and what of it shows (the preview's size).
 
 Run it again whenever the HMI or one of the catalogues changes.
 """
@@ -40,7 +43,7 @@ VISIBLE = {116, 55, 98, 112, 1, 54, 53, 58, 106}
 def drawn_areas():
     """The manifest's "boxes": page -> objects the firmware draws into itself
     (the QR page's code, station logos), kept in the layout whatever they are."""
-    path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "display-manifest.json")
+    path = MANIFEST
     try:
         return json.load(open(path)).get("boxes", {})
     except (OSError, ValueError):
@@ -115,7 +118,7 @@ def alpha_uri(path, size=None):
     img.save(buf, "PNG", optimize=True)
     return "data:image/png;base64," + base64.b64encode(buf.getvalue()).decode()
 
-MANIFEST = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "display-manifest.json")
+MANIFEST = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", f"display-manifest-{compose.layout.VARIANT}.json")
 WEATHER = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "weather-icons.json")
 
 
@@ -187,7 +190,9 @@ def main():
 
     project = Project(source)
     previews = picture_previews(entries)
-    layout = {"fonts": fonts(entries), "pages": {}, "pictures": {}, "backgrounds": [], "weather": {}}
+    lay = compose.layout
+    layout = {"variant": lay.VARIANT, "screen": [lay.SCREEN_W, lay.SCREEN_H], "visible": [lay.VISIBLE_W, lay.VISIBLE_H],
+              "fonts": fonts(entries), "pages": {}, "pictures": {}, "backgrounds": [], "weather": {}}
     for number in page_order(entries["main.HMI"]):
         data = entries[f"{number}.pa"]
         name = page_name(data)

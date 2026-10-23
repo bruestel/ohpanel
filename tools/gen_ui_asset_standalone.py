@@ -3,7 +3,7 @@
 The same file as gen_ui_asset.py (both use tools/ui_asset.py), callable without PlatformIO.
 
 Used by the CMake fallback for a first configure, and handy for plain idf.py
-builds. Usage: gen_ui_asset_standalone.py <index.html> <layout.json> <ui_asset.c>
+builds. Usage: gen_ui_asset_standalone.py <index.html> <layout-<variant>.json> <ui_asset.c>
 """
 
 import pathlib

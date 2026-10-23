@@ -97,7 +97,7 @@ nextion::Message loaded(const std::string &page) { return event(page, "currentpa
 
 /* A picture id from the manifest the build wrote: background -> slot -> picture. */
 int manifest_pic(const char *bg, const char *slot, const char *picture) {
-  cJSON *m = cJSON_Parse(read("boards/nspanel/nextion/display-manifest.json").c_str());
+  cJSON *m = cJSON_Parse(read("boards/nspanel/nextion/display-manifest-eu.json").c_str());
   const cJSON *p = cJSON_GetObjectItem(cJSON_GetObjectItem(cJSON_GetObjectItem(cJSON_GetObjectItem(m, "pictures"), bg),
                                                            slot), picture);
   const int id = cJSON_IsNumber(p) ? p->valueint : -1;
@@ -105,7 +105,7 @@ int manifest_pic(const char *bg, const char *slot, const char *picture) {
   return id;
 }
 int background_pic(const char *id) {
-  cJSON *m = cJSON_Parse(read("boards/nspanel/nextion/display-manifest.json").c_str());
+  cJSON *m = cJSON_Parse(read("boards/nspanel/nextion/display-manifest-eu.json").c_str());
   int pic = -1;
   const cJSON *bgs = cJSON_GetObjectItem(m, "backgrounds");
   for (const cJSON *b = bgs ? bgs->child : nullptr; b; b = b->next)
@@ -116,7 +116,7 @@ int background_pic(const char *id) {
 }
 /* "page <id>" for a page of the design, its id from the manifest. */
 std::string page_cmd(const char *page) {
-  cJSON *m = cJSON_Parse(read("boards/nspanel/nextion/display-manifest.json").c_str());
+  cJSON *m = cJSON_Parse(read("boards/nspanel/nextion/display-manifest-eu.json").c_str());
   const int id = cJSON_GetObjectItem(cJSON_GetObjectItem(cJSON_GetObjectItem(m, "pages"), page), "id")->valueint;
   cJSON_Delete(m);
   return "page " + std::to_string(id);
@@ -259,7 +259,7 @@ int main(int argc, char **argv) {
 
   Engine e(rec, cb);
   e.release_wait(0);   // releases act at once (the swipe check: its own test)
-  CHECK(e.load_design(read("boards/nspanel/nextion/display-manifest.json").c_str(), read("boards/nspanel/nextion/weather-icons.json").c_str()));
+  CHECK(e.load_design(read("boards/nspanel/nextion/display-manifest-eu.json").c_str(), read("boards/nspanel/nextion/weather-icons.json").c_str()));
   e.set_config(read("test/host/data/office.json"));
   e.tick(1791196439);  // Mon 5 Oct 2026 12:33 local
 
@@ -382,7 +382,7 @@ int main(int argc, char **argv) {
     CHECK(e.current() == "guest-wifi");                 // no item: always
     rec.out.clear();
     e.on_message(loaded("qr"));
-    // the QR page: the title, the caption, the code drawn by the firmware in its area (boards/nspanel/nextion/display-manifest.json
+    // the QR page: the title, the caption, the code drawn by the firmware in its area (boards/nspanel/nextion/display-manifest-eu.json
     // "boxes"): first its white card, then the modules in the theme's accent, inside the card
     CHECK(rec.has("title.txt=\"Guest WiFi\"") && rec.has("caption1.txt=\"\""));
     {
@@ -1711,7 +1711,7 @@ int main(int argc, char **argv) {
     Recorder r3;
     Engine f(r3, cb);
     f.release_wait(0);   // releases act at once (the swipe check: its own test)
-    CHECK(f.load_design(read("boards/nspanel/nextion/display-manifest.json").c_str(), read("boards/nspanel/nextion/weather-icons.json").c_str()));
+    CHECK(f.load_design(read("boards/nspanel/nextion/display-manifest-eu.json").c_str(), read("boards/nspanel/nextion/weather-icons.json").c_str()));
     f.set_config(read("test/host/data/office.json"));
     PanelStatus up;
     up.hotspot = true;
@@ -1905,7 +1905,7 @@ int main(int argc, char **argv) {
   {  // the boot page stays a few seconds once shown, even when the panel is ready sooner -- so it can be read
     Recorder r3;
     Engine b(r3, cb);
-    CHECK(b.load_design(read("boards/nspanel/nextion/display-manifest.json").c_str(), read("boards/nspanel/nextion/weather-icons.json").c_str()));
+    CHECK(b.load_design(read("boards/nspanel/nextion/display-manifest-eu.json").c_str(), read("boards/nspanel/nextion/weather-icons.json").c_str()));
     b.set_config(read("test/host/data/office.json"));
     b.idle(10000);
     b.on_message(loaded("boot"));
@@ -1932,7 +1932,7 @@ int main(int argc, char **argv) {
     Recorder r2;
     Engine s(r2, cb2);
     s.release_wait(0);   // releases act at once (the swipe check: its own test)
-    CHECK(s.load_design(read("boards/nspanel/nextion/display-manifest.json").c_str(), read("boards/nspanel/nextion/weather-icons.json").c_str()));
+    CHECK(s.load_design(read("boards/nspanel/nextion/display-manifest-eu.json").c_str(), read("boards/nspanel/nextion/weather-icons.json").c_str()));
     {  // the built-in settings page: not in the swipe row (no page dots) -- reached from home's first shortcut
       cJSON *doc = cJSON_Parse(read("test/host/data/office.json").c_str());
       cJSON_ReplaceItemInObject(doc, "swipe", cJSON_Parse(R"(["settings"])"));
@@ -1987,7 +1987,7 @@ int main(int argc, char **argv) {
     Recorder r5;
     Engine g(r5, cb);
     g.release_wait(0);
-    CHECK(g.load_design(read("boards/nspanel/nextion/display-manifest.json").c_str(),
+    CHECK(g.load_design(read("boards/nspanel/nextion/display-manifest-eu.json").c_str(),
                         read("boards/nspanel/nextion/weather-icons.json").c_str()));
     std::string fading = read("test/host/data/office.json");
     fading.replace(fading.find("\"display\": {"), 12, "\"display\": {\"page_fade\": 80, ");   // 4 steps of 20 ms

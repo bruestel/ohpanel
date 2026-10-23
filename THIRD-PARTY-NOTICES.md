@@ -40,8 +40,9 @@ tools for the display design and not part of the firmware.
 
 ## Display firmware
 
-The display image (`build/ohpanel.tft`, built by `boards/nspanel/nextion/build.sh`) is compiled
-by the Nextion Editor and contains, besides this project's pages and pictures:
+The display image (`build/ohpanel-nspanel-<variant>-display-<version>.tft`, built by
+`boards/nspanel/nextion/build.sh`) is compiled by the Nextion Editor and contains, besides this project's pages
+and pictures:
 
 | Part | Licence | Source |
 | :--- | :--- | :--- |

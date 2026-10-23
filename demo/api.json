@@ -98,6 +98,8 @@
    "offset_tenths": 0,
    "item": ""
   },
+  "variant": "eu",
+  "board": "nspanel-eu",
   "display": {
    "design_expected": "57afa022",
    "link_baud": 921600,

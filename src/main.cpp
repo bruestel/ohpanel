@@ -140,6 +140,9 @@ static void info_extra(cJSON *root) {
   cJSON_AddNumberToObject(t, "offset_tenths", s.offset_tenths);
   cJSON_AddStringToObject(t, "item", s.item.c_str());
 
+  // the panel variant (tools/variant.py) and the board as the release files name it: ohpanel-<board>-display-...
+  cJSON_AddStringToObject(root, "variant", appdisplay::variant());
+  cJSON_AddStringToObject(root, "board", (std::string("nspanel-") + appdisplay::variant()).c_str());
   cJSON *j = cJSON_AddObjectToObject(root, "display");
   const appdisplay::DesignCheck dc = appdisplay::design_check();
   cJSON_AddStringToObject(j, "design_expected", dc.expected.c_str());

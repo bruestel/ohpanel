@@ -2,12 +2,33 @@
 recipe (boards/nspanel/nextion/ohpanel_hmi.py) and the picture composer
 (boards/nspanel/nextion/assets/compose.py), which must agree on every position.
 
+The panel variant it is for comes from OHPANEL_VARIANT (boards/nspanel/nextion/build.sh):
+"eu", the NSPanel EU, the default, or "us", the NSPanel US (portrait, not laid out yet).
+
 The NSPanel EU's frame hides the rightmost 30 px of the 480x320 display, so
 the visible area is 450x320. Titles start 12 px from the left (their glyphs,
 font 3 in a 30 px label at x=10); the grid keeps that margin on both sides.
 """
 
+import os
+import sys
+
+VARIANTS = ("eu", "us")
+VARIANT = os.environ.get("OHPANEL_VARIANT", "eu")
+if VARIANT not in VARIANTS:
+    sys.exit(f"layout: no panel variant {VARIANT!r} (OHPANEL_VARIANT: {', '.join(VARIANTS)})")
+if VARIANT != "eu":
+    sys.exit(f"layout: the variant {VARIANT!r} is not laid out yet")
+
+# The display as the design sees it, turned as the panel mounts it (the Editor's direction, ohpanel_hmi.py).
+SCREEN_W, SCREEN_H = 480, 320
+DIRECTION = 270
+# The touch panel's offset (lcd_dev, ohpanel_hmi.py program()): the NSPanel EU's display sits a few millimetres off
+# its touch panel; None where it needs none.
+TOUCH_OFFSET = "fffb 0002 0000 0020"
+
 VISIBLE_W = 450
+VISIBLE_H = SCREEN_H
 MARGIN = 12          # the titles' left margin, kept on the right too
 # What shows, for centring by eye: the titles' glyphs end at y=24 (measured in
 # the simulator); the page dots (circle-medium, 8 px in the 24 px icon font,

@@ -29,16 +29,28 @@ endif()
 if(NOT OHPANEL_BOARD)
     set(OHPANEL_BOARD nspanel)
 endif()
+# Its variant (tools/variant.py: eu, us), from the PlatformIO environment (tools/variant_cmake.py) or the command
+# line (-DOHPANEL_VARIANT=us); the NSPanel EU when neither names one.
+if(NOT OHPANEL_VARIANT)
+    set(OHPANEL_VARIANT eu)
+endif()
 # appended: PlatformIO passes the project's src directory in this list too
 list(APPEND EXTRA_COMPONENT_DIRS ${CMAKE_CURRENT_LIST_DIR}/boards/${OHPANEL_BOARD}/board)
 
 include($ENV{IDF_PATH}/tools/cmake/project.cmake)
 # This string becomes project_name in the app descriptor, and the OTA handler
 # refuses an image whose project_name differs from the running one -- the guard
-# against flashing somebody else's firmware. Never rename it: every deployed
-# panel would reject the next update and need a cable. (Renamed from "jpanel"
-# once, on 2026-10-06, before any panel ran this firmware.)
-project(ohpanel)
+# against flashing somebody else's firmware, and the firmware of another panel
+# variant: "ohpanel" for the NSPanel EU, "ohpanel-us" for the NSPanel US. Never
+# rename them: every deployed panel would reject the next update and need a
+# cable. (Renamed from "jpanel" once, on 2026-10-06, before any panel ran this
+# firmware.)
+if(OHPANEL_VARIANT STREQUAL "eu")
+    set(OHPANEL_PROJECT ohpanel)
+else()
+    set(OHPANEL_PROJECT ohpanel-${OHPANEL_VARIANT})
+endif()
+project(${OHPANEL_PROJECT})
 
 # Link-time optimisation for the firmware's own components (not ESP-IDF's: its linker fragments place code in IRAM
 # by section, which LTO's renaming would undo). Split into a file per page or route group, they lost the inlining

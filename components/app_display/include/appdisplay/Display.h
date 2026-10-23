@@ -41,6 +41,10 @@ void relay_state(int index, bool on);
    the link finds it, Display.cpp); false until it has answered. */
 bool display_info(nextion::DeviceInfo &out);
 
+/* The panel variant this firmware is built for, its display design with it (tools/variant.py): "eu" (the NSPanel
+   EU), "us" (the NSPanel US). */
+const char *variant();
+
 /* The rate of the serial link to the display now (921600 with our design;
    another only with an older or another one). */
 int link_baud();

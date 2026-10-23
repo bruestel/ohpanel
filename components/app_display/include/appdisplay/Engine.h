@@ -295,6 +295,8 @@ class Engine {
   void draw_range(const cJSON *home);
   struct { int step = 1, n = 0, font = 0; } range_;  // manifest "range"
   struct { int x0 = 0, step = 1, n = 0, font = 0, high_x = 0; } weather_line_;   // manifest "weather_line"
+  // manifest "screen": the display as the design is turned, and what of it shows (the NSPanel EU's 450 px of 480)
+  struct { int w = 480, h = 320, visible_w = 450, visible_h = 320; } display_size_;
   void follow_relays(const std::string *item);
   void page_colour(const std::string &obj, int value);
   std::string theme_sent_;  // what the display's th_* variables hold

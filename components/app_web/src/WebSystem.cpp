@@ -96,7 +96,12 @@ esp_err_t post_ota(httpd_req_t *req) {   // in_own_task: the password checked al
       const auto *desc = reinterpret_cast<const esp_app_desc_t *>(head.data() + kDescAt);
       const esp_app_desc_t *self = esp_app_get_description();
       if (std::strncmp(desc->project_name, self->project_name, sizeof(desc->project_name)) != 0) {
-        *why = "firmware is for a different project";
+        /* another panel variant's (CMakeLists.txt: "ohpanel" the NSPanel EU's, "ohpanel-us" the US's), or not
+           OHpanel at all */
+        const std::string other(desc->project_name, strnlen(desc->project_name, sizeof(desc->project_name)));
+        *why = other.rfind("ohpanel", 0) == 0
+                   ? "firmware for another panel (" + other + "); this one takes " + self->project_name
+                   : "firmware is for a different project";
         return false;
       }
       ESP_LOGI(TAG, "Incoming version: %s", desc->version);
