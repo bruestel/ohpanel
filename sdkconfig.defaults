@@ -48,6 +48,11 @@ CONFIG_FREERTOS_HZ=1000
 
 CONFIG_ESP_MAIN_TASK_STACK_SIZE=8192
 CONFIG_ESP_TASK_WDT_INIT=y
+# The event task runs our WiFi/IP handlers, and with them every log line they
+# write (logbuf's hook: a 256-byte line plus vsnprintf). The default 2304 left
+# 800 bytes after 70 h (2026-10-23); start_ap(), the fall back to the setup
+# network, runs there too and was never measured. A stack overflow is a panic.
+CONFIG_ESP_SYSTEM_EVENT_TASK_STACK_SIZE=4096
 
 # --- OTA ---------------------------------------------------------------------
 CONFIG_BOOTLOADER_APP_ROLLBACK_ENABLE=y
