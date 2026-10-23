@@ -16,20 +16,20 @@ boards/nspanel/nextion/layout.py, which the recipe (boards/nspanel/nextion/ohpan
 
     weather_home    home.weather_pic          the weather icons of weather-icons.json (layout.WEATHER_HOME)
     weather_page    weather.weather_pic       the same (layout.WEATHER_PAGE)
-    button1..8      buttons.tileN_pic         the tiles off/on (assets/tiles)
+    button1..8      buttons.tileN_pic         the tiles off/on (assets/<variant>/tiles)
     close           <page>.close              the close icon "x" (drawn here, layout.CLOSE_ICON)
     badge1, badge2  home.infoN_badge(ico)     the info lines' left field as a badge, per palette colour
     restart         settings.restart          the settings page's restart button off/on (layout.SETTINGS_BUTTON)
     card1..8        system.cardN_pic          the panel info's cards (layout.SYSTEM_CARDS), the entity cards too
     rowcard1..7     entities_rows.rowN_pic    the entity page's row cards (layout.ENTITY_ROWS_*)
     wchip1..6       weather.chipN_pic         the weather page's cards of an extra (layout.WEATHER_CHIPS)
-    logo            boot.logo_pic             the boot page's logo (assets/logo, layout.BOOT_LOGO)
+    logo            boot.logo_pic             the boot page's logo (assets/<variant>/logo, layout.BOOT_LOGO)
     art             media.art_pic             the box behind what plays (layout.MEDIA_ART)
     vol             media.volume_pic          the volume button, a disc (layout.MEDIA_VOLUME)
     fav             media.fav_pic             the favourites button, a disc (layout.MEDIA_FAV)
     side1..3        light/cover.sideN_pic     their column of tiles off/on (layout.SIDE_TILES)
     power           light.power_pic           the light's on / off tile (layout.POWER_TILE)
-    wheel           light.wheel_pic           the colour wheel (assets/controls, layout.COLOUR_WHEEL)
+    wheel           light.wheel_pic           the colour wheel (assets/<variant>/controls, layout.COLOUR_WHEEL)
     ctemp           light.temp_slider         the colour temperature slider's track (opaque: the same on all)
 
 Writes assets/composites/<background>.<slot>.<picture>.png, rounded to the
@@ -118,13 +118,13 @@ def rounded_box(w, h, r, colour):
 def slots():
     """Slot name -> (x, y, w, h, {picture name: RGBA image})."""
     weather = {n: Image.open(os.path.join(HERE, "weather", n + ".png")).convert("RGBA") for n in weather_icons()}
-    tiles = {n: Image.open(os.path.join(HERE, "tiles", n + ".png")).convert("RGBA") for n in ("off", "on")}
+    tiles = {n: Image.open(os.path.join(layout.ASSETS, "tiles", n + ".png")).convert("RGBA") for n in ("off", "on")}
 
     out = {"weather_home": (*layout.WEATHER_HOME, weather), "weather_page": (*layout.WEATHER_PAGE, weather)}
     for i, (x, y) in enumerate(layout.button_tiles(), start=1):
-        out[f"button{i}"] = (x, y, layout.TILE, layout.TILE, tiles)
+        out[f"button{i}"] = (x, y, layout.TILE_W, layout.TILE_H, tiles)
     out["close"] = (*layout.CLOSE_ICON, {"x": close_icon()})
-    wide = {n: Image.open(os.path.join(HERE, "tiles", "wide_" + n + ".png")).convert("RGBA") for n in ("off", "on")}
+    wide = {n: Image.open(os.path.join(layout.ASSETS, "tiles", "wide_" + n + ".png")).convert("RGBA") for n in ("off", "on")}
     out["restart"] = (*layout.SETTINGS_BUTTON, wide)
     card = {"box": rounded_box(layout.SYSTEM_CARD_W, layout.SYSTEM_CARD_H, layout.SYSTEM_CARD_RADIUS, (44, 44, 44, 255))}
     for i, (x, y) in enumerate(layout.SYSTEM_CARDS, start=1):
@@ -142,15 +142,15 @@ def slots():
     out["art"] = (*box, {"box": rounded_box(box[2], box[3], layout.ART_RADIUS, tile)})
     for slot, box in (("vol", layout.MEDIA_VOLUME), ("fav", layout.MEDIA_FAV)):
         out[slot] = (*box, {"box": rounded_box(box[2], box[3], box[3] // 2, layout.PILL_COLOUR + (255,))})
-    side = {n: Image.open(os.path.join(HERE, "tiles", "side_" + n + ".png")).convert("RGBA") for n in ("off", "on")}
+    side = {n: Image.open(os.path.join(layout.ASSETS, "tiles", "side_" + n + ".png")).convert("RGBA") for n in ("off", "on")}
     for i, (x, y) in enumerate(layout.SIDE_TILES, start=1):
         out[f"side{i}"] = (x, y, layout.SIDE_TILE, layout.SIDE_TILE, side)
     out["power"] = (*layout.POWER_TILE, layout.SIDE_TILE, layout.SIDE_TILE, side)
     out["wheel"] = (*layout.COLOUR_WHEEL,
-                    {"disc": Image.open(os.path.join(HERE, "controls", "wheel.png")).convert("RGBA")})
+                    {"disc": Image.open(os.path.join(layout.ASSETS, "controls", "wheel.png")).convert("RGBA")})
     out["ctemp"] = (*layout.CONTROL_SLIDER,
-                    {"track": Image.open(os.path.join(HERE, "controls", "ctemp.png")).convert("RGBA")})
-    out["logo"] = (*layout.BOOT_LOGO, {"boot": Image.open(os.path.join(HERE, "logo", "boot.png")).convert("RGBA")})
+                    {"track": Image.open(os.path.join(layout.ASSETS, "controls", "ctemp.png")).convert("RGBA")})
+    out["logo"] = (*layout.BOOT_LOGO, {"boot": Image.open(os.path.join(layout.ASSETS, "logo", "boot.png")).convert("RGBA")})
     badges = {name: badge(c) for name, c in PALETTE.items()}
     for line, y in enumerate(layout.INFO_Y, start=1):
         out[f"badge{line}"] = (layout.INFO_LEFT[0], y, layout.INFO_LEFT[1], layout.INFO_H, badges)
@@ -172,7 +172,7 @@ def main():
     shutil.rmtree(OUT, ignore_errors=True)
     os.makedirs(OUT)
     count = 0
-    for bg_path in sorted(glob.glob(os.path.join(HERE, "backgrounds", "*.png"))):
+    for bg_path in sorted(glob.glob(os.path.join(layout.ASSETS, "backgrounds", "*.png"))):
         bg_name = os.path.splitext(os.path.basename(bg_path))[0]
         bg = Image.open(bg_path).convert("RGBA")
         for slot, (x, y, w, h, pictures) in slots().items():

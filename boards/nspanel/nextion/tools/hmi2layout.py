@@ -237,7 +237,7 @@ def main():
                                                                        compose.layout.WEATHER_HOME[2]))
     # the button pages' tiles and the settings page's restart button (wide_*)
     for name in ("off", "on", "wide_off", "side_off", "side_on"):
-        layout["pictures"]["tile:" + name] = alpha_uri(os.path.join(ASSETS, "tiles", name + ".png"))
+        layout["pictures"]["tile:" + name] = alpha_uri(os.path.join(lay.ASSETS, "tiles", name + ".png"))
     buf = io.BytesIO()
     compose.close_icon().save(buf, "PNG", optimize=True)
     layout["pictures"]["close:x"] = data_uri(buf.getvalue())

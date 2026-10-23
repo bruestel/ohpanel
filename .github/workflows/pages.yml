@@ -47,12 +47,18 @@ jobs:
           if [ -n "$tag" ]; then
             gh release download "$tag" --repo "$GITHUB_REPOSITORY" --pattern 'ohpanel-*.zip' --dir /tmp/release
             unzip -q /tmp/release/ohpanel-*.zip -d /tmp/release
-            cp /tmp/release/ohpanel-*/ohpanel-nspanel-eu-factory-*.bin _site/flash/ohpanel-nspanel-eu-factory.bin
             cp /tmp/release/ohpanel-*/licences/* _site/licences/
-            cat > _site/flash/manifest.json <<EOF
+            # a factory image and a manifest per panel variant the release has (tools/variant.py); manifest.json the
+            # EU's, as before there were variants
+            for image in /tmp/release/ohpanel-*/ohpanel-nspanel-*-factory-*.bin; do
+              variant=$(basename "$image" | sed -E 's/^ohpanel-nspanel-([a-z]+)-factory-.*/\1/')
+              cp "$image" "_site/flash/ohpanel-nspanel-$variant-factory.bin"
+              cat > "_site/flash/manifest-$variant.json" <<EOF
           {"name": "OHpanel", "version": "${tag#v}", "new_install_prompt_erase": true,
-           "builds": [{"chipFamily": "ESP32", "parts": [{"path": "ohpanel-nspanel-eu-factory.bin", "offset": 0}]}]}
+           "builds": [{"chipFamily": "ESP32", "parts": [{"path": "ohpanel-nspanel-$variant-factory.bin", "offset": 0}]}]}
           EOF
+            done
+            cp _site/flash/manifest-eu.json _site/flash/manifest.json
           else
             echo "no release yet: the flasher says so"
           fi

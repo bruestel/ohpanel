@@ -6,7 +6,9 @@ puts icons and tiles onto every background.)
 Everything is drawn procedurally here, so the pictures carry no third-party
 rights and can be regenerated or varied at will.
 
-  boards/nspanel/nextion/assets/generate.py            writes backgrounds/*.png and weather/*.png
+  boards/nspanel/nextion/assets/generate.py            writes weather/*.png, and for the panel variant
+                                                       (OHPANEL_VARIANT, layout.py) <variant>/backgrounds,
+                                                       tiles, controls and logo: their sizes are its layout's
   boards/nspanel/nextion/assets/generate.py --sheet    also writes contact sheets for review
 
 The display shows 16-bit colour (RGB565). Dark, smooth gradients band visibly
@@ -28,7 +30,8 @@ from PIL import Image, ImageDraw, ImageFilter, ImageFont
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.dirname(HERE))
 import layout  # noqa: E402
-W, H = 480, 320
+W, H = layout.SCREEN_W, layout.SCREEN_H   # the display as the panel variant's design is turned
+OUT = layout.ASSETS                       # its pictures: backgrounds, tiles, controls, logo (the weather icons: HERE)
 
 # ------------------------------------------------------------------ helpers --
 
@@ -324,10 +327,8 @@ def colour_temperature(w, h):
 
 
 def button_tile(color):
-    k = 4  # drawn at 4x for smooth corners
-    img = Image.new("RGBA", (100 * k, 100 * k), (0, 0, 0, 0))
-    ImageDraw.Draw(img).rounded_rectangle((2 * k, 2 * k, 98 * k - 1, 98 * k - 1), radius=20 * k, fill=color + (255,))
-    return img.resize((100, 100), Image.LANCZOS)
+    """A button page's tile (layout.TILE_W x TILE_H)."""
+    return wide_tile(color, layout.TILE_W, layout.TILE_H, 20)
 
 
 # --------------------------------------------------------------------- main --
@@ -335,13 +336,13 @@ def button_tile(color):
 
 def main():
     sheet = "--sheet" in sys.argv
-    os.makedirs(os.path.join(HERE, "backgrounds"), exist_ok=True)
+    os.makedirs(os.path.join(OUT, "backgrounds"), exist_ok=True)
     os.makedirs(os.path.join(HERE, "weather"), exist_ok=True)
 
     backgrounds = {}
     for key, (title, fn) in BACKGROUNDS.items():
         img = to_rgb565(np.clip(fn(), 0, 1))
-        img.save(os.path.join(HERE, "backgrounds", key + ".png"), optimize=True)
+        img.save(os.path.join(OUT, "backgrounds", key + ".png"), optimize=True)
         backgrounds[key] = img
         print(f"background {key}: {title}")
 
@@ -352,26 +353,26 @@ def main():
         img.save(os.path.join(HERE, "weather", key + ".png"), optimize=True)
     print(f"weather: {len(os.listdir(os.path.join(HERE, 'weather')))} icons (Meteocons)")
 
-    os.makedirs(os.path.join(HERE, "tiles"), exist_ok=True)
+    os.makedirs(os.path.join(OUT, "tiles"), exist_ok=True)
     for key, color in TILES.items():
-        button_tile(color).save(os.path.join(HERE, "tiles", key + ".png"), optimize=True)
+        button_tile(color).save(os.path.join(OUT, "tiles", key + ".png"), optimize=True)
         _, _, w, h = layout.SETTINGS_BUTTON
         wide_tile(color, w, h, layout.SETTINGS_BUTTON_RADIUS).save(
-            os.path.join(HERE, "tiles", "wide_" + key + ".png"), optimize=True)
+            os.path.join(OUT, "tiles", "wide_" + key + ".png"), optimize=True)
         # the light and cover pages' column of tiles: the button tiles smaller, their corners in proportion
         side = layout.SIDE_TILE
         wide_tile(color, side, side, round(20 * side / 100)).save(
-            os.path.join(HERE, "tiles", "side_" + key + ".png"), optimize=True)
+            os.path.join(OUT, "tiles", "side_" + key + ".png"), optimize=True)
     print("button tiles")
 
-    os.makedirs(os.path.join(HERE, "controls"), exist_ok=True)
-    colour_wheel(layout.COLOUR_WHEEL[2]).save(os.path.join(HERE, "controls", "wheel.png"), optimize=True)
+    os.makedirs(os.path.join(OUT, "controls"), exist_ok=True)
+    colour_wheel(layout.COLOUR_WHEEL[2]).save(os.path.join(OUT, "controls", "wheel.png"), optimize=True)
     _, _, w, h = layout.CONTROL_SLIDER
-    colour_temperature(w, h).save(os.path.join(HERE, "controls", "ctemp.png"), optimize=True)
+    colour_temperature(w, h).save(os.path.join(OUT, "controls", "ctemp.png"), optimize=True)
     print("colour wheel, colour temperature track")
 
-    os.makedirs(os.path.join(HERE, "logo"), exist_ok=True)
-    logo().save(os.path.join(HERE, "logo", "boot.png"), optimize=True)
+    os.makedirs(os.path.join(OUT, "logo"), exist_ok=True)
+    logo().save(os.path.join(OUT, "logo", "boot.png"), optimize=True)
     print("logo")
 
     if sheet:

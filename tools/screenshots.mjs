@@ -68,9 +68,10 @@ await mkdir(OUT, {recursive: true});
 await size([1300, 900]);
 for (const [name, page] of DISPLAY) {
   await open(page === 'home' ? '#panel' : `#panel/${page}`, 3500);
-  const r = await evaluate("(b => b && b.toJSON())(document.getElementById('vBox')?.getBoundingClientRect())");
-  // the visible part: 450 of the design's 480 points (the panel's frame covers the rest)
-  await shoot('display-' + name, r && {x: r.x, y: r.y, width: r.width * 450 / 480, height: r.height});
+  const r = await evaluate("(b => b && {...b.toJSON(), k: [LAYOUT.visible[0] / LAYOUT.screen[0], " +
+                           "LAYOUT.visible[1] / LAYOUT.screen[1]]})(document.getElementById('vBox')?.getBoundingClientRect())");
+  // the visible part (the layout's "visible": 450 of the NSPanel EU's 480 points, its frame covers the rest)
+  await shoot('display-' + name, r && {x: r.x, y: r.y, width: r.width * r.k[0], height: r.height * r.k[1]});
 }
 for (const [name, hash, win] of WEB) {
   await size(win);

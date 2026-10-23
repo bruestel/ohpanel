@@ -32,9 +32,11 @@ switch the power off and on again.
 
 ## With PlatformIO
 
-    pio run -e nspanel -t upload
+    pio run -e nspanel -t upload        # the NSPanel EU
+    pio run -e nspanel-us -t upload     # the NSPanel US
 
-writes every part of the table.
+writes every part of the table. The US firmware's files are in `.pio/build/nspanel-us/` and are named
+`ohpanel-nspanel-us-...`; the rest of this page names the EU's.
 
 ## With esptool alone
 

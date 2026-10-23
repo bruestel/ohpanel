@@ -67,7 +67,7 @@ import layout  # noqa: E402
 import fonts  # noqa: E402
 import zifont  # noqa: E402
 
-BACKGROUNDS = os.path.join(HERE, "assets", "backgrounds")
+BACKGROUNDS = os.path.join(layout.ASSETS, "backgrounds")   # the panel variant's (generate.py)
 MANIFEST = os.path.join(HERE, f"display-manifest-{layout.VARIANT}.json")   # the panel variant's (layout.py)
 
 # The background the design ships with; the firmware switches pages to the
@@ -83,8 +83,8 @@ VISIBLE_W = layout.VISIBLE_W
 # "close") on the title's margins (boards/nspanel/nextion/layout.py). Its touch area (the
 # hotspot) is larger and reaches under the frame.
 CLOSE_ICON = layout.CLOSE_ICON
-CLOSE_TOUCH = (376, 0, 104, 44)          # to the display's edge
-WIDE_ROW_MAXL = 40                       # what fits in 400 px of font 3
+CLOSE_TOUCH = layout.CLOSE_TOUCH         # to the display's edge
+WIDE_ROW_MAXL = layout.WIDE_ROW_MAXL     # what fits in the entity rows' wide field
 
 # Colours (RGB565) the design starts with; the firmware sets most of them by
 # the theme and the state of what they show.
@@ -307,7 +307,7 @@ def swipe_detection(page) -> None:
 
 def title(page, *, pco=TITLE_GREY):
     """The page's title, top left."""
-    return text(page, "title", (10, 0, 300, 30), TEXT_FONT, ycen=2, maxl=30, pco=pco)
+    return text(page, "title", layout.TITLE, TEXT_FONT, ycen=2, maxl=30, pco=pco)
 
 
 def close(page) -> None:
@@ -406,7 +406,7 @@ def home_page(p: Project) -> None:
         x = layout.RANGE_DOWN_X if k == 0 else layout.RANGE_LOW_X + k * layout.RANGE_STEP + layout.RANGE_GAP
         made.append(arrow(f"high_arrow{k}", x, "EFA6B1"))
         made.append(value(f"high{k}", x + layout.RANGE_ARROW_W, layout.RANGE_HIGH_W))
-    assert made[-1].get("x") + made[-1].get("w") <= layout.DATE[0], "the high reaches into the date"
+    assert made[-1].get("x") + made[-1].get("w") <= layout.RANGE_END, "the high reaches into the date"
     RANGE.update({"step": layout.RANGE_STEP, "n": layout.RANGE_STEPS, "font": layout.FONT_RANGE})
 
     # value rows: an icon and the number beside it, its unit small at the number's top
@@ -474,7 +474,8 @@ def weather_page(p: Project) -> None:
         x = layout.WEATHER_LINE_LOW_X0 + (k - 1) * layout.WEATHER_LINE_STEP
         text(page, f"low_arrow{k}", (x, layout.WEATHER_LINE_LOW_Y + 4, 26, layout.WEATHER_LINE_LOW_H - 4), ICON_FONT,
              xcen=1, ycen=2, maxl=10, pco=LIGHT_GREY, txt=bytes.fromhex("EFA6B2"))
-        text(page, f"low{k}", (x + 26, layout.WEATHER_LINE_LOW_Y, 110, layout.WEATHER_LINE_LOW_H), TEXT_FONT, ycen=2,
+        text(page, f"low{k}", (x + 26, layout.WEATHER_LINE_LOW_Y, layout.WEATHER_LINE_LOW_W, layout.WEATHER_LINE_LOW_H),
+             TEXT_FONT, ycen=2,
              maxl=12, pco=LIGHT_GREY)
     text(page, "condition", layout.WEATHER_CONDITION, TEXT_FONT, ycen=1, maxl=48)
     w, h = layout.WEATHER_CHIP_W, layout.WEATHER_CHIP_H
@@ -538,11 +539,10 @@ def entities_pages(p: Project) -> None:
     for k, (x, y) in enumerate(layout.SYSTEM_CARDS, start=1):
         c = f"card{k}"
         picture(page, f"{c}_pic", (x, y, w, h), PICTURES[f"card{k}"]["box"])
+        part = card_parts(x, y, w)
         icon(page, f"{c}_icon", x + 24, y + h / 2, ICON_FONT_LARGE, maxl=4, bco=TILE_OFF_565)
-        text(page, f"{c}_text", (x + ctx, y + 5, w - ctx - 6, 20), layout.SYSTEM_TEXT_FONT, maxl=24, pco=LIGHT_GREY,
-             bco=TILE_OFF_565)
-        text(page, f"{c}_value", (x + ctx, y + 26, w - ctx - 6, 28), layout.SYSTEM_VALUE_FONT, maxl=24,
-             bco=TILE_OFF_565)
+        text(page, f"{c}_text", part("text"), layout.SYSTEM_TEXT_FONT, maxl=24, pco=LIGHT_GREY, bco=TILE_OFF_565)
+        text(page, f"{c}_value", part("value"), layout.SYSTEM_VALUE_FONT, maxl=24, bco=TILE_OFF_565)
     close(page)
     on_load(page, loaded(page) + ["vis 255,0", "vis title,1", "vis close_hs,1", "vis close,1"])
 
@@ -591,12 +591,13 @@ def system_page(p: Project) -> None:
     for k, (x, y) in enumerate(layout.SYSTEM_CARDS, start=1):
         c = f"card{k}"
         picture(page, f"{c}_pic", (x, y, w, h), PICTURES[f"card{k}"]["box"])
+        part = card_parts(x, y, w)
         icon(page, f"{c}_icon", x + 24, y + h / 2, ICON_FONT_LARGE, maxl=4, pco=WHITE, bco=TILE_OFF_565)
-        text(page, f"{c}_text", (x + tx, y + 5, w - tx - 6, 20), small, maxl=32, pco=LIGHT_GREY, bco=TILE_OFF_565)
-        text(page, f"{c}_value", (x + tx, y + 26, w - tx - 6, 28), big, maxl=40, pco=WHITE, bco=TILE_OFF_565)
-        text(page, f"{c}_top", (x + tx, y + 2, w - tx - 30, 18), small, maxl=24, pco=LIGHT_GREY, bco=TILE_OFF_565)
-        text(page, f"{c}_line1", (x + tx, y + 20, w - tx - 34, 18), small, maxl=32, pco=WHITE, bco=TILE_OFF_565)   # clear of the badge
-        text(page, f"{c}_line2", (x + tx, y + 38, w - tx - 6, 18), small, maxl=32, pco=WHITE, bco=TILE_OFF_565)
+        text(page, f"{c}_text", part("text"), small, maxl=32, pco=LIGHT_GREY, bco=TILE_OFF_565)
+        text(page, f"{c}_value", part("value"), big, maxl=40, pco=WHITE, bco=TILE_OFF_565)
+        text(page, f"{c}_top", part("top", 30), small, maxl=24, pco=LIGHT_GREY, bco=TILE_OFF_565)
+        text(page, f"{c}_line1", part("line1", 34), small, maxl=32, pco=WHITE, bco=TILE_OFF_565)   # clear of the badge
+        text(page, f"{c}_line2", part("line2"), small, maxl=32, pco=WHITE, bco=TILE_OFF_565)
         text(page, f"{c}_badge", (x + w - 28, y + 3, 25, 25), ICON_FONT, xcen=1, maxl=4, pco=LIGHT_GREY, bco=TILE_OFF_565)
     # the IP card opens the network page (Engine::draw_network_page)
     x, y = layout.SYSTEM_CARDS[6]
@@ -607,6 +608,15 @@ def system_page(p: Project) -> None:
     on_load(page, loaded(page) + ["vis 255,0", "vis title,1", "vis close_hs,1", "vis close,1"])
 
 
+def card_parts(x: int, y: int, w: int):
+    """The fields on a card of the panel info (and the entity cards) by their
+    place in it (layout.SYSTEM_PARTS: top and height): from the text's left
+    edge (SYSTEM_TEXT_X) to 6 px short of the card's right one, or `clear` px
+    short of it (of the badge top right)."""
+    tx = layout.SYSTEM_TEXT_X
+    return lambda name, clear=6: (x + tx, y + layout.SYSTEM_PARTS[name][0], w - tx - clear, layout.SYSTEM_PARTS[name][1])
+
+
 def network_page(p: Project) -> None:
     """The network page, over the info page (its IP card tapped; Engine::draw_network_page): the title
     with a back arrow (its touch area goes back), nine rows of a label and a value -- the addresses, gateway,
@@ -614,11 +624,15 @@ def network_page(p: Project) -> None:
     one step smaller than the entity rows'."""
     page = new_page(p, "netpage", swipe=False, touch=True)
     title(page)
-    hotspot(page, "back_hs", (0, 0, 300, 36), event("netpage", "back", "release"))
+    hotspot(page, "back_hs", layout.BACK_TOUCH, event("netpage", "back", "release"))
     x0, x1 = layout.MARGIN + 2, VISIBLE_W - layout.MARGIN - 2
     lw = layout.NETWORK_LABEL_W
     for r in range(layout.NETWORK_ROWS_N):
         y = layout.NETWORK_ROWS_Y + r * layout.NETWORK_ROWS_STEP
+        if layout.NETWORK_STACKED:   # the value under its label, the whole width (an IPv6 address is long)
+            text(page, f"row{r + 1}_text", (x0, y, x1 - x0, 20), 0, ycen=1, maxl=20, pco=LIGHT_GREY)
+            text(page, f"row{r + 1}_value", (x0, y + 20, x1 - x0, 24), 1, ycen=1, maxl=48)
+            continue
         text(page, f"row{r + 1}_text", (x0, y, lw, 26), 1, ycen=1, maxl=20, pco=LIGHT_GREY)
         text(page, f"row{r + 1}_value", (x0 + lw, y, x1 - x0 - lw, 26), 1, xcen=2, ycen=1, maxl=48)
     close(page)
@@ -687,14 +701,24 @@ def covers_page(p: Project) -> None:
         mx, my, mw, mh = layout.COVERS_MINI
         hotspot(page, f"{n}_mini", (x0 + mx, y + (h - mh) // 2, mw, mh))
         first = x0 + w - end - 3 * bw - 2 * gap   # the first button's left edge
-        # the name; a member's position before the buttons (the whole group has none: its name up to them)
-        text_w = layout.COVERS_TEXT_W if n != "all" else first - 6 - (x0 + layout.COVERS_TEXT_X)
-        text(page, f"{n}_text", (x0 + layout.COVERS_TEXT_X, y + 2, text_w, h - 4), font, maxl=24,
-             pco=WHITE, bco=TILE_OFF_565)
-        if n != "all":
-            text(page, f"{n}_value", (first - 6 - layout.COVERS_VALUE_W, y + 2, layout.COVERS_VALUE_W, h - 4), 2,
-                 xcen=2, maxl=16, pco=LIGHT_GREY, bco=TILE_OFF_565)
-        buttons = [(part, first + k * (bw + gap), y + (h - bh) // 2) for k, part in enumerate(("up", "stop", "down"))]
+        tx = x0 + layout.COVERS_TEXT_X
+        if layout.COVERS_STACKED:
+            # two lines: the name across the row, under it a member's position and the buttons at the bottom right
+            line = layout.COVERS_LINE_H
+            text(page, f"{n}_text", (tx, y + 4, x0 + w - end - tx, line), font, maxl=24, pco=WHITE, bco=TILE_OFF_565)
+            if n != "all":
+                text(page, f"{n}_value", (tx, y + h - 4 - line, layout.COVERS_VALUE_W, line), 2, maxl=16,
+                     pco=LIGHT_GREY, bco=TILE_OFF_565)
+            by = y + h - end - bh
+        else:
+            # the name; a member's position before the buttons (the whole group has none: its name up to them)
+            text_w = layout.COVERS_TEXT_W if n != "all" else first - 6 - tx
+            text(page, f"{n}_text", (tx, y + 2, text_w, h - 4), font, maxl=24, pco=WHITE, bco=TILE_OFF_565)
+            if n != "all":
+                text(page, f"{n}_value", (first - 6 - layout.COVERS_VALUE_W, y + 2, layout.COVERS_VALUE_W, h - 4), 2,
+                     xcen=2, maxl=16, pco=LIGHT_GREY, bco=TILE_OFF_565)
+            by = y + (h - bh) // 2
+        buttons = [(part, first + k * (bw + gap), by) for k, part in enumerate(("up", "stop", "down"))]
         inset = 4 if bh < 40 else 6
         for part, bx, by in buttons:
             text(page, f"{n}_{part}", (bx + inset, by + inset, bw - 2 * inset, bh - 2 * inset), icon_font, xcen=1,
@@ -757,7 +781,7 @@ def buttons_page(p: Project) -> None:
     title(page)
     for i, (x, y) in enumerate(layout.button_tiles(), start=1):
         b = f"tile{i}"
-        picture(page, f"{b}_pic", (x, y, layout.TILE, layout.TILE), PICTURES[f"button{i}"]["off"])
+        picture(page, f"{b}_pic", (x, y, layout.TILE_W, layout.TILE_H), PICTURES[f"button{i}"]["off"])
         # a button: the icon top left, the name on the bottom line, its state (if any) above it, the bar of a value
         # in % below them (a progress bar the firmware fills, colours and shows) -- one place each, with or without
         # a state or a bar
@@ -767,12 +791,12 @@ def buttons_page(p: Project) -> None:
         text(page, f"{b}_value", rel(layout.TILE_STATE), 0, maxl=12, pco=0, bco=0)
         progress(page, f"{b}_bar", rel(layout.TILE_BAR), pco=rgb565("#0080f8"), bco=rgb565("#4a4a4a"))
         # a button with "layout": "center" (and a favourite): the icon large in the middle, the name centred under it
-        text(page, f"{b}_text", (x + 10, y + 71, 80, 20), 0, xcen=1, maxl=10, pco=0, bco=0)
+        text(page, f"{b}_text", rel(layout.TILE_TEXT), 0, xcen=1, maxl=10, pco=0, bco=0)
         dx, dy, w, h = layout.FAV_ICON
         icon(page, f"{b}_center", x + dx + w / 2, y + dy + h / 2, ICON_FONT_XL, maxl=4, pco=0, bco=0)
-        hotspot(page, f"{b}_hs", (x, y, layout.TILE, layout.TILE), event("buttons", b, "release"),
+        hotspot(page, f"{b}_hs", (x, y, layout.TILE_W, layout.TILE_H), event("buttons", b, "release"),
                 event("buttons", b, "press"))
-    text(page, "dots", (VISIBLE_W // 2 - 100, 288, 200, 30), ICON_FONT, xcen=1, maxl=30, pco=LIGHT_GREY)
+    text(page, "dots", layout.BUTTON_DOTS, ICON_FONT, xcen=1, maxl=30, pco=LIGHT_GREY)
     close(page)
     on_load(page, loaded(page) + ["vis 255,0", "vis close_hs,1"] + [f"vis tile{i}_center,0" for i in range(1, 9)])
 
@@ -788,8 +812,9 @@ def settings_page(p: Project) -> None:
     colours = []
     x, w = layout.SETTINGS_X, layout.SETTINGS_W
     for k, y in enumerate(layout.SETTINGS_ROW_Y, start=1):
-        text(page, f"set{k}_text", (x, y, 280, 28), TEXT_FONT, ycen=2, maxl=20, pco=LIGHT_GREY)
-        text(page, f"set{k}_value", (x + w - 140, y, 140, 28), TEXT_FONT, xcen=2, ycen=2, maxl=10, pco=LIGHT_GREY)
+        text(page, f"set{k}_text", (x, y, layout.SETTINGS_TEXT_W, 28), TEXT_FONT, ycen=2, maxl=20, pco=LIGHT_GREY)
+        text(page, f"set{k}_value", (x + w - layout.SETTINGS_VALUE_W, y, layout.SETTINGS_VALUE_W, 28), TEXT_FONT,
+             xcen=2, ycen=2, maxl=10, pco=LIGHT_GREY)
         # reporting as "set0" .. "set2"
         slider(page, f"set{k}_slider", (x, y + layout.SETTINGS_SLIDER_DY, w, layout.SETTINGS_SLIDER_H), f"set{k - 1}")
         colours += [f"set{k}_slider.bco1=th_accent", f"set{k}_slider.pco=th_text"]
@@ -817,30 +842,19 @@ def boot_page(p: Project) -> None:
     per background, compose.py slot "logo") at the bottom."""
     page = new_page(p, "boot", swipe=False)
     text(page, "status", layout.BOOT_TITLE, 4, maxl=30)   # what the panel is doing, in its language (Engine::draw_boot)
-    qr_x = VISIBLE_W - BOOT_MARGIN_X - BOOT_QR_SIZE
+    qr_x = layout.BOOT_QR[0]
     lx, lw = layout.BOOT_LABEL
     for k, (row, y) in enumerate(zip(("firmware", "device", "ip", "ipv6", "info"), layout.BOOT_ROWS_Y)):
         text(page, f"{row}_text", (lx, y, lw, 20), 2, ycen=2, maxl=16)   # 8 letters, 2 bytes each in Greek
         # the value fields beside the code end short of it: a text field repaints its whole box (cropped from the
         # background) and would cut into the code; the rows from the fourth on are below it
-        below = row in ("ipv6", "info")
-        end = qr_x - BOOT_VALUE_GAP if not below else VISIBLE_W - 3
+        below = row in layout.BOOT_BELOW_QR
+        end = qr_x - layout.BOOT_VALUE_GAP if not below else VISIBLE_W - 3
         text(page, f"{row}_value", (layout.BOOT_VALUE_X, y, end - layout.BOOT_VALUE_X, 20), 1 if row == "ipv6" else 2,
              ycen=2, maxl=128 if row == "info" else 48 if row == "ipv6" else 30)
-    hotspot(page, "qr_area", (qr_x, BOOT_MARGIN_Y, BOOT_QR_SIZE, BOOT_QR_SIZE))
+    hotspot(page, "qr_area", layout.BOOT_QR)
     picture(page, "logo_pic", layout.BOOT_LOGO, PICTURES["logo"]["boot"])
     on_load(page, loaded(page))
-
-
-# The boot page's grid, in visible pixels: its texts start 29 px from the left
-# edge (box at 27 plus the font's side bearing), the title's capitals 34 px
-# from the top (box at 26, text centred in it). The QR code keeps the same
-# margin on the right (to the visible edge, x=450); the logo, centred, at the
-# bottom (boards/nspanel/nextion/layout.py BOOT_LOGO).
-BOOT_MARGIN_X = 29
-BOOT_MARGIN_Y = 34
-BOOT_QR_SIZE = 110   # ends above the fourth text row (y=145): 25 modules of 4 px on a card (Engine::draw_boot)
-BOOT_VALUE_GAP = 4   # the value fields end this far left of the QR code
 
 
 def blank_page(p: Project) -> None:
@@ -978,11 +992,11 @@ def control_page(p: Project, name: str) -> None:
     for k, (x, y), component in tiles:
         box = (x, y, layout.SIDE_TILE, layout.SIDE_TILE)
         picture(page, f"{k}_pic", box, PICTURES[k]["off"])
-        icon(page, f"{k}_icon", x + layout.SIDE_TILE / 2, y + (34 if light else layout.SIDE_TILE / 2),
+        icon(page, f"{k}_icon", x + layout.SIDE_TILE / 2, y + (layout.SIDE_ICON_CY if light else layout.SIDE_TILE / 2),
              ICON_FONT_LARGE, pco=LIGHT_GREY, bco=TILE_OFF_565)
         if light:
-            text(page, f"{k}_text", (x + 8, y + 56, layout.SIDE_TILE - 16, 20), 0, xcen=1, maxl=12, pco=LIGHT_GREY,
-                 bco=TILE_OFF_565)
+            text(page, f"{k}_text", (x + 8, y + layout.SIDE_TEXT_Y, layout.SIDE_TILE - 16, 20), 0, xcen=1, maxl=12,
+                 pco=LIGHT_GREY, bco=TILE_OFF_565)
         hotspot(page, f"{k}_hs", box, event(name, component, "release"))
     picture(page, "close", CLOSE_ICON, PICTURES["close"]["x"]).event("codesup", event(name, "close", "release"))
     # everything hidden while the page loads: the firmware shows what the light has (its views); the title
@@ -1042,7 +1056,7 @@ BUSY_DOT = 24          # a dot's box; side by side, not overlapping (they would 
 
 def busy_indicator(p: Project) -> None:
     dots = [f"busy{k}" for k in (1, 2, 3)]
-    x0, y = (VISIBLE_W - 3 * BUSY_DOT) // 2, (320 - BUSY_DOT) // 2
+    x0, y = (VISIBLE_W - 3 * BUSY_DOT) // 2, (layout.VISIBLE_H - BUSY_DOT) // 2
     for name in BUSY_PAGES:
         page = p.page(name)
         for k, dot in enumerate(dots):

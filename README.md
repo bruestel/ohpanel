@@ -69,7 +69,8 @@ web interface with invented data, the preview working.
 
 ## What you need
 
-- A **Sonoff NSPanel, EU version** (the square one; not the US version, not the NSPanel Pro)
+- A **Sonoff NSPanel**, EU version (the square one) or US version (the tall one; new, not yet tested on a real
+  panel); not the NSPanel Pro
 - **openHAB**, reachable from the panel's WiFi (tested with openHAB 5.1)
 - For the first installation once: a **USB serial adapter with 3.3 V**, a few jumper wires and a small
   flat screwdriver or another thin tool (see [Installation](docs/install.md))
@@ -78,11 +79,11 @@ web interface with invented data, the preview working.
 
 1. Open the panel and connect the serial adapter ([with photos](docs/install.md#connect-the-serial-adapter)).
 2. Flash OHpanel in the [browser](https://bruestel.github.io/ohpanel/flash/), or with esptool:
-   `ohpanel-nspanel-eu-factory-<version>.bin` from the `ohpanel-<version>.zip` of the
+   `ohpanel-nspanel-eu-factory-<version>.bin` (`-us-` for the US version) from the `ohpanel-<version>.zip` of the
    [latest release](https://github.com/bruestel/ohpanel/releases/latest).
 3. Close the panel, switch it on and join its open WiFi `ohpanel-xxxxxx`: the setup page opens. Choose your WiFi.
 4. In the web interface: connect openHAB (it is found by itself), then write the display design
-   (`ohpanel-nspanel-eu-display-<version>.tft`, about 15 minutes).
+   (`ohpanel-nspanel-eu-display-<version>.tft`, or `-us-`; about 15 minutes).
 5. Build your pages in the web interface, with the preview beside them.
 
 The [installation guide](docs/install.md) has every step, and what to do when one goes wrong.

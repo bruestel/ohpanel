@@ -4,8 +4,11 @@ From the box to the first page of your own. The first installation needs a seria
 that, the updates of the firmware and of the display's design, comes over WiFi from the panel's web interface.
 
 > [!IMPORTANT]
-> OHpanel is for the **Sonoff NSPanel, EU version** (the square one). The US version has another display
-> and is not supported; the NSPanel Pro is a different device.
+> OHpanel is for the **Sonoff NSPanel**: the **EU version** (the square one) and the **US version** (the tall one,
+> its screen upright). Each has a firmware and a display design of its own -- `nspanel-eu` or `nspanel-us` in the
+> files' names below; take the ones of your panel (a panel refuses the other's firmware). The US version's is new
+> and untested on a real panel so far: tell us how it works. The photos show the EU version. The NSPanel Pro is a
+> different device.
 
 **Contents:** [What you need](#what-you-need) · [Safety](#safety) · [Open the panel](#open-the-panel) ·
 [Connect the serial adapter](#connect-the-serial-adapter) · [Flash](#flash) · [Join your WiFi](#join-your-wifi) ·
@@ -15,15 +18,16 @@ that, the updates of the firmware and of the display's design, comes over WiFi f
 
 ## What you need
 
-- the NSPanel EU
+- the NSPanel (EU or US)
 - a **USB serial adapter that works at 3.3 V** (CP2102, CH340, FT232 ...; one with a 3.3 V / 5 V jumper set to 3.3 V)
 - **5 jumper wires** (female, for the panel's pin header) and one more to bridge IO0 to ground
 - a small **flat screwdriver** or another thin tool to open the case
 - a computer with Chrome or Edge (for the [browser flasher](https://bruestel.github.io/ohpanel/flash/)) or with
   [esptool](https://docs.espressif.com/projects/esptool/en/latest/esp32/installation.html)
 - `ohpanel-<version>.zip` from the [latest release](https://github.com/bruestel/ohpanel/releases/latest),
-  unpacked: `ohpanel-nspanel-eu-factory-<version>.bin` (the first flash), `ohpanel-nspanel-eu-display-<version>.tft`
-  (the display's design) and `ohpanel-nspanel-eu-firmware-<version>.bin` (for updates later), with their licences
+  unpacked: for your panel (`eu` or `us`) `ohpanel-nspanel-eu-factory-<version>.bin` (the first flash),
+  `ohpanel-nspanel-eu-display-<version>.tft` (the display's design) and `ohpanel-nspanel-eu-firmware-<version>.bin`
+  (for updates later), with their licences
 - **openHAB**, reachable from the panel's WiFi
 
 ## Safety
@@ -119,7 +123,8 @@ for it in openHAB (its profile → *Create new API token*), and enter the token 
 
 ## Write the display design
 
-Under **Firmware → Display firmware**, choose `ohpanel-nspanel-eu-display-<version>.tft` and write it. It takes
+Under **Firmware → Display firmware**, choose `ohpanel-nspanel-eu-display-<version>.tft` (`-us-` on a US panel; the
+page names the file it wants) and write it. It takes
 about **15 minutes** over WiFi; the screen stays dark meanwhile, then shows OHpanel's start page.
 
 > [!TIP]
@@ -140,7 +145,8 @@ writes. The [demo](https://bruestel.github.io/ohpanel/demo/) has an example of e
 
 ## Updates
 
-**Firmware → Firmware update**: choose `ohpanel-nspanel-eu-firmware-<version>.bin` from the release's zip. The panel
+**Firmware → Firmware update**: choose `ohpanel-nspanel-eu-firmware-<version>.bin` (`-us-` on a US panel) from the
+release's zip. The panel
 writes it, restarts and keeps everything it was set up with. If the release has a new display design, the web
 interface asks for it: write it as above.
 

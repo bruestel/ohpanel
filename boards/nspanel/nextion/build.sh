@@ -38,7 +38,7 @@ python3 boards/nspanel/nextion/assets/compose.py
 
 echo "== importing pictures"
 TIMEOUT=900 boards/nspanel/nextion/tools/import-pictures.sh build/seed.HMI "build/stage-pictures-$OHPANEL_VARIANT.HMI" \
-    boards/nspanel/nextion/assets/backgrounds \
+    "boards/nspanel/nextion/assets/$OHPANEL_VARIANT/backgrounds" \
     boards/nspanel/nextion/assets/composites
 
 echo "== building the design"

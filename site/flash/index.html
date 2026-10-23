@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>OHpanel flasher</title>
-<meta name="description" content="Flash OHpanel onto a Sonoff NSPanel EU from the browser">
+<meta name="description" content="Flash OHpanel onto a Sonoff NSPanel from the browser">
 <script type="module" src="https://unpkg.com/esp-web-tools@10.1.1/dist/web/install-button.js?module"></script>
 <style>
 :root{--bg:#f4f4f6;--card:#fff;--fg:#1c1c1e;--dim:#6d6d72;--line:#e2e2e6;--accent:#e64a19;--warn:#fff4e5;--warn-line:#f0b46b}
@@ -29,13 +29,15 @@ esp-web-install-button button,.btn{font:600 16px system-ui,sans-serif;color:#fff
 esp-web-install-button{--esp-tools-button-color:#e64a19;--esp-tools-button-border-radius:10px}
 a{color:var(--accent)}
 .muted{color:var(--dim);font-size:14px}
+.variants{display:flex;gap:1.2rem;flex-wrap:wrap;margin:0 0 1rem}
+.variants label{display:flex;gap:.4rem;align-items:center;cursor:pointer}
 </style>
 </head>
 <body>
 <main>
   <header>
     <svg viewBox="0 0 64 64" aria-hidden="true"><rect x="2" y="2" width="60" height="60" rx="14" fill="#E64A19"/><rect x="9" y="9" width="46" height="30.7" rx="3.5" fill="#fff"/><rect x="14" y="15" width="14" height="4" rx="2" fill="#E64A19"/><rect x="14" y="22" width="22" height="3" rx="1.5" fill="#F3A486"/><rect x="14" y="28" width="17" height="3" rx="1.5" fill="#F3A486"/><rect x="9" y="44" width="22" height="11" rx="3.5" fill="#fff"/><rect x="33" y="44" width="22" height="11" rx="3.5" fill="#fff"/></svg>
-    <div><h1>OHpanel flasher</h1><p>The first installation on a Sonoff NSPanel EU, from the browser</p></div>
+    <div><h1>OHpanel flasher</h1><p>The first installation on a Sonoff NSPanel, from the browser</p></div>
   </header>
 
   <div class="warn"><b>Mains off.</b> Take the panel off the wall and disconnect it from mains before you open it.
@@ -53,8 +55,13 @@ a{color:var(--accent)}
 
   <div class="card">
     <h2>Install</h2>
+    <!-- a firmware per panel: the EU's (square, landscape screen) or the US's (tall, portrait screen) -->
+    <div class="variants" id="variants">
+      <label><input type="radio" name="variant" value="eu" checked> NSPanel EU (square)</label>
+      <label id="usChoice" hidden><input type="radio" name="variant" value="us"> NSPanel US (tall, untested)</label>
+    </div>
     <div class="install">
-      <esp-web-install-button manifest="manifest.json">
+      <esp-web-install-button id="installer" manifest="manifest-eu.json">
         <button slot="activate" class="btn">Connect &amp; install OHpanel</button>
         <span slot="unsupported">This browser cannot talk to a serial port: use Chrome or Edge on a computer, or
           <a href="https://github.com/bruestel/ohpanel/blob/main/docs/install.md#flash">esptool</a>.</span>
@@ -72,7 +79,7 @@ a{color:var(--accent)}
       <li>Take the wire off <code>IO0</code>, unplug the adapter and plug it in again: OHpanel starts.</li>
       <li>Close the panel and put it back on the wall.</li>
       <li>Join its open WiFi <code>ohpanel-xxxxxx</code>, choose your network, connect openHAB and write the display
-        design (<code>ohpanel-nspanel-eu-display-&lt;version&gt;.tft</code>, about 15 minutes) &mdash;
+        design (<code id="tftName">ohpanel-nspanel-eu-display-&lt;version&gt;.tft</code>, about 15 minutes) &mdash;
         <a href="https://github.com/bruestel/ohpanel/blob/main/docs/install.md#join-your-wifi">step by step</a>.</li>
     </ol>
   </div>
@@ -82,9 +89,16 @@ a{color:var(--accent)}
     <a href="../licences/THIRD-PARTY-NOTICES.md">Licences</a> (the image contains third-party code)</p>
 </main>
 <script>
-fetch('manifest.json').then(r => r.ok ? r.json() : null).then(m => {
-  document.getElementById('version').textContent = m ? 'Version ' + m.version : 'No release yet.';
-}).catch(() => { document.getElementById('version').textContent = 'No release yet.'; });
+const $ = id => document.getElementById(id);
+fetch('manifest-eu.json').then(r => r.ok ? r.json() : null).then(m => {
+  $('version').textContent = m ? 'Version ' + m.version : 'No release yet.';
+}).catch(() => { $('version').textContent = 'No release yet.'; });
+// the US firmware only where the release has it
+fetch('manifest-us.json', {method: 'HEAD'}).then(r => { $('usChoice').hidden = !r.ok; }).catch(() => {});
+document.querySelectorAll('input[name=variant]').forEach(input => input.addEventListener('change', () => {
+  $('installer').setAttribute('manifest', 'manifest-' + input.value + '.json');
+  $('tftName').textContent = 'ohpanel-nspanel-' + input.value + '-display-<version>.tft';
+}));
 </script>
 </body>
 </html>
