@@ -760,6 +760,7 @@ pre.box{margin:0;padding:.6rem .7rem;max-height:18rem;overflow:auto;background:v
       <p class="sub">Running firmware and memory.</p>
       <div class="stats">
         <div class="stat"><b id="sVersion">–</b><span>Firmware</span></div>
+        <div class="stat"><b id="sPanel">–</b><span>Panel</span></div>
         <div class="stat"><b id="sUptime">–</b><span>Uptime</span></div>
         <div class="stat"><b id="sCpu">–</b><span>CPU</span></div>
         <div class="stat"><b id="sHeap">–</b><span>Free RAM (internal)</span></div>
@@ -1958,6 +1959,7 @@ async function refreshInfo() {
   $('hdrNet').textContent = n.provisioning ? 'hotspot ' + n.ssid : (STATE_TEXT[n.state] || n.state);
 
   $('sVersion').textContent = info.version;
+  $('sPanel').textContent = 'NSPanel ' + (info.variant || 'eu').toUpperCase();
   $('sUptime').textContent = fmtUptime(info.uptime_s);
   liveText($('sHeap'), fmtKb(info.heap) + (info.heap_total ? ' of ' + fmtKb(info.heap_total) : '')
     + ' (min ' + fmtKb(info.heap_min) + (info.heap_largest ? ', largest block ' + fmtKb(info.heap_largest) : '') + ')');
