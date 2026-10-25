@@ -2153,6 +2153,64 @@ int main(int argc, char **argv) {
     e.set_config(read("test/host/data/office.json"));
   }
 
+  {  // a separate command item ("commands": "item"): up / stop / down go there, its words as they read (also
+     // reversed), the position to the item; on a group page each member's metadata names its own
+    cJSON *doc = cJSON_Parse(read("test/host/data/office.json").c_str());
+    cJSON_AddItemToArray(cJSON_GetObjectItem(doc, "pages"), cJSON_Parse(R"({"id": "curtain", "type": "cover",
+        "item": "Curtain_Dimmer", "style": "curtain", "reverse": true,
+        "commands": {"item": "Curtain_Cmd", "open": "open", "stop": "stop", "close": "close"}})"));
+    cJSON_AddItemToArray(cJSON_GetObjectItem(doc, "pages"), cJSON_Parse(R"({"id": "curtains", "type": "cover",
+        "title": "Curtains", "group": "gCurtains", "commands": {"open": "open", "stop": "stop", "close": "close"}})"));
+    cJSON *lights = nullptr;
+    for (cJSON *pg = cJSON_GetObjectItem(doc, "pages")->child; pg; pg = pg->next)
+      if (std::string(cJSON_GetStringValue(cJSON_GetObjectItem(pg, "id"))) == "lights")
+        lights = pg;
+    cJSON_ReplaceItemInArray(cJSON_GetObjectItem(lights, "buttons"), 0,
+                             cJSON_Parse(R"({"label": "Curtain", "icon": "curtains", "open": "curtain"})"));
+    cJSON_ReplaceItemInArray(cJSON_GetObjectItem(lights, "buttons"), 1,
+                             cJSON_Parse(R"({"label": "Curtains", "icon": "curtains", "open": "curtains"})"));
+    char *text = cJSON_PrintUnformatted(doc);
+    e.set_config(text);
+    cJSON_free(text);
+    cJSON_Delete(doc);
+    set_state("Curtain_Dimmer", "40", "Percent", nullptr, 40, true);
+    e.on_message(loaded("home"));
+    e.on_message(event("home", "swipe", "left"));
+    e.on_message(loaded("buttons"));
+    e.on_message(event("buttons", "tile1", "release"));
+    CHECK(e.current() == "curtain");
+    e.on_message(loaded("cover"));
+    e.on_message(event("cover", "open_cover", "release"));
+    CHECK(commands.back() == std::make_pair(std::string("Curtain_Cmd"), std::string("open")));   // not swapped
+    e.on_message(event("cover", "stop_cover", "release"));
+    CHECK(commands.back() == std::make_pair(std::string("Curtain_Cmd"), std::string("stop")));
+    e.on_message(event("cover", "close_cover", "release"));
+    CHECK(commands.back() == std::make_pair(std::string("Curtain_Cmd"), std::string("close")));
+    e.on_message(value("cdru", 80 * 1000 + 106));            // the drawing: the position, to the item
+    CHECK(commands.back().first == "Curtain_Dimmer");
+    e.on_message(event("cover", "close", "release"));
+    e.on_message(loaded("buttons"));
+
+    members["gCurtains"] = {{"Curtain_A", "Curtain A", {{"cover", appoh::Metadata{" ", {{"command_item", "Curtain_A_Cmd"}}}}}},
+                            {"Curtain_B", "Curtain B", {}}};
+    e.on_message(event("buttons", "tile2", "release"));
+    CHECK(e.current() == "curtains");
+    e.on_message(loaded("covers"));
+    commands.clear();
+    e.on_message(event("covers", "all_up", "release"));       // the whole group: each member on its own
+    CHECK(commands.size() == 2 && commands[0] == std::make_pair(std::string("Curtain_A_Cmd"), std::string("open")) &&
+          commands[1] == std::make_pair(std::string("Curtain_B"), std::string("open")));
+    e.on_message(event("covers", "row1_down", "release"));
+    CHECK(commands.back() == std::make_pair(std::string("Curtain_A_Cmd"), std::string("close")));
+    e.on_message(event("covers", "row1", "release"));         // Curtain A as a page of its own: its command item
+    CHECK(e.current() == "@cover");
+    e.on_message(loaded("cover"));
+    e.on_message(event("cover", "stop_cover", "release"));
+    CHECK(commands.back() == std::make_pair(std::string("Curtain_A_Cmd"), std::string("stop")));
+    members.erase("gCurtains");
+    e.set_config(read("test/host/data/office.json"));
+  }
+
   {  // a field's room in bytes (the manifest's third number): a text that fits its width but not its bytes -- ü,
      // ł take two -- is cut at a character, with "...", not by the display in the middle of a letter
     cJSON *doc = cJSON_Parse(read("test/host/data/office.json").c_str());

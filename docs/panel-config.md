@@ -346,7 +346,7 @@ A roller shutter, a blind, an awning, a curtain, a garage door, a gate: one
 | `presets` | up to 3 `{"label", "position"}` | pills at the bottom; a tap sends the position (as shown) |
 | `moving` | `{item}` | an item saying `UP`, `DOWN` or `STOP` while it moves |
 | `metadata` | namespace | where the items' metadata is read (default `cover`) |
-| `commands` | `{"stop", "open", "close"}` | what the tiles send (default `STOP`/`UP`/`DOWN`) |
+| `commands` | `{"item", "stop", "open", "close"}` | what the tiles send (default `STOP`/`UP`/`DOWN`), and optionally to which item |
 | `live` | bool | the position sent while the finger moves on the drawing (default: when let go) |
 | `hide_slider` | bool | no drawing (a cover without a position) |
 
@@ -366,12 +366,29 @@ end.
 
 **Metadata.** What the page leaves out comes from the item's metadata in the
 namespace `cover` (or `metadata`; the web interface's form shows what it finds there): `label` (the
-title), `style`, `reverse`, `from`, `moving` (an item's name, for a group's members; a page of its own takes `"moving"`), `presets` (as text,
+title), `style`, `reverse`, `from`, `moving` (an item's name, for a group's members; a page of its own takes `"moving"`),
+`command_item` (likewise: a page of its own takes `"commands": {"item"}`), `presets` (as text,
 `"Sun=70, Shade=100"`) and, for a group's rows, `label`:
 
 ```
 Rollershutter Awning_Terrace "Terrace awning" { cover=" " [style="awning", presets="Sun=60, Shade=100"] }
 ```
+
+**A separate command item.** Some covers take their position on one item
+(a Dimmer) and open / stop / close on another (a String item taking `open`,
+`stop`, `close`). `commands.item` names that one: up / stop / down go there,
+with the words of `commands` as they read (up sends `open`, also with
+`reverse`), while dragging and the presets send the position to `item`.
+
+```json
+{"id": "curtain", "type": "cover", "item": "Curtain_Position", "style": "curtain",
+ "commands": {"item": "Curtain_Command", "open": "open", "stop": "stop", "close": "close"}}
+```
+
+On a group page each member names its own in its metadata
+(`cover=" " [command_item="Curtain_Command"]`), the words coming from the
+page's `commands`; up / stop / down on the whole group then go to each
+member on its own instead of to the group.
 
 **A group** (`"group"`) shows the whole group at the top (taller, larger
 buttons) and a row per member under it, four on a sheet (swipe for more),

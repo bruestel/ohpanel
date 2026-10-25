@@ -450,6 +450,7 @@ class Engine {
     std::vector<std::pair<std::string, int>> presets;   // label, position as shown
     std::string label;               // a member's name (its metadata's "label", else its label)
     std::string moving;              // a member's item saying UP / DOWN / STOP (its metadata's "moving")
+    std::string command_item;        // where up / stop / down go ("commands": "item", metadata "command_item"); "": the item
   };
   CoverLook cover_look(const cJSON *page) const;
   CoverLook member_look(const cJSON *group_page, const appoh::Member &m) const;
@@ -472,7 +473,8 @@ class Engine {
   void draw_cover_art(int x, int y, int w, int h, const std::string &style, int closed, int bg, bool from_left);
   void draw_cover(const cJSON *page);
   void cover_event(const cJSON *page, const std::string &component);
-  void cover_command(const std::string &item, const std::string &which, bool reverse, const cJSON *commands);
+  void cover_command(const std::string &item, const std::string &which, bool reverse, const cJSON *commands,
+                     const std::string &command_item = "");
   std::vector<std::pair<std::string, appoh::Member>> cover_rows(const cJSON *page);   // ("" all | member)
   void draw_covers(const cJSON *page);
   void draw_cover_presets(const cJSON *page);

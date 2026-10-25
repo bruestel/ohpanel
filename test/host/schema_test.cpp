@@ -113,6 +113,11 @@ int main() {
   expect_issue("bad item name",
                doc("\"pages\":[{\"id\":\"c\",\"type\":\"cover\",\"title\":\"x\",\"item\":\"has space\"}]"),
                "pages[0].item");
+  expect_valid("cover with a command item",
+               doc(R"("pages":[{"id":"c","type":"cover","item":"Pos","commands":{"item":"Cmd","open":"open"}}])"));
+  expect_issue("cover command item not an item name",
+               doc(R"("pages":[{"id":"c","type":"cover","item":"Pos","commands":{"item":"no way"}}])"),
+               "pages[0].commands.item");
   expect_valid("thermostat",
                doc(R"("pages":[{"id":"t","type":"thermostat","title":"x","item":"Set","current":{"item":"Now"},
                    "heating":{"item":"H"},"cooling":{"item":"C"},"mode":{"item":"M"},"style":"gradient",

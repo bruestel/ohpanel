@@ -6390,7 +6390,8 @@ function pvCoverEditor(box, head, hint, page) {
             field('Style', selectInput(styles, page.style, v => pvEdit((c, p) => { if (v) p.style = v; else delete p.style; })))));
   // the metadata found, as a line (one item) or a table of the members (a group)
   /* What openHAB's metadata says, as a small table: the keys it has (`keys`, in this order), their meaning. */
-  const MD_NAMES = {label: 'Name', style: 'Style', presets: 'Presets', moving: 'Moving item', reverse: 'Reversed', from: 'Gate comes in from'};
+  const MD_NAMES = {label: 'Name', style: 'Style', presets: 'Presets', moving: 'Moving item', command_item: 'Command item',
+                    reverse: 'Reversed', from: 'Gate comes in from'};
   const mdShown = (k, v) => k !== 'presets' ? v
     : coverPresetsOf(v).map(p => p[0].replace(/\s/g, '') === p[1] + '%' ? p[0] : p[0] + ' (' + p[1] + ' %)').join(' · ') || v;
   const mdTable = (c, keys) => {
@@ -6406,12 +6407,13 @@ function pvCoverEditor(box, head, hint, page) {
       const table = document.createElement('table');
       table.className = 'mdtable';
       const head = table.createTHead().insertRow();
-      ['Row', 'Style', 'Moving item'].forEach(h => { const th = document.createElement('th'); th.textContent = h; head.appendChild(th); });
+      ['Row', 'Style', 'Moving item', 'Command item'].forEach(h => { const th = document.createElement('th'); th.textContent = h; head.appendChild(th); });
       members.forEach(m => {
         const tr = table.insertRow(), c = ((m.metadata || {})[ns] || {config: {}}).config;
         tr.insertCell().textContent = c.label || m.label;
         tr.insertCell().textContent = c.style || (page.style ? page.style + ' (the page\'s)' : 'shutter (default)');
         tr.insertCell().textContent = c.moving ? '✓' : '–';
+        tr.insertCell().textContent = c.command_item || '–';
         tr.title = m.name;
       });
       box.append(note('The rows, from the members\' "' + ns + '" metadata in openHAB (a name, a style, which way it moves):'), table);
@@ -6425,7 +6427,7 @@ function pvCoverEditor(box, head, hint, page) {
                                                                  page.from === 'left' ? 'left' : '', v => pvEdit((c, p) => { if (v) p.from = v; else delete p.from; }))),
                      document.createElement('span')));
     if (page.item) {
-      const keys = ['label', 'style', 'presets', 'moving', 'reverse', 'from'];
+      const keys = ['label', 'style', 'presets', 'moving', 'command_item', 'reverse', 'from'];
       if (keys.some(k => md[k])) box.append(note('From the item\'s "' + ns + '" metadata in openHAB, for what the fields leave empty:'), mdTable(md, keys));
       else box.append(note('No "' + ns + '" metadata on this item in openHAB (e.g. ' + ns + '=" " [label="Kitchen", style="awning", presets="Sun=60"]).'));
     }
@@ -6458,6 +6460,20 @@ function pvCoverEditor(box, head, hint, page) {
   }
   box.append(pvRow(field('Up sends', cmd('open', 'UP')), field('Stop sends', cmd('stop', 'STOP')),
                    field('Down sends', cmd('close', 'DOWN'))));
+  if (grouped) {
+    box.append(note('A member taking up / stop / down on an item of its own (a String item beside a Dimmer) names it in '
+                  + 'its metadata: ' + ns + '=" " [command_item="Curtain_Command"].'));
+  } else {
+    const ci = (page.commands || {}).item || '';
+    box.append(two(field('Command item (optional)', itemField(ci, v => pvEdit((c, p) => {
+                     const cm = p.commands = p.commands || {};
+                     if (v) cm.item = v; else delete cm.item;
+                     if (!Object.keys(cm).length) delete p.commands;
+                   }), 'String,Rollershutter,Switch')),
+                   document.createElement('span')),
+               note('Up / stop / down go to this item instead (e.g. a String item taking open / stop / close), '
+                  + 'the position still to the cover\'s item.' + (md.command_item && !ci ? ' The metadata names ' + md.command_item + '.' : '')));
+  }
 }
 
 /* The thermostat page's form: the items (the target required), the modes, the target's range, the ring's colour. */

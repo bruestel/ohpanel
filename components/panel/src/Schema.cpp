@@ -837,7 +837,9 @@ class Validator {
       if (const cJSON *c = cJSON_GetObjectItem(pg, "commands")) {
         const std::string cp = member(p, "commands");
         if (object(c, cp)) {
-          allowed(c, cp, {"stop", "open", "close"});
+          allowed(c, cp, {"item", "stop", "open", "close"});
+          if (const cJSON *ci = cJSON_GetObjectItem(c, "item"))   // up / stop / down to this item, not "item"
+            item_name(ci, member(cp, "item"));
           string(c, "stop", cp, false, 32);
           string(c, "open", cp, false, 32);
           string(c, "close", cp, false, 32);

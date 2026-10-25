@@ -114,6 +114,7 @@ Engine::CoverLook Engine::cover_look(const cJSON *page) const {
   l.reverse = cJSON_GetObjectItem(page, "reverse") ? flag(page, "reverse") : conf("reverse") == "true";
   l.from_left = str(page, "from", conf("from")) == "left";
   l.moving = str(member(page, "moving"), "item", conf("moving"));
+  l.command_item = str(member(page, "commands"), "item", conf("command_item"));
   l.label = conf("label");
   if (const cJSON *p = member(page, "presets"); cJSON_IsArray(p)) {
     for (const cJSON *e = p->child; e && l.presets.size() < 3; e = e->next)
@@ -141,6 +142,7 @@ Engine::CoverLook Engine::member_look(const cJSON *group_page, const appoh::Memb
   l.presets = presets_of(conf("presets"));
   l.label = conf("label").empty() ? mb.label : conf("label");
   l.moving = conf("moving");
+  l.command_item = conf("command_item");
   return l;
 }
 
@@ -426,19 +428,25 @@ void Engine::cover_refresh(const cJSON *page) {
 }
 
 /* A command to a cover: open / stop / close (its page's "commands", else UP / STOP / DOWN; a reversed cover's
-   open is the item's DOWN), or a position as shown. A move shows at once (Motion), until the item tells. */
-void Engine::cover_command(const std::string &item, const std::string &which, bool reverse, const cJSON *commands) {
+   open is the item's DOWN), or a position as shown. Open / stop / close go to `command_item` if there is one (a
+   String item taking "open", "stop", "close" beside a Dimmer with the position) -- its words as they read, open
+   is open whichever way the position runs; the position always goes to `item`. A move shows at once (Motion,
+   the item's), until the item tells. */
+void Engine::cover_command(const std::string &item, const std::string &which, bool reverse, const cJSON *commands,
+                           const std::string &command_item) {
   if (item.empty() || !cb_.command)
     return;
   Motion &m = motion_[item];
+  const std::string &to = command_item.empty() ? item : command_item;
   if (which == "stop") {
-    cb_.command(item, str(commands, "stop", "STOP"));
+    cb_.command(to, str(commands, "stop", "STOP"));
     m.until_ms = 0;
     return;
   }
   if (which == "open" || which == "close") {
     const bool up = (which == "open") != reverse;   // the item's UP: towards its 0
-    cb_.command(item, up ? str(commands, "open", "UP") : str(commands, "close", "DOWN"));
+    const bool open = command_item.empty() ? up : which == "open";
+    cb_.command(to, open ? str(commands, "open", "UP") : str(commands, "close", "DOWN"));
     m.dir = up ? -1 : 1;
     m.until_ms = now_ms_ + kCoverMovingMs;
     m.commanded_until_ms = now_ms_ + 4000;
@@ -462,7 +470,7 @@ void Engine::cover_event(const cJSON *page, const std::string &component) {
   const std::string item = str(page, "item");
   const cJSON *cmds = member(page, "commands");
   if (component == "open_cover" || component == "stop_cover" || component == "close_cover") {
-    cover_command(item, component.substr(0, component.find('_')), look.reverse, cmds);
+    cover_command(item, component.substr(0, component.find('_')), look.reverse, cmds, look.command_item);
   } else if (component.rfind("preset", 0) == 0 && component.size() == 7) {
     const int k = component[6] - '1';
     if (k >= 0 && k < static_cast<int>(look.presets.size())) {
@@ -698,8 +706,17 @@ void Engine::covers_event(const cJSON *page, const std::string &component) {
   const CoverLook look = all ? CoverLook{} : member_look(page, rows[i].second);
   const std::string item = all ? str(page, "group") : rows[i].second.name, part = component.substr(all ? 3 : 4);
   if (part == "_up" || part == "_stop" || part == "_down") {
-    cover_command(item, part == "_up" ? "open" : part == "_stop" ? "stop" : "close", look.reverse,
-                  member(page, "commands"));
+    const std::string which = part == "_up" ? "open" : part == "_stop" ? "stop" : "close";
+    const cJSON *cmds = member(page, "commands");
+    std::vector<CoverLook> looks;   // the whole group, members with a command item of their own: each its own command
+    for (size_t k = 0; all && k < rows.size(); k++)
+      looks.push_back(member_look(page, rows[k].second));
+    if (std::any_of(looks.begin(), looks.end(), [](const CoverLook &l) { return !l.command_item.empty(); })) {
+      for (size_t k = 0; k < rows.size(); k++)
+        cover_command(rows[k].first, which, looks[k].reverse, cmds, looks[k].command_item);
+    } else {
+      cover_command(item, which, look.reverse, cmds, look.command_item);
+    }
     // the button's icon: in the accent (the touch made it so, on the display) for a while, then back
     const std::string icon = component;
     sent_.erase(icon + ".pco");
@@ -722,6 +739,13 @@ void Engine::covers_event(const cJSON *page, const std::string &component) {
     if (!look.moving.empty()) {
       cJSON *moving = cJSON_AddObjectToObject(member_page_, "moving");
       cJSON_AddStringToObject(moving, "item", look.moving.c_str());
+    }
+    if (const cJSON *cmds = member(page, "commands"); cmds || !look.command_item.empty()) {   // the group's words
+      cJSON *own = cmds ? cJSON_Duplicate(cmds, true) : cJSON_CreateObject();
+      cJSON_DeleteItemFromObject(own, "item");
+      if (!look.command_item.empty())
+        cJSON_AddStringToObject(own, "item", look.command_item.c_str());
+      cJSON_AddItemToObject(member_page_, "commands", own);
     }
     cJSON *presets = cJSON_AddArrayToObject(member_page_, "presets");
     for (const auto &[label, pos] : look.presets) {
