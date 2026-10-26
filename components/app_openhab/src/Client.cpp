@@ -63,6 +63,7 @@ struct Job {
   enum class Kind { Subscribe, Command, State } kind;
   std::string item;
   std::string value;
+  bool secret = false;   // a code: not in the log, not as the item's expected state
 };
 
 /* Guards everything below it. */
@@ -409,8 +410,9 @@ void do_command(const Job &job) {
   const int status = update ? post(appcfg::openhab(), "/rest/items/" + job.item + "/state", "text/plain", job.value,
                                    HTTP_METHOD_PUT)
                             : post(appcfg::openhab(), "/rest/items/" + job.item, "text/plain", job.value);
+  const std::string value = job.secret ? "(" + std::to_string(job.value.size()) + " characters, not shown)" : job.value;
   if (status == 200 || status == 202) {
-    ESP_LOGI(TAG, "%s %s -> %s", update ? "State" : "Command", job.item.c_str(), job.value.c_str());
+    ESP_LOGI(TAG, "%s %s -> %s", update ? "State" : "Command", job.item.c_str(), value.c_str());
     return;
   }
   const char *why = status == 400   ? "openHAB rejected the value"
@@ -418,7 +420,7 @@ void do_command(const Job &job) {
                     : status == 401 ? "token rejected"
                     : status == 0   ? "openHAB not reachable"
                                     : "unexpected answer";
-  set_error(std::string(update ? "state " : "command ") + job.item + " -> " + job.value + " failed: " + why + " (HTTP " + std::to_string(status) +
+  set_error(std::string(update ? "state " : "command ") + job.item + " -> " + value + " failed: " + why + " (HTTP " + std::to_string(status) +
             ")");
 }
 
@@ -559,13 +561,15 @@ void expire_predictions(void *) {
 
 }  // namespace
 
-bool send_command(const std::string &item, const std::string &command) {
+bool send_command(const std::string &item, const std::string &command, bool secret) {
   if (!valid_item_name(item)) {
     set_error("invalid item name \"" + item + "\"");
     return false;
   }
-  if (!enqueue(new Job{Job::Kind::Command, item, command}))
+  if (!enqueue(new Job{Job::Kind::Command, item, command, secret}))
     return false;
+  if (secret)
+    return true;   // not kept as the state it will likely have either
   // the state it will most likely have, at once
   ItemState next;
   bool changed;

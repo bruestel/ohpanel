@@ -61,8 +61,9 @@ void subscribe(const std::vector<std::string> &items, const std::vector<std::str
                const std::vector<std::string> &namespaces = {});
 
 /* Queues a command; returns false if the queue is full. Sent on a separate
-   connection, so it never waits for the stream. */
-bool send_command(const std::string &item, const std::string &command);
+   connection, so it never waits for the stream. `secret` (a code typed on the
+   keypad page): its value neither logged nor kept as the item's expected state. */
+bool send_command(const std::string &item, const std::string &command, bool secret = false);
 
 /* Queues a state update: sets the item without commanding anything behind it
    -- for values the panel measures (its temperature sensor). */
