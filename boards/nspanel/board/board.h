@@ -8,6 +8,9 @@
 #pragma once
 
 #include <driver/gpio.h>
+#include <esp_system.h>
+#include <freertos/FreeRTOS.h>
+#include <freertos/task.h>
 
 namespace board {
 
@@ -49,7 +52,14 @@ inline void init() {
   gpio_set_level(PIN_RELAY1, 0);
   gpio_set_level(PIN_RELAY2, 0);
 
-  /* Display on: it shows its boot page until the firmware takes over. */
+  /* Display on: it shows its splash page until the firmware takes over. A
+     restart that was not a power-on (the web interface's, an update, a
+     crash) left it on, its last page frozen until then: off for a moment
+     first, so it starts as at power-on. */
+  if (esp_reset_reason() != ESP_RST_POWERON) {
+    gpio_set_level(PIN_DISPLAY_POWER, 1);
+    vTaskDelay(pdMS_TO_TICKS(100));
+  }
   gpio_set_level(PIN_DISPLAY_POWER, 0);
 }
 
