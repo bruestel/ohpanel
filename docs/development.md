@@ -74,12 +74,13 @@ The web interface runs without a panel: `demo/mock.js` answers every `/api/v1/..
 interface, run the three again: the pictures follow.
 
 The GitHub workflow `pages.yml` publishes the landing page and the browser flasher (`site/`, `site/flash/`) and the demo on GitHub Pages; the
-flasher takes the factory image from the latest release's zip.
+flasher takes the factory images from the latest release's zips.
 
 ## Releases
 
-A release has two downloads: the sources (GitHub adds them) and one `ohpanel-<version>.zip` with the binaries
-and the licences that must go with every copy of them (the fonts' licences ask for that). The workflow
+A release has the sources (GitHub adds them) and a zip per panel variant, `ohpanel-nspanel-eu-<version>.zip` and
+`ohpanel-nspanel-us-<version>.zip`, each with that panel's binaries and the licences that must go with every copy of
+them (the fonts' licences ask for that). The workflow
 `release.yml` makes it from a tag:
 
     boards/nspanel/nextion/build.sh eu    # only after a change to the display design: the Nextion Editor under wine
@@ -89,7 +90,7 @@ and the licences that must go with every copy of them (the fonts' licences ask f
 
 The display design is the one file GitHub cannot build, so `build.sh` keeps a copy in
 `boards/nspanel/nextion/display/` (the old one removed), committed with the manifest that names it. On the tag the
-workflow builds the firmware, runs the host tests, makes the zip with `tools/make_release.py`, publishes the release
+workflow builds the firmware, runs the host tests, makes the zips with `tools/make_release.py`, publishes the release
 and starts `pages.yml` again: the flasher takes the new factory image. `make_release.py` also works locally; it
 refuses a firmware built from uncommitted changes (`-dirty`) and a missing display design.
 

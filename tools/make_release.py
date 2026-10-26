@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 """
-A release's one download: dist/ohpanel-<version>.zip with the binaries of every panel variant that has a display
-design (tools/variant.py) and the licences that have to go with every copy of them (the fonts' licences ask for
-that; see THIRD-PARTY-NOTICES.md).
+A release's downloads: a zip per panel variant that has a display design (tools/variant.py),
+dist/ohpanel-<board>-<version>.zip (ohpanel-nspanel-eu-1.0.0.zip), with that panel's binaries and the licences that
+have to go with every copy of them (the fonts' licences ask for that; see THIRD-PARTY-NOTICES.md).
 
     pio run $(python3 tools/variant.py)       # the firmware images, a set per variant
     boards/nspanel/nextion/build.sh <variant> # the display design (Nextion Editor under wine), kept in
                                               # boards/nspanel/nextion/display/ -- committed: CI cannot build it
-    tools/make_release.py                     # dist/ohpanel-<version>.zip
+    tools/make_release.py                     # dist/ohpanel-<board>-<version>.zip, one per variant
 
 A tag v<version> does all but the display design on GitHub (.github/workflows/release.yml) and publishes the release.
 
@@ -84,26 +84,27 @@ def main():
     missing = [str(p) for p, _ in LICENCES if not p.exists()]
     if missing:
         sys.exit("make_release: licences missing:\n  " + "\n  ".join(missing))
-    out = ROOT / "dist" / f"ohpanel-{version}.zip"
-    out.parent.mkdir(exist_ok=True)
-    top = f"ohpanel-{version}"
-    readme = f"OHpanel {version} for the Sonoff NSPanel -- https://github.com/bruestel/ohpanel\n"
-    with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED) as z:
-        for name, (_, firmware, factory, tft) in sets.items():
+    (ROOT / "dist").mkdir(exist_ok=True)
+    for name, (_, firmware, factory, tft) in sets.items():
+        board = variant.board(name)
+        out = ROOT / "dist" / f"ohpanel-{board}-{version}.zip"
+        top = f"ohpanel-{board}-{version}"
+        readme = (f"OHpanel {version} for {PANELS[name]} -- https://github.com/bruestel/ohpanel\n"
+                  f"Only for this panel ({board}): the other's firmware is refused, its zip is the other download.\n"
+                  f"\n{factory.name}\n    the first installation, over the serial port, at offset 0\n"
+                  f"    (docs/install.md; or in the browser: https://bruestel.github.io/ohpanel/flash/)\n"
+                  f"{firmware.name}\n    an update over WiFi: Settings > Firmware > Firmware update\n"
+                  f"{tft.name}\n    the display design: Settings > Firmware > Display firmware (about 15 minutes)\n"
+                  "\nLICENSE, THIRD-PARTY-NOTICES.md and licences/: what the images contain and under which licences.\n")
+        with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED) as z:
             for path in (firmware, factory, tft):
                 z.write(path, f"{top}/{path.name}")
-            readme += (f"\nFor {PANELS[name]} ({variant.board(name)}: only for it -- the other's firmware is refused):\n"
-                       f"{factory.name}\n    the first installation, over the serial port, at offset 0\n"
-                       f"    (docs/install.md; or in the browser: https://bruestel.github.io/ohpanel/flash/)\n"
-                       f"{firmware.name}\n    an update over WiFi: Settings > Firmware > Firmware update\n"
-                       f"{tft.name}\n    the display design: Settings > Firmware > Display firmware (about 15 minutes)\n")
-        for path in (ROOT / "LICENSE", ROOT / "THIRD-PARTY-NOTICES.md"):
-            z.write(path, f"{top}/{path.name}")
-        for path, name in LICENCES:
-            z.write(path, f"{top}/licences/{name}")
-        z.writestr(f"{top}/README.txt", readme +
-                   "\nLICENSE, THIRD-PARTY-NOTICES.md and licences/: what the images contain and under which licences.\n")
-    print(f"release: {out.relative_to(ROOT)} ({out.stat().st_size // 1024} KB)")
+            for path in (ROOT / "LICENSE", ROOT / "THIRD-PARTY-NOTICES.md"):
+                z.write(path, f"{top}/{path.name}")
+            for path, lic in LICENCES:
+                z.write(path, f"{top}/licences/{lic}")
+            z.writestr(f"{top}/README.txt", readme)
+        print(f"release: {out.relative_to(ROOT)} ({out.stat().st_size // 1024} KB)")
 
 
 if __name__ == "__main__":

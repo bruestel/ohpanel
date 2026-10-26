@@ -46,7 +46,9 @@ jobs:
           tag=$(gh release view --repo "$GITHUB_REPOSITORY" --json tagName -q .tagName 2>/dev/null || true)
           if [ -n "$tag" ]; then
             gh release download "$tag" --repo "$GITHUB_REPOSITORY" --pattern 'ohpanel-*.zip' --dir /tmp/release
-            unzip -q /tmp/release/ohpanel-*.zip -d /tmp/release
+            for zip in /tmp/release/ohpanel-*.zip; do   # a zip per panel variant (one for all before 0.11.0)
+              unzip -q -o "$zip" -d /tmp/release
+            done
             cp /tmp/release/ohpanel-*/licences/* _site/licences/
             # a factory image and a manifest per panel variant the release has (tools/variant.py); manifest.json the
             # EU's, as before there were variants

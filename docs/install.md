@@ -24,10 +24,10 @@ that, the updates of the firmware and of the display's design, comes over WiFi f
 - a small **flat screwdriver** or another thin tool to open the case
 - a computer with Chrome or Edge (for the [browser flasher](https://bruestel.github.io/ohpanel/flash/)) or with
   [esptool](https://docs.espressif.com/projects/esptool/en/latest/esp32/installation.html)
-- `ohpanel-<version>.zip` from the [latest release](https://github.com/bruestel/ohpanel/releases/latest),
-  unpacked: for your panel (`eu` or `us`) `ohpanel-nspanel-eu-factory-<version>.bin` (the first flash),
-  `ohpanel-nspanel-eu-display-<version>.tft` (the display's design) and `ohpanel-nspanel-eu-firmware-<version>.bin`
-  (for updates later), with their licences
+- the zip for your panel from the [latest release](https://github.com/bruestel/ohpanel/releases/latest),
+  `ohpanel-nspanel-eu-<version>.zip` (or `-us-`), unpacked: `ohpanel-nspanel-eu-factory-<version>.bin` (the first
+  flash), `ohpanel-nspanel-eu-display-<version>.tft` (the display's design) and
+  `ohpanel-nspanel-eu-firmware-<version>.bin` (for updates later), with their licences
 - **openHAB**, reachable from the panel's WiFi
 
 ## Safety
