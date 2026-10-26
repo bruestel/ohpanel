@@ -14,7 +14,7 @@
   {
    "id": "black",
    "title": "Black",
-   "pic": 162,
+   "pic": 161,
    "theme": {
     "accent": "#0080f8",
     "text": "#ffffff",
@@ -479,6 +479,9 @@
     "busy3"
    ],
    "close": true
+  },
+  "splash": {
+   "id": 18
   }
  },
  "pictures": {
@@ -814,48 +817,51 @@
     "box": 168
    },
    "logo": {
-    "boot": 161
+    "boot": 167
    },
    "power": {
-    "off": 166,
-    "on": 167
+    "off": 165,
+    "on": 166
    },
    "restart": {
-    "off": 163,
-    "on": 164
+    "off": 162,
+    "on": 163
    },
    "rowcard1": {
-    "box": 165
+    "box": 164
    },
    "rowcard2": {
-    "box": 165
+    "box": 164
    },
    "rowcard3": {
-    "box": 165
+    "box": 164
    },
    "rowcard4": {
-    "box": 165
+    "box": 164
    },
    "rowcard5": {
-    "box": 165
+    "box": 164
    },
    "rowcard6": {
-    "box": 165
+    "box": 164
    },
    "rowcard7": {
-    "box": 165
+    "box": 164
    },
    "side1": {
-    "off": 166,
-    "on": 167
+    "off": 165,
+    "on": 166
    },
    "side2": {
-    "off": 166,
-    "on": 167
+    "off": 165,
+    "on": 166
    },
    "side3": {
-    "off": 166,
-    "on": 167
+    "off": 165,
+    "on": 166
+   },
+   "splash": {
+    "logo": 167
    },
    "vol": {
     "box": 168
@@ -15999,7 +16005,12 @@
    "busy2",
    "busy3",
    "busy_tm"
+  ],
+  "splash": [
+   "splash_pic",
+   "splash_n",
+   "splash_tm"
   ]
  },
- "design": "fc4305ba"
+ "design": "b8e1b730"
 }

@@ -24,6 +24,7 @@ boards/nspanel/nextion/layout.py, which the recipe (boards/nspanel/nextion/ohpan
     rowcard1..7     entities_rows.rowN_pic    the entity page's row cards (layout.ENTITY_ROWS_*)
     wchip1..6       weather.chipN_pic         the weather page's cards of an extra (layout.WEATHER_CHIPS)
     logo            boot.logo_pic             the boot page's logo (assets/<variant>/logo, layout.BOOT_LOGO)
+    splash          splash.splash_pic         the display's own logo when it starts, on black only (layout.SPLASH_LOGO)
     art             media.art_pic             the box behind what plays (layout.MEDIA_ART)
     vol             media.volume_pic          the volume button, a disc (layout.MEDIA_VOLUME)
     fav             media.fav_pic             the favourites button, a disc (layout.MEDIA_FAV)
@@ -151,6 +152,8 @@ def slots():
     out["ctemp"] = (*layout.CONTROL_SLIDER,
                     {"track": Image.open(os.path.join(layout.ASSETS, "controls", "ctemp.png")).convert("RGBA")})
     out["logo"] = (*layout.BOOT_LOGO, {"boot": Image.open(os.path.join(layout.ASSETS, "logo", "boot.png")).convert("RGBA")})
+    out["splash"] = (*layout.SPLASH_LOGO,
+                     {"logo": Image.open(os.path.join(layout.ASSETS, "logo", "splash.png")).convert("RGBA")})
     badges = {name: badge(c) for name, c in PALETTE.items()}
     for line, y in enumerate(layout.INFO_Y, start=1):
         out[f"badge{line}"] = (layout.INFO_LEFT[0], y, layout.INFO_LEFT[1], layout.INFO_H, badges)
@@ -166,6 +169,11 @@ def rgb565(img):
     return Image.fromarray((a * 255 + 0.5).astype(np.uint8), "RGB")
 
 
+# The display's own start (the splash page, before the firmware has found it) is black whatever the background
+# configured: its logo only on that.
+SPLASH_ONLY, SPLASH_BACKGROUND = ("splash",), "black"
+
+
 def main():
     if len(sys.argv) != 1:
         sys.exit(__doc__)
@@ -176,6 +184,8 @@ def main():
         bg_name = os.path.splitext(os.path.basename(bg_path))[0]
         bg = Image.open(bg_path).convert("RGBA")
         for slot, (x, y, w, h, pictures) in slots().items():
+            if slot in SPLASH_ONLY and bg_name != SPLASH_BACKGROUND:
+                continue
             under = bg.crop((x, y, x + w, y + h))
             for name, picture in pictures.items():
                 if picture.size != (w, h):

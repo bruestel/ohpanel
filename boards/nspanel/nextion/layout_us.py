@@ -169,6 +169,10 @@ BOOT_VALUE_GAP = 4
 BOOT_BELOW_QR = ("firmware", "device", "ip", "ipv6", "info")   # every row: the whole width
 BOOT_LOGO_W, BOOT_LOGO_H = 300, 64
 BOOT_LOGO = ((VISIBLE_W - BOOT_LOGO_W) // 2, VISIBLE_H - 34 - BOOT_LOGO_H, BOOT_LOGO_W, BOOT_LOGO_H)
+# The logo the display shows itself when it starts (layout_eu.py): as wide as the boot page's, the screen allowing
+# no more.
+SPLASH_LOGO_W, SPLASH_LOGO_H = 300, 64
+SPLASH_LOGO = ((VISIBLE_W - SPLASH_LOGO_W) // 2, (VISIBLE_H - SPLASH_LOGO_H) // 2, SPLASH_LOGO_W, SPLASH_LOGO_H)
 
 # The panel's own page: the eight cards in one column, a line each -- the label small above the value, or the
 # label smaller and the value in two lines.

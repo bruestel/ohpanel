@@ -111,6 +111,7 @@ BAUD = 921600     # the serial link's speed (the firmware's nextion::Config::bau
 TEMPLATES: dict = {}
 BG = 0          # the default background's picture id (main())
 PICTURES = {}   # the default background's composed pictures: slot -> picture -> id (main())
+ALL_PICTURES = {}   # every background's: background -> slot -> picture -> id
 
 
 def event(page: str, component: str, value: str) -> list[str]:
@@ -857,6 +858,63 @@ def boot_page(p: Project) -> None:
     on_load(page, loaded(page))
 
 
+def splash_page(p: Project) -> None:
+    """What the display shows itself when it starts (Program.s), before the
+    firmware has found it -- it knows neither the background nor the theme
+    then: the logo, larger, drawn in on black (logo_animation). The firmware
+    opens the boot page when it takes over; nothing here reports to it."""
+    page = new_page(p, "splash", background=False, swipe=False)
+    picture(page, "splash_pic", layout.SPLASH_LOGO, ALL_PICTURES[SPLASH_BACKGROUND]["splash"]["logo"])
+    logo_animation(page, "splash_pic", layout.SPLASH_LOGO, "splash")
+
+
+# The splash page's logo drawn in (logo_animation): the mark opening from its middle, then "OHpanel" and
+# "for NSPanel" wiped in from the left, a step every LOGO_STEP_MS. Places in mark units (64: the logo's height,
+# assets/generate.py logo()).
+LOGO_MARK_STEPS = 8
+LOGO_WORD_BOTTOM = 48           # "OHpanel" above, "for NSPanel" below
+LOGO_WORD_STEPS = 10
+LOGO_TAG_STEPS = 5
+LOGO_STEP_MS = 50
+# The splash page is on black, whatever the background configured (assets/compose.py).
+SPLASH_BACKGROUND = "black"
+
+
+def logo_left(box) -> float:
+    """Where the mark starts in a logo picture of the box's size (assets/generate.py)."""
+    sys.path.insert(0, os.path.join(HERE, "assets"))
+    from generate import logo_left as left
+    return left(box[2], box[3])
+
+
+def logo_animation(page, pic: str, box, prefix: str) -> None:
+    """The logo picture `pic` (at `box`, hidden while the page loads:
+    hidden_until_drawn()) drawn in from the page's start, a piece at a time,
+    with xpic from its own picture -- no further pictures, so no more room in
+    the display's flash. The timer <prefix>_tm runs it; its last step shows
+    `pic`: what was drawn stays when the page is drawn again."""
+    bx, by, w, h = box
+    u, left = h / 64, logo_left(box)
+    pieces = []
+    for k in range(1, LOGO_MARK_STEPS + 1):   # a square from the mark's middle
+        s = round(h / 2 * k / LOGO_MARK_STEPS)
+        x0, y0 = round(left + h / 2) - s, round(h / 2) - s
+        pieces.append((max(x0, 0), max(y0, 0), 2 * s, 2 * s))
+    word_x, word_y = round(left + h + 8 * u), round(LOGO_WORD_BOTTOM * u)
+    for (y, ph), steps in (((0, word_y), LOGO_WORD_STEPS), ((word_y, h - word_y), LOGO_TAG_STEPS)):
+        edges = [word_x + round((w - word_x) * k / steps) for k in range(steps + 1)]
+        pieces += [(a, y, b - a, ph) for a, b in zip(edges, edges[1:])]
+    n, tm = f"{prefix}_n", f"{prefix}_tm"
+    code = [f"{n}.val++"]
+    for k, (x, y, pw, ph) in enumerate(pieces):
+        pw, ph = min(pw, w - x), min(ph, h - y)
+        code += [("if" if k == 0 else "}else if") + f"({n}.val=={k + 1})", "{",
+                 f"  xpic {bx + x},{by + y},{pw},{ph},{x},{y},{pic}.pic"]
+    code += ["}else", "{", f"  {tm}.en=0", f"  vis {pic},1", "}"]
+    new(page, VARIABLE, n, val=0)
+    timer(page, tm, LOGO_STEP_MS, code, enabled=True)
+
+
 def blank_page(p: Project) -> None:
     """Black: the screen "off" while the firmware has it blanked
     (display.screen, Engine::screen_tick); a touch on it only says so."""
@@ -1158,9 +1216,9 @@ def program(p: Project, version: str, bg: int, close_pic: int) -> None:
     -- BAUD, for this run only ("baud=", not the stored "bauds="): the
     firmware talks to the design at it from the display's first byte on and
     never switches --, the touch panel's offset (on the NSPanel EU), and the
-    black page: the display knows neither the background nor the theme
+    splash page: the display knows neither the background nor the theme
     configured until the firmware has found it and sent them, so it shows
-    nothing of its own before (its boot page in the default theme flashed
+    only the logo on black before (its boot page in the default theme flashed
     up); the firmware then opens the boot page, in the configured theme."""
     sys.path.insert(0, os.path.join(HERE, "assets"))
     from generate import THEMES
@@ -1178,7 +1236,7 @@ def program(p: Project, version: str, bg: int, close_pic: int) -> None:
         "recmod=0//commands, not raw data",
         "printh 00 00 00 ff ff ff 88 ff ff ff//started, ready",
         *([f"lcd_dev {layout.TOUCH_OFFSET}//the touch panel's offset on the NSPanel EU"] if layout.TOUCH_OFFSET else []),
-        "page blank//black until the firmware takes over",
+        "page splash//the logo, on black, until the firmware takes over",
         "",
     ])
 
@@ -1343,18 +1401,18 @@ def own_fonts(p: Project) -> None:
 
 # Every page in the order of their ids (the firmware goes by the manifest).
 PAGES = ("home", "weather", "settings", "boot", "blank", "light", "cover", "buttons", "volpage", "qr", "entities",
-         "media", "system", "netpage", "covers", "thermostat")   # entities: entities_cards and entities_rows come with it
+         "media", "system", "netpage", "covers", "thermostat", "splash")   # entities: entities_cards and entities_rows come with it
 
 
 def main():
-    global BG, PICTURES
+    global BG, PICTURES, ALL_PICTURES
     if len(sys.argv) != 3:
         sys.exit(__doc__)
     src, out = sys.argv[1], sys.argv[2]
     bg_ids = picture_ids(src, BACKGROUNDS)
     print("backgrounds:", ", ".join(f"{k}={v}" for k, v in bg_ids.items()))
     pictures = composite_ids(src)
-    BG, PICTURES = bg_ids[DEFAULT_BACKGROUND], pictures[DEFAULT_BACKGROUND]
+    BG, PICTURES, ALL_PICTURES = bg_ids[DEFAULT_BACKGROUND], pictures[DEFAULT_BACKGROUND], pictures
 
     p = Project(src)
     if list(p.pages) != [SEED_PAGE]:
@@ -1368,7 +1426,7 @@ def main():
                 "blank": blank_page, "light": lambda p: control_page(p, "light"),
                 "cover": cover_page, "buttons": buttons_page, "volpage": volume_page,
                 "qr": qr_page, "entities": entities_pages, "media": media_page, "system": system_page,
-                "netpage": network_page, "covers": covers_page, "thermostat": thermostat_page}
+                "netpage": network_page, "covers": covers_page, "thermostat": thermostat_page, "splash": splash_page}
     for name in PAGES:
         builders[name](p)
     p.remove_pages([SEED_PAGE])

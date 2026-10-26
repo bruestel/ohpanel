@@ -239,11 +239,19 @@ EDITION = "NSPanel"
 SUB = (179, 169, 163)     # "for", muted (logo/make.py SUB_DARK)
 
 
-def logo():
+def logo_left(w, h, k=1):
+    """Where the mark starts in a logo picture w x h (logo()), drawn k times as large."""
+    d = ImageDraw.Draw(Image.new("RGBA", (1, 1)))
+    u = h * k / 64                      # one mark unit
+    bold, regular = font(round(FONT_SIZE * u), 700), font(round(FONT_SIZE * u), 400)
+    w_oh, w_panel = d.textlength("OH", font=bold), d.textlength("panel", font=regular)
+    return (w * k - (h * k + GAP * u + w_oh + w_panel)) / 2
+
+
+def logo(w, h):
     """The mark (as high as the picture), the wordmark beside it and the
     edition line under that ("for NSPanel"), in logo/make.py's proportions,
     centred in the picture. Drawn at 4x, then scaled down."""
-    _, _, w, h = layout.BOOT_LOGO
     k = 4
     img = Image.new("RGBA", (w * k, h * k), (0, 0, 0, 0))
     d = ImageDraw.Draw(img)
@@ -251,7 +259,7 @@ def logo():
     mark, gap = h * k, GAP * u
     bold, regular = font(round(FONT_SIZE * u), 700), font(round(FONT_SIZE * u), 400)
     w_oh, w_panel = d.textlength("OH", font=bold), d.textlength("panel", font=regular)
-    left = (w * k - (mark + gap + w_oh + w_panel)) / 2
+    left = logo_left(w, h, k)
     draw_mark(d, left, 0, mark)
     # the wordmark: its caps from EDITION_CAP_TOP (anchored on the baseline, as the caps' height says)
     cap = bold.getbbox("H", anchor="ls")
@@ -372,7 +380,8 @@ def main():
     print("colour wheel, colour temperature track")
 
     os.makedirs(os.path.join(OUT, "logo"), exist_ok=True)
-    logo().save(os.path.join(OUT, "logo", "boot.png"), optimize=True)
+    logo(*layout.BOOT_LOGO[2:]).save(os.path.join(OUT, "logo", "boot.png"), optimize=True)
+    logo(*layout.SPLASH_LOGO[2:]).save(os.path.join(OUT, "logo", "splash.png"), optimize=True)
     print("logo")
 
     if sheet:

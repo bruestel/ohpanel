@@ -244,6 +244,10 @@ NETWORK_STACKED = False   # the value beside its label (right-aligned), not unde
 # the screen's as the title's capitals below the top (34 px).
 BOOT_LOGO_W, BOOT_LOGO_H = 300, 64
 BOOT_LOGO = ((VISIBLE_W - BOOT_LOGO_W) // 2, 320 - 34 - BOOT_LOGO_H, BOOT_LOGO_W, BOOT_LOGO_H)   # x, y, w, h
+# The logo the display shows itself when it starts, on black, before the firmware has found it: larger, in the
+# middle of the visible area.
+SPLASH_LOGO_W, SPLASH_LOGO_H = 420, 90
+SPLASH_LOGO = ((VISIBLE_W - SPLASH_LOGO_W) // 2, (VISIBLE_H - SPLASH_LOGO_H) // 2, SPLASH_LOGO_W, SPLASH_LOGO_H)
 
 
 # The media page (page type "media", boards/nspanel/nextion/ohpanel_hmi.py media_page()):

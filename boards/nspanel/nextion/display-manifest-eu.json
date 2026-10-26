@@ -24,7 +24,7 @@
   {
    "id": "candy",
    "title": "Candy",
-   "pic": 291,
+   "pic": 292,
    "theme": {
     "accent": "#ff5fa8",
     "text": "#ffffff",
@@ -34,7 +34,7 @@
   {
    "id": "dunes",
    "title": "Dunes",
-   "pic": 437,
+   "pic": 438,
    "theme": {
     "accent": "#ffb74d",
     "text": "#fff8ee",
@@ -44,7 +44,7 @@
   {
    "id": "forest",
    "title": "Forest",
-   "pic": 584,
+   "pic": 585,
    "theme": {
     "accent": "#8bd17c",
     "text": "#ffffff",
@@ -487,6 +487,9 @@
     "busy3"
    ],
    "close": true
+  },
+  "splash": {
+   "id": 18
   }
  },
  "pictures": {
@@ -578,7 +581,7 @@
     "x": 45
    },
    "ctemp": {
-    "track": 581
+    "track": 582
    },
    "fav": {
     "box": 46
@@ -816,10 +819,10 @@
     "x": 160
    },
    "ctemp": {
-    "track": 581
+    "track": 582
    },
    "fav": {
-    "box": 168
+    "box": 169
    },
    "logo": {
     "boot": 161
@@ -865,819 +868,822 @@
     "off": 166,
     "on": 167
    },
+   "splash": {
+    "logo": 168
+   },
    "vol": {
-    "box": 168
+    "box": 169
    },
    "wchip1": {
-    "box": 169
+    "box": 170
    },
    "wchip2": {
-    "box": 169
+    "box": 170
    },
    "wchip3": {
-    "box": 169
+    "box": 170
    },
    "wchip4": {
-    "box": 169
+    "box": 170
    },
    "wchip5": {
-    "box": 169
+    "box": 170
    },
    "wchip6": {
-    "box": 169
+    "box": 170
    },
    "weather_home": {
-    "clear-day": 170,
-    "clear-night": 171,
-    "cloudy": 172,
-    "drizzle": 173,
-    "dust-wind": 175,
-    "dust": 174,
-    "fog-day": 177,
-    "fog-night": 178,
-    "fog": 176,
-    "hail": 179,
-    "haze": 180,
-    "hurricane": 181,
-    "mist": 182,
-    "not-available": 183,
-    "overcast-day": 185,
-    "overcast-night": 186,
-    "overcast": 184,
-    "partly-cloudy-day-drizzle": 188,
-    "partly-cloudy-day-rain": 189,
-    "partly-cloudy-day-sleet": 190,
-    "partly-cloudy-day-snow": 191,
-    "partly-cloudy-day": 187,
-    "partly-cloudy-night-rain": 193,
-    "partly-cloudy-night-snow": 194,
-    "partly-cloudy-night": 192,
-    "rain": 195,
-    "sleet": 196,
-    "smoke": 197,
-    "snow": 198,
-    "thunderstorms-day-rain": 201,
-    "thunderstorms-day": 200,
-    "thunderstorms-night-rain": 202,
-    "thunderstorms-rain": 203,
-    "thunderstorms": 199,
-    "tornado": 204,
-    "wind": 205
+    "clear-day": 171,
+    "clear-night": 172,
+    "cloudy": 173,
+    "drizzle": 174,
+    "dust-wind": 176,
+    "dust": 175,
+    "fog-day": 178,
+    "fog-night": 179,
+    "fog": 177,
+    "hail": 180,
+    "haze": 181,
+    "hurricane": 182,
+    "mist": 183,
+    "not-available": 184,
+    "overcast-day": 186,
+    "overcast-night": 187,
+    "overcast": 185,
+    "partly-cloudy-day-drizzle": 189,
+    "partly-cloudy-day-rain": 190,
+    "partly-cloudy-day-sleet": 191,
+    "partly-cloudy-day-snow": 192,
+    "partly-cloudy-day": 188,
+    "partly-cloudy-night-rain": 194,
+    "partly-cloudy-night-snow": 195,
+    "partly-cloudy-night": 193,
+    "rain": 196,
+    "sleet": 197,
+    "smoke": 198,
+    "snow": 199,
+    "thunderstorms-day-rain": 202,
+    "thunderstorms-day": 201,
+    "thunderstorms-night-rain": 203,
+    "thunderstorms-rain": 204,
+    "thunderstorms": 200,
+    "tornado": 205,
+    "wind": 206
    },
    "weather_page": {
-    "clear-day": 206,
-    "clear-night": 207,
-    "cloudy": 208,
-    "drizzle": 209,
-    "dust-wind": 211,
-    "dust": 210,
-    "fog-day": 213,
-    "fog-night": 214,
-    "fog": 212,
-    "hail": 215,
-    "haze": 216,
-    "hurricane": 217,
-    "mist": 218,
-    "not-available": 219,
-    "overcast-day": 221,
-    "overcast-night": 222,
-    "overcast": 220,
-    "partly-cloudy-day-drizzle": 224,
-    "partly-cloudy-day-rain": 225,
-    "partly-cloudy-day-sleet": 226,
-    "partly-cloudy-day-snow": 227,
-    "partly-cloudy-day": 223,
-    "partly-cloudy-night-rain": 229,
-    "partly-cloudy-night-snow": 230,
-    "partly-cloudy-night": 228,
-    "rain": 231,
-    "sleet": 232,
-    "smoke": 233,
-    "snow": 234,
-    "thunderstorms-day-rain": 237,
-    "thunderstorms-day": 236,
-    "thunderstorms-night-rain": 238,
-    "thunderstorms-rain": 239,
-    "thunderstorms": 235,
-    "tornado": 240,
-    "wind": 241
+    "clear-day": 207,
+    "clear-night": 208,
+    "cloudy": 209,
+    "drizzle": 210,
+    "dust-wind": 212,
+    "dust": 211,
+    "fog-day": 214,
+    "fog-night": 215,
+    "fog": 213,
+    "hail": 216,
+    "haze": 217,
+    "hurricane": 218,
+    "mist": 219,
+    "not-available": 220,
+    "overcast-day": 222,
+    "overcast-night": 223,
+    "overcast": 221,
+    "partly-cloudy-day-drizzle": 225,
+    "partly-cloudy-day-rain": 226,
+    "partly-cloudy-day-sleet": 227,
+    "partly-cloudy-day-snow": 228,
+    "partly-cloudy-day": 224,
+    "partly-cloudy-night-rain": 230,
+    "partly-cloudy-night-snow": 231,
+    "partly-cloudy-night": 229,
+    "rain": 232,
+    "sleet": 233,
+    "smoke": 234,
+    "snow": 235,
+    "thunderstorms-day-rain": 238,
+    "thunderstorms-day": 237,
+    "thunderstorms-night-rain": 239,
+    "thunderstorms-rain": 240,
+    "thunderstorms": 236,
+    "tornado": 241,
+    "wind": 242
    },
    "wheel": {
-    "disc": 242
+    "disc": 243
    }
   },
   "candy": {
    "art": {
-    "box": 243
+    "box": 244
    },
    "badge1": {
-    "black": 244,
-    "blue": 245,
-    "brown": 246,
-    "dark-grey": 247,
-    "green": 248,
-    "grey": 249,
-    "light-grey": 250,
-    "red": 251,
-    "white": 252,
-    "yellow": 253
+    "black": 245,
+    "blue": 246,
+    "brown": 247,
+    "dark-grey": 248,
+    "green": 249,
+    "grey": 250,
+    "light-grey": 251,
+    "red": 252,
+    "white": 253,
+    "yellow": 254
    },
    "badge2": {
-    "black": 254,
-    "blue": 255,
-    "brown": 256,
-    "dark-grey": 257,
-    "green": 258,
-    "grey": 259,
-    "light-grey": 260,
-    "red": 261,
-    "white": 262,
-    "yellow": 263
+    "black": 255,
+    "blue": 256,
+    "brown": 257,
+    "dark-grey": 258,
+    "green": 259,
+    "grey": 260,
+    "light-grey": 261,
+    "red": 262,
+    "white": 263,
+    "yellow": 264
    },
    "button1": {
-    "off": 264,
-    "on": 265
+    "off": 265,
+    "on": 266
    },
    "button2": {
-    "off": 266,
-    "on": 267
+    "off": 267,
+    "on": 268
    },
    "button3": {
-    "off": 268,
-    "on": 269
+    "off": 269,
+    "on": 270
    },
    "button4": {
-    "off": 270,
-    "on": 271
+    "off": 271,
+    "on": 272
    },
    "button5": {
-    "off": 272,
-    "on": 273
+    "off": 273,
+    "on": 274
    },
    "button6": {
-    "off": 274,
-    "on": 275
+    "off": 275,
+    "on": 276
    },
    "button7": {
-    "off": 276,
-    "on": 277
+    "off": 277,
+    "on": 278
    },
    "button8": {
-    "off": 278,
-    "on": 279
+    "off": 279,
+    "on": 280
    },
    "card1": {
-    "box": 280
-   },
-   "card2": {
     "box": 281
    },
-   "card3": {
+   "card2": {
     "box": 282
    },
-   "card4": {
+   "card3": {
     "box": 283
    },
-   "card5": {
+   "card4": {
     "box": 284
    },
-   "card6": {
+   "card5": {
     "box": 285
    },
-   "card7": {
+   "card6": {
     "box": 286
    },
-   "card8": {
+   "card7": {
     "box": 287
    },
+   "card8": {
+    "box": 288
+   },
    "close": {
-    "x": 288
+    "x": 289
    },
    "ctemp": {
-    "track": 581
+    "track": 582
    },
    "fav": {
-    "box": 289
+    "box": 290
    },
    "logo": {
-    "boot": 290
+    "boot": 291
    },
    "power": {
-    "off": 292,
-    "on": 293
+    "off": 293,
+    "on": 294
    },
    "restart": {
-    "off": 294,
-    "on": 295
+    "off": 295,
+    "on": 296
    },
    "rowcard1": {
-    "box": 296
-   },
-   "rowcard2": {
     "box": 297
    },
-   "rowcard3": {
+   "rowcard2": {
     "box": 298
    },
-   "rowcard4": {
+   "rowcard3": {
     "box": 299
    },
-   "rowcard5": {
+   "rowcard4": {
     "box": 300
    },
-   "rowcard6": {
+   "rowcard5": {
     "box": 301
    },
-   "rowcard7": {
+   "rowcard6": {
     "box": 302
    },
+   "rowcard7": {
+    "box": 303
+   },
    "side1": {
-    "off": 303,
-    "on": 304
+    "off": 304,
+    "on": 305
    },
    "side2": {
-    "off": 305,
-    "on": 306
+    "off": 306,
+    "on": 307
    },
    "side3": {
-    "off": 307,
-    "on": 308
+    "off": 308,
+    "on": 309
    },
    "vol": {
-    "box": 309
-   },
-   "wchip1": {
     "box": 310
    },
-   "wchip2": {
+   "wchip1": {
     "box": 311
    },
-   "wchip3": {
+   "wchip2": {
     "box": 312
    },
-   "wchip4": {
+   "wchip3": {
     "box": 313
    },
-   "wchip5": {
+   "wchip4": {
     "box": 314
    },
-   "wchip6": {
+   "wchip5": {
     "box": 315
    },
+   "wchip6": {
+    "box": 316
+   },
    "weather_home": {
-    "clear-day": 316,
-    "clear-night": 317,
-    "cloudy": 318,
-    "drizzle": 319,
-    "dust-wind": 321,
-    "dust": 320,
-    "fog-day": 323,
-    "fog-night": 324,
-    "fog": 322,
-    "hail": 325,
-    "haze": 326,
-    "hurricane": 327,
-    "mist": 328,
-    "not-available": 329,
-    "overcast-day": 331,
-    "overcast-night": 332,
-    "overcast": 330,
-    "partly-cloudy-day-drizzle": 334,
-    "partly-cloudy-day-rain": 335,
-    "partly-cloudy-day-sleet": 336,
-    "partly-cloudy-day-snow": 337,
-    "partly-cloudy-day": 333,
-    "partly-cloudy-night-rain": 339,
-    "partly-cloudy-night-snow": 340,
-    "partly-cloudy-night": 338,
-    "rain": 341,
-    "sleet": 342,
-    "smoke": 343,
-    "snow": 344,
-    "thunderstorms-day-rain": 347,
-    "thunderstorms-day": 346,
-    "thunderstorms-night-rain": 348,
-    "thunderstorms-rain": 349,
-    "thunderstorms": 345,
-    "tornado": 350,
-    "wind": 351
+    "clear-day": 317,
+    "clear-night": 318,
+    "cloudy": 319,
+    "drizzle": 320,
+    "dust-wind": 322,
+    "dust": 321,
+    "fog-day": 324,
+    "fog-night": 325,
+    "fog": 323,
+    "hail": 326,
+    "haze": 327,
+    "hurricane": 328,
+    "mist": 329,
+    "not-available": 330,
+    "overcast-day": 332,
+    "overcast-night": 333,
+    "overcast": 331,
+    "partly-cloudy-day-drizzle": 335,
+    "partly-cloudy-day-rain": 336,
+    "partly-cloudy-day-sleet": 337,
+    "partly-cloudy-day-snow": 338,
+    "partly-cloudy-day": 334,
+    "partly-cloudy-night-rain": 340,
+    "partly-cloudy-night-snow": 341,
+    "partly-cloudy-night": 339,
+    "rain": 342,
+    "sleet": 343,
+    "smoke": 344,
+    "snow": 345,
+    "thunderstorms-day-rain": 348,
+    "thunderstorms-day": 347,
+    "thunderstorms-night-rain": 349,
+    "thunderstorms-rain": 350,
+    "thunderstorms": 346,
+    "tornado": 351,
+    "wind": 352
    },
    "weather_page": {
-    "clear-day": 352,
-    "clear-night": 353,
-    "cloudy": 354,
-    "drizzle": 355,
-    "dust-wind": 357,
-    "dust": 356,
-    "fog-day": 359,
-    "fog-night": 360,
-    "fog": 358,
-    "hail": 361,
-    "haze": 362,
-    "hurricane": 363,
-    "mist": 364,
-    "not-available": 365,
-    "overcast-day": 367,
-    "overcast-night": 368,
-    "overcast": 366,
-    "partly-cloudy-day-drizzle": 370,
-    "partly-cloudy-day-rain": 371,
-    "partly-cloudy-day-sleet": 372,
-    "partly-cloudy-day-snow": 373,
-    "partly-cloudy-day": 369,
-    "partly-cloudy-night-rain": 375,
-    "partly-cloudy-night-snow": 376,
-    "partly-cloudy-night": 374,
-    "rain": 377,
-    "sleet": 378,
-    "smoke": 379,
-    "snow": 380,
-    "thunderstorms-day-rain": 383,
-    "thunderstorms-day": 382,
-    "thunderstorms-night-rain": 384,
-    "thunderstorms-rain": 385,
-    "thunderstorms": 381,
-    "tornado": 386,
-    "wind": 387
+    "clear-day": 353,
+    "clear-night": 354,
+    "cloudy": 355,
+    "drizzle": 356,
+    "dust-wind": 358,
+    "dust": 357,
+    "fog-day": 360,
+    "fog-night": 361,
+    "fog": 359,
+    "hail": 362,
+    "haze": 363,
+    "hurricane": 364,
+    "mist": 365,
+    "not-available": 366,
+    "overcast-day": 368,
+    "overcast-night": 369,
+    "overcast": 367,
+    "partly-cloudy-day-drizzle": 371,
+    "partly-cloudy-day-rain": 372,
+    "partly-cloudy-day-sleet": 373,
+    "partly-cloudy-day-snow": 374,
+    "partly-cloudy-day": 370,
+    "partly-cloudy-night-rain": 376,
+    "partly-cloudy-night-snow": 377,
+    "partly-cloudy-night": 375,
+    "rain": 378,
+    "sleet": 379,
+    "smoke": 380,
+    "snow": 381,
+    "thunderstorms-day-rain": 384,
+    "thunderstorms-day": 383,
+    "thunderstorms-night-rain": 385,
+    "thunderstorms-rain": 386,
+    "thunderstorms": 382,
+    "tornado": 387,
+    "wind": 388
    },
    "wheel": {
-    "disc": 388
+    "disc": 389
    }
   },
   "dunes": {
    "art": {
-    "box": 389
+    "box": 390
    },
    "badge1": {
-    "black": 390,
-    "blue": 391,
-    "brown": 392,
-    "dark-grey": 393,
-    "green": 394,
-    "grey": 395,
-    "light-grey": 396,
-    "red": 397,
-    "white": 398,
-    "yellow": 399
+    "black": 391,
+    "blue": 392,
+    "brown": 393,
+    "dark-grey": 394,
+    "green": 395,
+    "grey": 396,
+    "light-grey": 397,
+    "red": 398,
+    "white": 399,
+    "yellow": 400
    },
    "badge2": {
-    "black": 400,
-    "blue": 401,
-    "brown": 402,
-    "dark-grey": 403,
-    "green": 404,
-    "grey": 405,
-    "light-grey": 406,
-    "red": 407,
-    "white": 408,
-    "yellow": 409
+    "black": 401,
+    "blue": 402,
+    "brown": 403,
+    "dark-grey": 404,
+    "green": 405,
+    "grey": 406,
+    "light-grey": 407,
+    "red": 408,
+    "white": 409,
+    "yellow": 410
    },
    "button1": {
-    "off": 410,
-    "on": 411
+    "off": 411,
+    "on": 412
    },
    "button2": {
-    "off": 412,
-    "on": 413
+    "off": 413,
+    "on": 414
    },
    "button3": {
-    "off": 414,
-    "on": 415
+    "off": 415,
+    "on": 416
    },
    "button4": {
-    "off": 416,
-    "on": 417
+    "off": 417,
+    "on": 418
    },
    "button5": {
-    "off": 418,
-    "on": 419
+    "off": 419,
+    "on": 420
    },
    "button6": {
-    "off": 420,
-    "on": 421
+    "off": 421,
+    "on": 422
    },
    "button7": {
-    "off": 422,
-    "on": 423
+    "off": 423,
+    "on": 424
    },
    "button8": {
-    "off": 424,
-    "on": 425
+    "off": 425,
+    "on": 426
    },
    "card1": {
-    "box": 426
-   },
-   "card2": {
     "box": 427
    },
-   "card3": {
+   "card2": {
     "box": 428
    },
-   "card4": {
+   "card3": {
     "box": 429
    },
-   "card5": {
+   "card4": {
     "box": 430
    },
-   "card6": {
+   "card5": {
     "box": 431
    },
-   "card7": {
+   "card6": {
     "box": 432
    },
-   "card8": {
+   "card7": {
     "box": 433
    },
+   "card8": {
+    "box": 434
+   },
    "close": {
-    "x": 434
+    "x": 435
    },
    "ctemp": {
-    "track": 581
+    "track": 582
    },
    "fav": {
-    "box": 435
+    "box": 436
    },
    "logo": {
-    "boot": 436
+    "boot": 437
    },
    "power": {
-    "off": 438,
-    "on": 439
+    "off": 439,
+    "on": 440
    },
    "restart": {
-    "off": 440,
-    "on": 441
+    "off": 441,
+    "on": 442
    },
    "rowcard1": {
-    "box": 442
-   },
-   "rowcard2": {
     "box": 443
    },
-   "rowcard3": {
+   "rowcard2": {
     "box": 444
    },
-   "rowcard4": {
+   "rowcard3": {
     "box": 445
    },
-   "rowcard5": {
+   "rowcard4": {
     "box": 446
    },
-   "rowcard6": {
+   "rowcard5": {
     "box": 447
    },
-   "rowcard7": {
+   "rowcard6": {
     "box": 448
    },
+   "rowcard7": {
+    "box": 449
+   },
    "side1": {
-    "off": 449,
-    "on": 450
+    "off": 450,
+    "on": 451
    },
    "side2": {
-    "off": 451,
-    "on": 452
+    "off": 452,
+    "on": 453
    },
    "side3": {
-    "off": 453,
-    "on": 454
+    "off": 454,
+    "on": 455
    },
    "vol": {
-    "box": 455
-   },
-   "wchip1": {
     "box": 456
    },
-   "wchip2": {
+   "wchip1": {
     "box": 457
    },
-   "wchip3": {
+   "wchip2": {
     "box": 458
    },
-   "wchip4": {
+   "wchip3": {
     "box": 459
    },
-   "wchip5": {
+   "wchip4": {
     "box": 460
    },
-   "wchip6": {
+   "wchip5": {
     "box": 461
    },
+   "wchip6": {
+    "box": 462
+   },
    "weather_home": {
-    "clear-day": 462,
-    "clear-night": 463,
-    "cloudy": 464,
-    "drizzle": 465,
-    "dust-wind": 467,
-    "dust": 466,
-    "fog-day": 469,
-    "fog-night": 470,
-    "fog": 468,
-    "hail": 471,
-    "haze": 472,
-    "hurricane": 473,
-    "mist": 474,
-    "not-available": 475,
-    "overcast-day": 477,
-    "overcast-night": 478,
-    "overcast": 476,
-    "partly-cloudy-day-drizzle": 480,
-    "partly-cloudy-day-rain": 481,
-    "partly-cloudy-day-sleet": 482,
-    "partly-cloudy-day-snow": 483,
-    "partly-cloudy-day": 479,
-    "partly-cloudy-night-rain": 485,
-    "partly-cloudy-night-snow": 486,
-    "partly-cloudy-night": 484,
-    "rain": 487,
-    "sleet": 488,
-    "smoke": 489,
-    "snow": 490,
-    "thunderstorms-day-rain": 493,
-    "thunderstorms-day": 492,
-    "thunderstorms-night-rain": 494,
-    "thunderstorms-rain": 495,
-    "thunderstorms": 491,
-    "tornado": 496,
-    "wind": 497
+    "clear-day": 463,
+    "clear-night": 464,
+    "cloudy": 465,
+    "drizzle": 466,
+    "dust-wind": 468,
+    "dust": 467,
+    "fog-day": 470,
+    "fog-night": 471,
+    "fog": 469,
+    "hail": 472,
+    "haze": 473,
+    "hurricane": 474,
+    "mist": 475,
+    "not-available": 476,
+    "overcast-day": 478,
+    "overcast-night": 479,
+    "overcast": 477,
+    "partly-cloudy-day-drizzle": 481,
+    "partly-cloudy-day-rain": 482,
+    "partly-cloudy-day-sleet": 483,
+    "partly-cloudy-day-snow": 484,
+    "partly-cloudy-day": 480,
+    "partly-cloudy-night-rain": 486,
+    "partly-cloudy-night-snow": 487,
+    "partly-cloudy-night": 485,
+    "rain": 488,
+    "sleet": 489,
+    "smoke": 490,
+    "snow": 491,
+    "thunderstorms-day-rain": 494,
+    "thunderstorms-day": 493,
+    "thunderstorms-night-rain": 495,
+    "thunderstorms-rain": 496,
+    "thunderstorms": 492,
+    "tornado": 497,
+    "wind": 498
    },
    "weather_page": {
-    "clear-day": 498,
-    "clear-night": 499,
-    "cloudy": 500,
-    "drizzle": 501,
-    "dust-wind": 503,
-    "dust": 502,
-    "fog-day": 505,
-    "fog-night": 506,
-    "fog": 504,
-    "hail": 507,
-    "haze": 508,
-    "hurricane": 509,
-    "mist": 510,
-    "not-available": 511,
-    "overcast-day": 513,
-    "overcast-night": 514,
-    "overcast": 512,
-    "partly-cloudy-day-drizzle": 516,
-    "partly-cloudy-day-rain": 517,
-    "partly-cloudy-day-sleet": 518,
-    "partly-cloudy-day-snow": 519,
-    "partly-cloudy-day": 515,
-    "partly-cloudy-night-rain": 521,
-    "partly-cloudy-night-snow": 522,
-    "partly-cloudy-night": 520,
-    "rain": 523,
-    "sleet": 524,
-    "smoke": 525,
-    "snow": 526,
-    "thunderstorms-day-rain": 529,
-    "thunderstorms-day": 528,
-    "thunderstorms-night-rain": 530,
-    "thunderstorms-rain": 531,
-    "thunderstorms": 527,
-    "tornado": 532,
-    "wind": 533
+    "clear-day": 499,
+    "clear-night": 500,
+    "cloudy": 501,
+    "drizzle": 502,
+    "dust-wind": 504,
+    "dust": 503,
+    "fog-day": 506,
+    "fog-night": 507,
+    "fog": 505,
+    "hail": 508,
+    "haze": 509,
+    "hurricane": 510,
+    "mist": 511,
+    "not-available": 512,
+    "overcast-day": 514,
+    "overcast-night": 515,
+    "overcast": 513,
+    "partly-cloudy-day-drizzle": 517,
+    "partly-cloudy-day-rain": 518,
+    "partly-cloudy-day-sleet": 519,
+    "partly-cloudy-day-snow": 520,
+    "partly-cloudy-day": 516,
+    "partly-cloudy-night-rain": 522,
+    "partly-cloudy-night-snow": 523,
+    "partly-cloudy-night": 521,
+    "rain": 524,
+    "sleet": 525,
+    "smoke": 526,
+    "snow": 527,
+    "thunderstorms-day-rain": 530,
+    "thunderstorms-day": 529,
+    "thunderstorms-night-rain": 531,
+    "thunderstorms-rain": 532,
+    "thunderstorms": 528,
+    "tornado": 533,
+    "wind": 534
    },
    "wheel": {
-    "disc": 534
+    "disc": 535
    }
   },
   "forest": {
    "art": {
-    "box": 535
+    "box": 536
    },
    "badge1": {
-    "black": 536,
-    "blue": 537,
-    "brown": 538,
-    "dark-grey": 539,
-    "green": 540,
-    "grey": 541,
-    "light-grey": 542,
-    "red": 543,
-    "white": 544,
-    "yellow": 545
+    "black": 537,
+    "blue": 538,
+    "brown": 539,
+    "dark-grey": 540,
+    "green": 541,
+    "grey": 542,
+    "light-grey": 543,
+    "red": 544,
+    "white": 545,
+    "yellow": 546
    },
    "badge2": {
-    "black": 546,
-    "blue": 547,
-    "brown": 548,
-    "dark-grey": 549,
-    "green": 550,
-    "grey": 551,
-    "light-grey": 552,
-    "red": 553,
-    "white": 554,
-    "yellow": 555
+    "black": 547,
+    "blue": 548,
+    "brown": 549,
+    "dark-grey": 550,
+    "green": 551,
+    "grey": 552,
+    "light-grey": 553,
+    "red": 554,
+    "white": 555,
+    "yellow": 556
    },
    "button1": {
-    "off": 556,
-    "on": 557
+    "off": 557,
+    "on": 558
    },
    "button2": {
-    "off": 558,
-    "on": 559
+    "off": 559,
+    "on": 560
    },
    "button3": {
-    "off": 560,
-    "on": 561
+    "off": 561,
+    "on": 562
    },
    "button4": {
-    "off": 562,
-    "on": 563
+    "off": 563,
+    "on": 564
    },
    "button5": {
-    "off": 564,
-    "on": 565
+    "off": 565,
+    "on": 566
    },
    "button6": {
-    "off": 566,
-    "on": 567
+    "off": 567,
+    "on": 568
    },
    "button7": {
-    "off": 568,
-    "on": 569
+    "off": 569,
+    "on": 570
    },
    "button8": {
-    "off": 570,
-    "on": 571
+    "off": 571,
+    "on": 572
    },
    "card1": {
-    "box": 572
-   },
-   "card2": {
     "box": 573
    },
-   "card3": {
+   "card2": {
     "box": 574
    },
-   "card4": {
+   "card3": {
     "box": 575
    },
-   "card5": {
+   "card4": {
     "box": 576
    },
-   "card6": {
+   "card5": {
     "box": 577
    },
-   "card7": {
+   "card6": {
     "box": 578
    },
-   "card8": {
+   "card7": {
     "box": 579
    },
+   "card8": {
+    "box": 580
+   },
    "close": {
-    "x": 580
+    "x": 581
    },
    "ctemp": {
-    "track": 581
+    "track": 582
    },
    "fav": {
-    "box": 582
+    "box": 583
    },
    "logo": {
-    "boot": 583
+    "boot": 584
    },
    "power": {
-    "off": 585,
-    "on": 586
+    "off": 586,
+    "on": 587
    },
    "restart": {
-    "off": 587,
-    "on": 588
+    "off": 588,
+    "on": 589
    },
    "rowcard1": {
-    "box": 589
-   },
-   "rowcard2": {
     "box": 590
    },
-   "rowcard3": {
+   "rowcard2": {
     "box": 591
    },
-   "rowcard4": {
+   "rowcard3": {
     "box": 592
    },
-   "rowcard5": {
+   "rowcard4": {
     "box": 593
    },
-   "rowcard6": {
+   "rowcard5": {
     "box": 594
    },
-   "rowcard7": {
+   "rowcard6": {
     "box": 595
    },
+   "rowcard7": {
+    "box": 596
+   },
    "side1": {
-    "off": 596,
-    "on": 597
+    "off": 597,
+    "on": 598
    },
    "side2": {
-    "off": 598,
-    "on": 599
+    "off": 599,
+    "on": 600
    },
    "side3": {
-    "off": 600,
-    "on": 601
+    "off": 601,
+    "on": 602
    },
    "vol": {
-    "box": 602
-   },
-   "wchip1": {
     "box": 603
    },
-   "wchip2": {
+   "wchip1": {
     "box": 604
    },
-   "wchip3": {
+   "wchip2": {
     "box": 605
    },
-   "wchip4": {
+   "wchip3": {
     "box": 606
    },
-   "wchip5": {
+   "wchip4": {
     "box": 607
    },
-   "wchip6": {
+   "wchip5": {
     "box": 608
    },
+   "wchip6": {
+    "box": 609
+   },
    "weather_home": {
-    "clear-day": 609,
-    "clear-night": 610,
-    "cloudy": 611,
-    "drizzle": 612,
-    "dust-wind": 614,
-    "dust": 613,
-    "fog-day": 616,
-    "fog-night": 617,
-    "fog": 615,
-    "hail": 618,
-    "haze": 619,
-    "hurricane": 620,
-    "mist": 621,
-    "not-available": 622,
-    "overcast-day": 624,
-    "overcast-night": 625,
-    "overcast": 623,
-    "partly-cloudy-day-drizzle": 627,
-    "partly-cloudy-day-rain": 628,
-    "partly-cloudy-day-sleet": 629,
-    "partly-cloudy-day-snow": 630,
-    "partly-cloudy-day": 626,
-    "partly-cloudy-night-rain": 632,
-    "partly-cloudy-night-snow": 633,
-    "partly-cloudy-night": 631,
-    "rain": 634,
-    "sleet": 635,
-    "smoke": 636,
-    "snow": 637,
-    "thunderstorms-day-rain": 640,
-    "thunderstorms-day": 639,
-    "thunderstorms-night-rain": 641,
-    "thunderstorms-rain": 642,
-    "thunderstorms": 638,
-    "tornado": 643,
-    "wind": 644
+    "clear-day": 610,
+    "clear-night": 611,
+    "cloudy": 612,
+    "drizzle": 613,
+    "dust-wind": 615,
+    "dust": 614,
+    "fog-day": 617,
+    "fog-night": 618,
+    "fog": 616,
+    "hail": 619,
+    "haze": 620,
+    "hurricane": 621,
+    "mist": 622,
+    "not-available": 623,
+    "overcast-day": 625,
+    "overcast-night": 626,
+    "overcast": 624,
+    "partly-cloudy-day-drizzle": 628,
+    "partly-cloudy-day-rain": 629,
+    "partly-cloudy-day-sleet": 630,
+    "partly-cloudy-day-snow": 631,
+    "partly-cloudy-day": 627,
+    "partly-cloudy-night-rain": 633,
+    "partly-cloudy-night-snow": 634,
+    "partly-cloudy-night": 632,
+    "rain": 635,
+    "sleet": 636,
+    "smoke": 637,
+    "snow": 638,
+    "thunderstorms-day-rain": 641,
+    "thunderstorms-day": 640,
+    "thunderstorms-night-rain": 642,
+    "thunderstorms-rain": 643,
+    "thunderstorms": 639,
+    "tornado": 644,
+    "wind": 645
    },
    "weather_page": {
-    "clear-day": 645,
-    "clear-night": 646,
-    "cloudy": 647,
-    "drizzle": 648,
-    "dust-wind": 650,
-    "dust": 649,
-    "fog-day": 652,
-    "fog-night": 653,
-    "fog": 651,
-    "hail": 654,
-    "haze": 655,
-    "hurricane": 656,
-    "mist": 657,
-    "not-available": 658,
-    "overcast-day": 660,
-    "overcast-night": 661,
-    "overcast": 659,
-    "partly-cloudy-day-drizzle": 663,
-    "partly-cloudy-day-rain": 664,
-    "partly-cloudy-day-sleet": 665,
-    "partly-cloudy-day-snow": 666,
-    "partly-cloudy-day": 662,
-    "partly-cloudy-night-rain": 668,
-    "partly-cloudy-night-snow": 669,
-    "partly-cloudy-night": 667,
-    "rain": 670,
-    "sleet": 671,
-    "smoke": 672,
-    "snow": 673,
-    "thunderstorms-day-rain": 676,
-    "thunderstorms-day": 675,
-    "thunderstorms-night-rain": 677,
-    "thunderstorms-rain": 678,
-    "thunderstorms": 674,
-    "tornado": 679,
-    "wind": 680
+    "clear-day": 646,
+    "clear-night": 647,
+    "cloudy": 648,
+    "drizzle": 649,
+    "dust-wind": 651,
+    "dust": 650,
+    "fog-day": 653,
+    "fog-night": 654,
+    "fog": 652,
+    "hail": 655,
+    "haze": 656,
+    "hurricane": 657,
+    "mist": 658,
+    "not-available": 659,
+    "overcast-day": 661,
+    "overcast-night": 662,
+    "overcast": 660,
+    "partly-cloudy-day-drizzle": 664,
+    "partly-cloudy-day-rain": 665,
+    "partly-cloudy-day-sleet": 666,
+    "partly-cloudy-day-snow": 667,
+    "partly-cloudy-day": 663,
+    "partly-cloudy-night-rain": 669,
+    "partly-cloudy-night-snow": 670,
+    "partly-cloudy-night": 668,
+    "rain": 671,
+    "sleet": 672,
+    "smoke": 673,
+    "snow": 674,
+    "thunderstorms-day-rain": 677,
+    "thunderstorms-day": 676,
+    "thunderstorms-night-rain": 678,
+    "thunderstorms-rain": 679,
+    "thunderstorms": 675,
+    "tornado": 680,
+    "wind": 681
    },
    "wheel": {
-    "disc": 681
+    "disc": 682
    }
   }
  },
@@ -16035,7 +16041,12 @@
    "busy2",
    "busy3",
    "busy_tm"
+  ],
+  "splash": [
+   "splash_pic",
+   "splash_n",
+   "splash_tm"
   ]
  },
- "design": "4508cd3f"
+ "design": "1e5338eb"
 }
