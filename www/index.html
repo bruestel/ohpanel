@@ -4350,7 +4350,7 @@ function pvTargets(template) {
   const objects = (LAYOUT.pages[template] || {}).objects || [];
   const at = (t, n) => { const o = objects.find(o => o.n === n); if (o) out.push({t, x: o.x, y: o.y, w: o.w, h: o.h}); };
   if (page && page.type === 'entities') {
-    out.push({t: 'title', x: 10, y: 0, w: 300, h: 34});
+    at('title', 'title');
     if (page.group) return out;   // the members: set in the form, not one by one
     // the rows of the sheet shown, and one empty place after the last (which adds one)
     const per = rowsPerSheet(page), rows = page.rows || [], cards = page.style === 'cards';
@@ -4364,7 +4364,7 @@ function pvTargets(template) {
       out.push({t: 'row:' + i, x, y, w: Math.max(...parts.map(o => o.x + o.w)) - x, h: Math.max(...parts.map(o => o.y + o.h)) - y});
     }
   } else if (page && page.type === 'buttons') {
-    out.push({t: 'title', x: 10, y: 0, w: 300, h: 34});
+    at('title', 'title');
     ((LAYOUT.pages[template] || {}).touch || []).forEach(a => {
       const n = /^tile(\d)$/.exec(a.c);
       if (n) out.push({t: 'tile:' + (n[1] - 1), x: a.x, y: a.y, w: a.w, h: a.h});
