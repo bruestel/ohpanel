@@ -4392,7 +4392,12 @@ function pvTargets(template) {
       const x = Math.min(...parts.map(o => o.x)), y = Math.min(...parts.map(o => o.y));
       out.push({t: 'info:' + i, x, y, w: Math.max(...parts.map(o => o.x + o.w)) - x, h: Math.max(...parts.map(o => o.y + o.h)) - y});
     }
-    out.push({t: 'relay:0', x: 45, y: 279, w: 124, h: 33}, {t: 'relay:1', x: 286, y: 279, w: 124, h: 33});
+    for (let i = 0; i < 2; i++) {  // a relay button: its label and bar, with a little room around them
+      const parts = ['_text', '_bar'].map(p => objects.find(o => o.n === 'relay' + (i + 1) + p)).filter(Boolean);
+      if (!parts.length) continue;
+      const x = Math.min(...parts.map(o => o.x)) - 2, y = Math.min(...parts.map(o => o.y)) - 4;
+      out.push({t: 'relay:' + i, x, y, w: Math.max(...parts.map(o => o.x + o.w)) + 2 - x, h: Math.max(...parts.map(o => o.y + o.h)) + 2 - y});
+    }
   }
   return out;
 }
