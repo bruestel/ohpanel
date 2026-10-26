@@ -38,6 +38,8 @@
 #include <cinttypes>
 #include <cmath>
 #include <cstring>
+#include <map>
+#include <mutex>
 
 static const char *const TAG = "ohpanel";
 
@@ -84,6 +86,43 @@ static bool reset_panel() {
   const bool ok = panel_config::reset();
   apply_panel();
   return ok;
+}
+
+/* Screen numbers the display keeps (its settings page, items of display.screen)
+   go into the configuration in a task of their own: reading, validating,
+   deflating and writing it overflowed the display task's stack, and the flash
+   write would hold the page meanwhile (12 KB: about 8 KB in use). One task at a
+   time; what comes while it runs, it takes too. */
+static std::mutex g_remember_mx;
+static std::map<std::string, int> g_remember;
+static bool g_remembering = false;
+
+static void remember_screen(const std::string &key, int value) {
+  std::lock_guard<std::mutex> lock(g_remember_mx);
+  g_remember[key] = value;
+  if (g_remembering)
+    return;
+  g_remembering = true;
+  const auto task = [](void *) {
+    for (;;) {
+      std::map<std::string, int> batch;
+      {
+        std::lock_guard<std::mutex> lock(g_remember_mx);
+        if (g_remember.empty()) {
+          g_remembering = false;
+          break;
+        }
+        batch.swap(g_remember);
+      }
+      for (const auto &[k, v] : batch)
+        panel_config::remember_screen(k, v);
+    }
+    vTaskDelete(nullptr);
+  };
+  if (xTaskCreate(task, "remember", 12288, nullptr, 3, nullptr) != pdPASS) {
+    g_remembering = false;   // kept for the next change
+    ESP_LOGW(TAG, "display.screen.%s not kept yet: no memory for its task", key.c_str());
+  }
 }
 
 static void restart() {
@@ -273,7 +312,7 @@ extern "C" void app_main() {
           .relay = set_relay,
           .restart = restart,
           .system = system_info,
-          .remember = [](const std::string &key, int value) { panel_config::remember_screen(key, value); },
+          .remember = remember_screen,
           .power_cycle =
               [] {
                 gpio_set_level(board::PIN_DISPLAY_POWER, 1);   // off (the pin switches its supply, low: on)

@@ -90,7 +90,7 @@ bool remember_screen(const std::string &key, int value) {
   const bool ok = text && save(text, &error);
   cJSON_free(text);
   if (ok)
-    ESP_LOGI(TAG, "display.screen.%s = %d (from openHAB)", key.c_str(), value);
+    ESP_LOGI(TAG, "display.screen.%s = %d kept", key.c_str(), value);
   else
     ESP_LOGW(TAG, "display.screen.%s not kept: %s", key.c_str(), error.c_str());
   return ok;
