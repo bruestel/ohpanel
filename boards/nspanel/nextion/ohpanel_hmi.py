@@ -768,6 +768,88 @@ def thermostat_page(p: Project) -> None:
     on_load(page, loaded(page) + ["vis 255,0", "vis title,1", "vis close_hs,1", "vis close,1"])
 
 
+# The keypad page's code: its places as OHpanel's own icons (own_icons.py: smaller than MDI's circles, apart), in
+# event code as the bytes of their UTF-8 the project's encoding (iso-8859-1) writes; at most KEYPAD_LONGEST of them.
+KEYPAD_TYPED, KEYPAD_EMPTY = "ohpanel-code-typed", "ohpanel-code-empty"
+KEYPAD_BACKSPACE = "EEAD9B"   # "backspace-outline"
+KEYPAD_LONGEST = 8
+KEYPAD_DIGIT_FONT = 4      # 36 px
+KEYPAD_LABELS = ["1", "2", "3", "4", "5", "6", "7", "8", "9", None, "0", "C"]
+
+
+def keypad_page(p: Project) -> None:
+    """The keypad page (page type "keypad", Engine::draw_keypad): a code typed on the keys, sent with one of up to
+    four buttons. The code is the display's own until then: each key adds to it (the variable "code"), the places
+    under the state fill ("typed": as many as the firmware says, "places", else one per character typed), a key
+    pressed shows a disc in the accent behind it, drawn here (cirs, then its label again with xstr; ref, when let
+    go, puts the field back); the keys only tell the firmware that they were touched. A button sends the code with
+    its event ("button<k>", the code as the value) and empties it. The bottom row is backspace, 0, C -- or with
+    "phone" ("phone.val", set by the firmware) *, 0, #, backspace then on the code's places. The state and the
+    buttons (pills, the set for as many as there are) are drawn by the firmware where touch areas mark them."""
+    page = new_page(p, "keypad", touch=True)
+    title(page)
+    hotspot(page, "state_hs", layout.KEYPAD_STATE)   # where the firmware writes the state, its icon and words
+    text(page, "typed", layout.KEYPAD_CODE, ICON_FONT, xcen=1, maxl=3 * KEYPAD_LONGEST + 2, pco=WHITE)
+    text(page, "message", layout.KEYPAD_CODE, 2, xcen=1, maxl=48, pco=LIGHT_GREY)   # sent, not accepted, ...
+    cx, cy, cw, ch = layout.KEYPAD_CODE
+    back = icon(page, "back", cx + cw - 18, cy + ch / 2, ICON_FONT, glyph="backspace-outline", pco=LIGHT_GREY)
+    back.set("txt", bytes.fromhex(KEYPAD_BACKSPACE))
+    new(page, VARIABLE, "code", sta=1, txt="", txt_maxl=KEYPAD_LONGEST * 2)
+    new(page, VARIABLE, "tmp", sta=1, txt="", txt_maxl=KEYPAD_LONGEST * 2)
+    new(page, VARIABLE, "places", val=0)
+    new(page, VARIABLE, "longest", val=KEYPAD_LONGEST)
+    new(page, VARIABLE, "phone", val=0)
+    import own_icons
+    full, empty = (chr(own_icons.code_points()[n]).encode().decode("latin-1") for n in (KEYPAD_TYPED, KEYPAD_EMPTY))
+    places = ["strlen code.txt,sys0", "sys2=places.val", "if(sys2==0)", "{", "  sys2=sys0", "}", 'typed.txt=""',
+              "sys1=0", "while(sys1<sys2)", "{", "  if(sys1<sys0)", "  {", f'    typed.txt+="{full}"', "  }else", "  {",
+              f'    typed.txt+="{empty}"', "  }", "  sys1++", "}", "vis message,0", "vis typed,1",
+              "if(phone.val==1)", "{", "  ref back", "}"]   # the field painted its whole box: backspace on it again
+    add = lambda c: ["strlen code.txt,sys0", "if(sys0<longest.val)", "{", f'  code.txt+="{c}"', "}"]   # noqa: E731
+    backspace = ["strlen code.txt,sys0", "if(sys0>0)", "{", "  sys0--", "  substr code.txt,tmp.txt,0,sys0",
+                 "  code.txt=tmp.txt", "}"]
+    hotspot(page, "back_hs", (cx + cw - 40, cy - 6, 40, ch + 12), backspace + places, [])
+    kw, kh = layout.KEYPAD_KEY
+    r = layout.KEYPAD_DISC
+    for i, label in enumerate(KEYPAD_LABELS):
+        x0, y0 = layout.KEYPAD_COLS[i % 3], layout.KEYPAD_ROWS[i // 3]
+        n = f"k{i + 1}"
+        box = (x0 - kw // 2, y0 - kh // 2, kw, kh)
+        text(page, n, box, KEYPAD_DIGIT_FONT, xcen=1, maxl=4, pco=WHITE, txt=label or "*")
+        disc = f"cirs {x0},{y0},{r},th_accent"
+        draw = lambda obj, font: f"xstr {box[0]},{box[1]},{kw},{kh},{font},{WHITE},0,1,1,3,{obj}.txt"   # noqa: E731
+        if i == 9:   # backspace, or "*"
+            ico = icon(page, "k10i", x0, y0, ICON_FONT_LARGE, glyph="backspace-outline", pco=WHITE)
+            ico.set("txt", bytes.fromhex(KEYPAD_BACKSPACE))
+            ix, iy, iw, ih = (ico.get(k) for k in ("x", "y", "w", "h"))
+            press = [disc, "if(phone.val==1)", "{", "  " + draw(n, KEYPAD_DIGIT_FONT), "}else", "{",
+                     # on the disc's colour, not on nothing: the icon font's smoothed edges came out black
+                     f"  xstr {ix},{iy},{iw},{ih},{ICON_FONT_LARGE},{WHITE},th_accent,1,1,1,k10i.txt", "}"]
+            # the icon's field is smaller than the disc: the key's background back first (Program.s bg_pic)
+            act = ["if(phone.val==1)", "{", f"  ref {n}"] + ["  " + l for l in add("*")] + ["}else", "{",
+                   f"  picq {box[0]},{box[1]},{kw},{kh},bg_pic", "  ref k10i"] + ["  " + l for l in backspace] + ["}"]
+        elif i == 11:   # C, or "#"
+            press = [disc, draw(n, KEYPAD_DIGIT_FONT)]
+            act = [f"ref {n}", "if(phone.val==1)", "{"] + ["  " + l for l in add("#")] + ["}else", "{", '  code.txt=""', "}"]
+        else:
+            press = [disc, draw(n, KEYPAD_DIGIT_FONT)]
+            act = [f"ref {n}"] + add(label)
+        hotspot(page, f"{n}_hs", box, act + places + event("keypad", "key", "release"),
+                press + event("keypad", "key", "press"))
+    # the buttons: a touch area each, the set for as many as there are; the code goes with the event, then it is gone
+    for count in range(1, 5):
+        for k, box in enumerate(layout.keypad_buttons(count), start=1):
+            payload = f'{{\\"page\\": \\"keypad\\", \\"component\\": \\"button{k}\\", \\"value\\": \\"'
+            send = ["printh 92", 'prints "nspanelevent",0', "printh 00", f'prints "{payload}",0', "prints code.txt,0",
+                    'prints "\\"}",0', "printh 00", "printh FF FF FF"]
+            hotspot(page, f"b{count}{k}_hs", box, send + ['code.txt=""'] + places, event("keypad", "button", "press"))
+    close(page)
+    # what the firmware shows: the button set there are, backspace on the code's places with "phone"; "*" for
+    # backspace with it
+    hidden = ["message", "back", "back_hs", "k10"] + [f"b{n}{k}_hs" for n in range(1, 5) for k in range(1, n + 1)]
+    on_load(page, loaded(page) + [f"vis {o},0" for o in hidden])
+
+
 def buttons_page(p: Project) -> None:
     """The button page (page type "buttons"; the favourites, page type
     "media_favorites", draw on it too): 2 rows of 4 tiles on the layout's grid
@@ -1264,7 +1346,9 @@ def drawn_boxes(p: Project) -> dict:
                       {f"preset{k}_hs": box("covers", f"preset{k}_hs") for k in range(1, 4)},
             "boot": {"qr_area": box("boot", "qr_area")},
             "thermostat": {n: box("thermostat", n) for n in ["ring_hs", "minus_hs", "plus_hs", "state_hs"] +
-                           [f"m{n}{k}_hs" for n in range(1, 5) for k in range(1, n + 1)]}}
+                           [f"m{n}{k}_hs" for n in range(1, 5) for k in range(1, n + 1)]},
+            "keypad": {n: box("keypad", n) for n in ["state_hs"] +
+                       [f"b{n}{k}_hs" for n in range(1, 5) for k in range(1, n + 1)]}}
 
 
 def manifest(p: Project, bg_ids: dict[str, int], pictures: dict) -> dict:
@@ -1401,7 +1485,7 @@ def own_fonts(p: Project) -> None:
 
 # Every page in the order of their ids (the firmware goes by the manifest).
 PAGES = ("home", "weather", "settings", "boot", "blank", "light", "cover", "buttons", "volpage", "qr", "entities",
-         "media", "system", "netpage", "covers", "thermostat", "splash")   # entities: entities_cards and entities_rows come with it
+         "media", "system", "netpage", "covers", "thermostat", "splash", "keypad")   # entities: entities_cards and entities_rows come with it
 
 
 def main():
@@ -1426,7 +1510,8 @@ def main():
                 "blank": blank_page, "light": lambda p: control_page(p, "light"),
                 "cover": cover_page, "buttons": buttons_page, "volpage": volume_page,
                 "qr": qr_page, "entities": entities_pages, "media": media_page, "system": system_page,
-                "netpage": network_page, "covers": covers_page, "thermostat": thermostat_page, "splash": splash_page}
+                "netpage": network_page, "covers": covers_page, "thermostat": thermostat_page, "splash": splash_page,
+                "keypad": keypad_page}
     for name in PAGES:
         builders[name](p)
     p.remove_pages([SEED_PAGE])

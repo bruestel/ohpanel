@@ -34,13 +34,13 @@ inline std::string str(const cJSON *obj, const char *key, const std::string &fal
 
 /* A configured page's type ("type"), read once instead of compared as text everywhere. */
 enum class PageType { None, Buttons, Entities, Cover, Thermostat, Light, Media, MediaFavorites, Weather, Qr, System,
-                      Settings };
+                      Settings, Keypad };
 inline PageType type_of(const cJSON *page) {
   static const std::map<std::string, PageType> kTypes = {
       {"buttons", PageType::Buttons}, {"entities", PageType::Entities},   {"cover", PageType::Cover},
       {"thermostat", PageType::Thermostat}, {"light", PageType::Light}, {"media", PageType::Media},
       {"media_favorites", PageType::MediaFavorites}, {"weather", PageType::Weather}, {"qr", PageType::Qr},
-      {"system", PageType::System}, {"settings", PageType::Settings}};
+      {"system", PageType::System}, {"settings", PageType::Settings}, {"keypad", PageType::Keypad}};
   const cJSON *v = page ? cJSON_GetObjectItem(page, "type") : nullptr;
   const auto it = cJSON_IsString(v) ? kTypes.find(v->valuestring) : kTypes.end();
   return it == kTypes.end() ? PageType::None : it->second;

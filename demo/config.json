@@ -483,7 +483,13 @@
           "always_active": true,
           "layout": "center"
         },
-        null,
+        {
+          "label": "Alarm",
+          "icon": "shield-home",
+          "open": "alarm",
+          "always_active": true,
+          "layout": "center"
+        },
         {
           "label": "Guest WiFi",
           "icon": "wifi-plus",
@@ -860,6 +866,70 @@
       ],
       "text": "WIFI:T:WPA;S:Guests;P:welcome-home;;",
       "style": "dots"
+    },
+    {
+      "id": "alarm",
+      "type": "keypad",
+      "title": "Alarm",
+      "item": "Alarm_Command",
+      "length": 4,
+      "state": {
+        "item": "Alarm_State",
+        "value_style": [
+          {
+            "equals": "DISARMED",
+            "format": "Disarmed",
+            "icon": "shield-off",
+            "color": "green"
+          },
+          {
+            "equals": "ARMED_HOME",
+            "format": "Armed at home",
+            "icon": "shield-home",
+            "color": "yellow"
+          },
+          {
+            "equals": "ARMED_AWAY",
+            "format": "Armed away",
+            "icon": "shield-lock",
+            "color": "red"
+          },
+          {
+            "equals": "ALARM",
+            "format": "Alarm!",
+            "icon": "shield-alert",
+            "color": "red",
+            "blink": 500
+          }
+        ]
+      },
+      "buttons": [
+        {
+          "label": "Away",
+          "icon": "shield-lock",
+          "command": "ARM_AWAY {code}",
+          "when": "ARMED_AWAY",
+          "show_when": "DISARMED"
+        },
+        {
+          "label": "Home",
+          "icon": "shield-home",
+          "command": "ARM_HOME {code}",
+          "when": "ARMED_HOME",
+          "show_when": "DISARMED"
+        },
+        {
+          "label": "Off",
+          "icon": "shield-off",
+          "command": "DISARM {code}",
+          "when": "DISARMED",
+          "show_when": [
+            "ARMED_HOME",
+            "ARMED_AWAY",
+            "ALARM"
+          ]
+        }
+      ]
     }
   ]
 }

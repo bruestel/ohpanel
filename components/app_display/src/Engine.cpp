@@ -1135,6 +1135,7 @@ void Engine::render() {
       case PageType::Entities: draw_entities(page, shown_); break;
       case PageType::Cover: draw_cover(page); break;
       case PageType::Thermostat: draw_thermostat(page); break;
+      case PageType::Keypad: draw_keypad(page); break;
       case PageType::Light: draw_light(page); break;
       case PageType::Media: draw_media(page); break;
       case PageType::Weather: draw_weather(page); break;
@@ -1411,6 +1412,8 @@ void Engine::act(const std::string &page, const std::string &component, const st
     covers_event(cfg, component);
   } else if (page == "thermostat" && value == "release") {
     thermo_event(cfg, component);
+  } else if (page == "keypad") {
+    keypad_event(cfg, component, value);   // a key touched; a button, the code typed as its value
   } else if (page == "light" && component.rfind("side", 0) == 0 && component.size() == 5 && value == "release") {
     light_view_ = std::clamp(component[4] - '1', 0, 2);   // another view of the light: the page anew
     show_physical("light");
@@ -1680,6 +1683,7 @@ void Engine::idle(int64_t now_ms) {
   now_ms_ = now_ms;
   cover_tick();
   thermo_tick();
+  keypad_tick();
   if (slider_resync_ && !slider_held()) {   // the finger off the slider a while: it shows what the item says
     slider_resync_ = false;
     if (const cJSON *page = current_ == "home" ? nullptr : page_config(current_)) {

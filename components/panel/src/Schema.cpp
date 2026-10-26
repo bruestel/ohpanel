@@ -45,7 +45,7 @@ const char *const kColors[] = {"white", "black", "red",  "green",      "blue",
 // the theme's colours, wherever a colour goes -- not in the theme itself
 const char *const kThemeColors[] = {"theme-accent", "theme-text", "theme-dim"};
 const char *const kPageTypes[] = {"buttons", "entities", "cover", "light", "media", "weather", "qr", "system",
-                                  "media_favorites", "thermostat"};
+                                  "media_favorites", "thermostat", "keypad"};
 /* The settings page is built in: always there, never configured; a page
    refers to it by this id like to any other. */
 const char *const kSettingsId = "settings";
@@ -760,7 +760,7 @@ class Validator {
       fail(member(p, "id"), "must be 1-24 characters a-z 0-9 - (not starting or ending with -)");
     one_of(pg, "type", p,
            {kPageTypes[0], kPageTypes[1], kPageTypes[2], kPageTypes[3], kPageTypes[4], kPageTypes[5], kPageTypes[6],
-            kPageTypes[7], kPageTypes[8], kPageTypes[9]},
+            kPageTypes[7], kPageTypes[8], kPageTypes[9], kPageTypes[10]},
            true);
     const cJSON *type = cJSON_GetObjectItem(pg, "type");
     const std::string t = cJSON_IsString(type) ? type->valuestring : "";
@@ -896,6 +896,66 @@ class Validator {
             allowed(e, ep, {"label", "value"});
             string(e, "label", ep, false, 16);
             string(e, "value", ep, true, 32);
+          }
+        }
+      }
+    } else if (t == "keypad") {
+      allowed(pg, p, {"id", "type", "title", "icon", "color", "text", "item", "state", "result", "length", "keys",
+                      "buttons"});
+      // the line over the code without a state: its words, icon and colour
+      string(pg, "text", p, false, 32);
+      icon(pg, p);
+      color(pg, p);
+      if (const cJSON *item = cJSON_GetObjectItem(pg, "item"))   // the buttons' item, unless one names its own
+        item_name(item, member(p, "item"));
+      // the state over the code: its item's, written and coloured by its rules (a text, an icon, blinking)
+      if (const cJSON *s = cJSON_GetObjectItem(pg, "state")) {
+        const std::string sp = member(p, "state");
+        if (object(s, sp)) {
+          allowed(s, sp, {"item", "format", "factor", "decimals", "icon", "color", "value_style"});
+          item_name(cJSON_GetObjectItem(s, "item"), member(sp, "item"));
+          decimals(s, sp);
+          format(s, sp);
+          icon(s, sp);
+          color(s, sp);
+          rules(s, sp);
+        }
+      }
+      item_ref(pg, "result", p);   // a message after the code went: its new state, shown a while
+      if (const cJSON *n = cJSON_GetObjectItem(pg, "length"); n && (!cJSON_IsNumber(n) || n->valuedouble < 1 ||
+                                                                    n->valuedouble > 8 ||
+                                                                    n->valuedouble != n->valueint))
+        fail(member(p, "length"), "must be a whole number 1 to 8 (the code's places)");
+      one_of(pg, "keys", p, {"digits", "phone"});   // the bottom row: backspace, 0, C -- or *, 0, #
+      const cJSON *bs = cJSON_GetObjectItem(pg, "buttons");
+      const std::string bp = member(p, "buttons");
+      if (!cJSON_IsArray(bs) || cJSON_GetArraySize(bs) < 1 || cJSON_GetArraySize(bs) > 4) {
+        fail(bp, "must be a list of 1 to 4 buttons");
+      } else {
+        int k = 0;
+        for (const cJSON *e = bs->child; e; e = e->next, k++) {
+          const std::string ep = bp + "[" + std::to_string(k) + "]";
+          if (!object(e, ep))
+            continue;
+          allowed(e, ep, {"label", "icon", "item", "command", "code", "when", "show_when"});
+          string(e, "label", ep, true, 16);
+          icon(e, ep);
+          if (const cJSON *item = cJSON_GetObjectItem(e, "item"))
+            item_name(item, member(ep, "item"));
+          else if (!cJSON_GetObjectItem(pg, "item"))
+            fail(member(ep, "item"), "is required (or the page's \"item\")");
+          string(e, "command", ep, false, 64);   // {code}: the code typed (default: the code alone)
+          boolean(e, "code", ep);   // false: works without a code too
+          string(e, "when", ep, false, 32);   // the state it is lit in
+          // the states it shows in: one, or a list of them (else always)
+          if (const cJSON *sw = cJSON_GetObjectItem(e, "show_when")) {
+            bool ok = cJSON_IsString(sw) || (cJSON_IsArray(sw) && cJSON_GetArraySize(sw) >= 1);
+            for (const cJSON *s = cJSON_IsArray(sw) ? sw->child : nullptr; s; s = s->next)
+              ok = ok && cJSON_IsString(s);
+            if (!ok)
+              fail(member(ep, "show_when"), "must be a state, or a list of states");
+            else if (!cJSON_GetObjectItem(pg, "state"))
+              fail(member(ep, "show_when"), "goes with the page's \"state\" (the item whose state it is)");
           }
         }
       }

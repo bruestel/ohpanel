@@ -19,7 +19,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
 
 // the panel's pages: the file name and the preview's page id
 const DISPLAY = [
-  ['home', 'home'], ['buttons', 'kitchen'], ['light', 'counter'], ['thermostat', 'thermostat'],
+  ['home', 'home'], ['buttons', 'kitchen'], ['light', 'counter'], ['thermostat', 'thermostat'], ['keypad', 'alarm'],
   ['media', 'speaker'], ['favorites', 'radio'], ['cover', 'blind-kitchen'], ['awning', 'awning'],
   ['cover-group', 'blinds-front'], ['entities-cards', 'energy'], ['entities-rows', 'plants'],
   ['entities-list', 'washer'], ['waste', 'waste'], ['weather', 'weather'], ['qr', 'guest-wifi'], ['info', 'info'],

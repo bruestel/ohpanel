@@ -266,6 +266,27 @@ def thermo_modes(n: int) -> list:
     return [(left + k * (w + THERMO_MODES_GAP), THERMO_MODES_Y, w, THERMO_MODES_H) for k in range(n)]
 
 
+# The keypad page: the state and the code's places under the title, the keys under them, the buttons at the bottom
+# (one to three side by side, four two pairs).
+KEYPAD_ROWS = (166, 228, 290, 352)
+KEYPAD_COLS = (80, 160, 240)
+KEYPAD_KEY = (76, 60)
+KEYPAD_DISC = 27
+KEYPAD_STATE = (MARGIN + 4, 51, VISIBLE_W - 2 * (MARGIN + 4), 30)
+KEYPAD_CODE = (MARGIN + 4, 91, VISIBLE_W - 2 * (MARGIN + 4), 30)
+KEYPAD_BUTTONS_Y = 394
+
+
+def keypad_buttons(n: int) -> list:
+    """The buttons when there are n of them, at the bottom: one to three side by side, 52 px high; four as two pairs."""
+    x, w = MARGIN + 4, VISIBLE_W - 2 * (MARGIN + 4)
+    if n == 4:
+        half = (w - 8) // 2
+        return [(x + (k % 2) * (half + 8), KEYPAD_BUTTONS_Y + (k // 2) * 44, half, 36) for k in range(4)]
+    each = (w - 8 * (n - 1)) // n
+    return [(x + k * (each + 8), KEYPAD_BUTTONS_Y + 14, each, 52) for k in range(n)]
+
+
 # The cover group page: the whole group at the top, four members a sheet under it; each row in two lines -- the
 # name across it, under it a member's position on the left and up / stop / down on the right.
 COVERS_ALL_Y, COVERS_ALL_H = 38, 84

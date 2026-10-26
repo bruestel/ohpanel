@@ -56,6 +56,8 @@ struct Texts {
   std::string cover_all;
   /* The thermostat page: before its target, and what it does (heating, cooling). */
   std::string thermostat_target, heating, cooling;
+  /* The keypad page's messages: the code sent, not accepted (the state did not follow), a button wanting a code. */
+  std::string keypad_sent, keypad_refused, keypad_enter;
 };
 
 /* display.screen: how bright the screen is, when it dims, when it is off.

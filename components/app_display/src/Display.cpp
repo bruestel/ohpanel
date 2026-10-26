@@ -364,6 +364,9 @@ void task(void *) {
   Callbacks cb;
   cb.state = [](const std::string &item, appoh::ItemState &out) { return appoh::state(item, out); };
   cb.command = [](const std::string &item, const std::string &command) { appoh::send_command(item, command); };
+  cb.secret_command = [](const std::string &item, const std::string &command) {
+    appoh::send_command(item, command, true);
+  };
   cb.relay = [](int index, bool on) {
     if (g_hooks.relay) g_hooks.relay(index, on);
   };

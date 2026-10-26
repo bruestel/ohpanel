@@ -390,6 +390,16 @@
       "itype": "Number:Dimensionless",
       "label": "Lemon tree soil moisture",
       "state": "52 %"
+    },
+    "Alarm_State": {
+      "itype": "String",
+      "label": "Alarm state",
+      "state": "DISARMED"
+    },
+    "Alarm_Command": {
+      "itype": "String",
+      "label": "Alarm command",
+      "state": "NULL"
     }
   },
   "groups": {

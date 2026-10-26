@@ -133,6 +133,32 @@ int main() {
                "pages[0].curve");
   expect_issue("thermostat without target", doc(R"("pages":[{"id":"t","type":"thermostat","title":"x"}])"),
                "pages[0].item");
+  expect_valid("keypad",
+               doc(R"("pages":[{"id":"a","type":"keypad","title":"Alarm","item":"Cmd","length":6,"keys":"phone",
+                   "state":{"item":"St","value_style":[{"equals":"ALARM","format":"Alarm!","icon":"shield-alert",
+                   "color":"red","blink":500}]},"result":{"item":"Msg"},
+                   "buttons":[{"label":"Away","icon":"shield-lock","command":"ARM_AWAY {code}","when":"ARMED_AWAY"},
+                              {"label":"Home","item":"Home","command":"ON","code":false},
+                              {"label":"Off","command":"DISARM {code}","show_when":["ARMED_AWAY","ARMED_HOME"]}]}])"));
+  expect_issue("keypad show_when without a state",
+               doc(R"("pages":[{"id":"a","type":"keypad","title":"x","item":"C",
+                   "buttons":[{"label":"Off","show_when":"ARMED"}]}])"),
+               "pages[0].buttons[0].show_when");
+  expect_valid("keypad, a door code",
+               doc(R"("pages":[{"id":"d","type":"keypad","title":"Door","text":"Door code","icon":"lock",
+                   "buttons":[{"label":"Open","item":"Door_Code"}]}])"));
+  expect_issue("keypad without buttons", doc(R"("pages":[{"id":"a","type":"keypad","title":"x","item":"C"}])"),
+               "pages[0].buttons");
+  expect_issue("keypad with five buttons",
+               doc(R"("pages":[{"id":"a","type":"keypad","title":"x","item":"C","buttons":[{"label":"1"},
+                   {"label":"2"},{"label":"3"},{"label":"4"},{"label":"5"}]}])"),
+               "pages[0].buttons");
+  expect_issue("keypad button without an item",
+               doc(R"("pages":[{"id":"a","type":"keypad","title":"x","buttons":[{"label":"Open"}]}])"),
+               "pages[0].buttons[0].item");
+  expect_issue("keypad length", doc(R"("pages":[{"id":"a","type":"keypad","title":"x","item":"C","length":9,
+                   "buttons":[{"label":"Open"}]}])"),
+               "pages[0].length");
   expect_issue("thermostat modes without mode",
                doc(R"("pages":[{"id":"t","type":"thermostat","title":"x","item":"S","modes":[{"value":"a"}]}])"),
                "pages[0].modes");

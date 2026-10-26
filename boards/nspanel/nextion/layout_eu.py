@@ -383,6 +383,31 @@ def thermo_modes(n: int) -> list:
     return [(left + k * (w + THERMO_MODES_GAP), THERMO_MODES_Y, w, THERMO_MODES_H) for k in range(n)]
 
 
+# The keypad page (page type "keypad"; ohpanel_hmi.py keypad_page): the keys on the right, 3 x 4 -- digits without a
+# background, the display draws a disc in the accent behind the one pressed --; on the left, on the keys' rows, the
+# state (drawn by the firmware: its icon and words, centred) on the first, the code's places on the second, the
+# buttons on the third and the fourth (drawn by the firmware as pills, as many as there are).
+KEYPAD_ROWS = (76, 140, 204, 268)            # the keys' rows: their middles
+KEYPAD_COLS = (284, 350, 416)                # ... their columns
+KEYPAD_KEY = (66, 64)                        # a key's touch area (and field) round its middle
+KEYPAD_DISC = 27                             # the disc behind a key pressed: its radius
+KEYPAD_LEFT = (MARGIN + 4, 192)              # the left side: x, w
+KEYPAD_STATE = (KEYPAD_LEFT[0], KEYPAD_ROWS[0] - 15, KEYPAD_LEFT[1], 30)
+KEYPAD_CODE = (KEYPAD_LEFT[0], KEYPAD_ROWS[1] - 15, KEYPAD_LEFT[1], 30)
+KEYPAD_BUTTON_H, KEYPAD_BUTTON_GAP = 46, 8
+
+
+def keypad_buttons(n: int) -> list:
+    """The buttons when there are n of them: x, y, w, h each -- on the keys' last two rows: one on the last, two one
+    on each, three a pair then one, four two pairs."""
+    x, w = KEYPAD_LEFT
+    h, gap = KEYPAD_BUTTON_H, KEYPAD_BUTTON_GAP
+    half = (w - gap) // 2
+    full = lambda row: [(x, KEYPAD_ROWS[row] - h // 2, w, h)]   # noqa: E731
+    pair = lambda row: [(x + k * (half + gap), KEYPAD_ROWS[row] - h // 2, half, h) for k in range(2)]   # noqa: E731
+    return {1: full(3), 2: full(2) + full(3), 3: pair(2) + full(3), 4: pair(2) + pair(3)}[n]
+
+
 # The cover group page (page type "cover" with a group; ohpanel_hmi.py covers_page): the whole group at the top on
 # every sheet, taller, its buttons larger; under it a row per member, four on a sheet: a card (drawn by the
 # firmware), a small drawing of the cover, the name, its position, and up / stop / down as small rounded buttons.

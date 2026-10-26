@@ -162,7 +162,8 @@ def icons():
     for file in sorted(os.listdir(SVG_DIR)):
         if file.endswith(".svg"):
             name = file[:-4]
-            aliases = ["openhab", "logo"] if name == "ohpanel-openhab" else ["sound", "playing", "volume"]
+            aliases = (["openhab", "logo"] if name == "ohpanel-openhab" else
+                       ["code", "pin", "place"] if name.startswith("ohpanel-code-") else ["sound", "playing", "volume"])
             out[name] = (_svg(os.path.join(SVG_DIR, file)), aliases)
     for name in out:
         if not name.startswith("ohpanel-"):

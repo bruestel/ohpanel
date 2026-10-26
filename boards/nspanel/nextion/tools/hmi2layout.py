@@ -34,7 +34,7 @@ from hmipatch import Project  # noqa: E402
 
 # The pages the configuration fills; one template per page type.
 PAGES = ["home", "buttons", "entities", "entities_cards", "entities_rows", "cover", "covers", "light", "system",
-         "media", "weather", "qr", "settings", "thermostat"]
+         "media", "weather", "qr", "settings", "thermostat", "keypad"]
 
 # Object types that draw something: text, scrolling text, button, picture,
 # slider, number, dual-state button, QR code, progress bar.

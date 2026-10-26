@@ -2084,6 +2084,122 @@ int main(int argc, char **argv) {
     e.set_config(read("test/host/data/office.json"));
   }
 
+  {  // the keypad page: the state over the code, the buttons; a button sends the code typed in its command, one
+     // wanting a code says so without, a state that does not follow is "not accepted", a result item's new state shows
+    cJSON *doc = cJSON_Parse(read("test/host/data/office.json").c_str());
+    cJSON_AddItemToArray(cJSON_GetObjectItem(doc, "pages"), cJSON_Parse(R"({"id": "alarm", "type": "keypad",
+        "title": "Alarm", "item": "Alarm_Command", "length": 4, "result": {"item": "Alarm_Message"},
+        "state": {"item": "Alarm_State", "value_style": [
+            {"equals": "DISARMED", "format": "Disarmed", "icon": "shield-off", "color": "green"},
+            {"equals": "ARMED_AWAY", "format": "Armed away", "icon": "shield-lock", "color": "red"}]},
+        "buttons": [{"label": "Away", "icon": "shield-lock", "command": "ARM_AWAY {code}", "when": "ARMED_AWAY"},
+                    {"label": "Off", "icon": "shield-off", "command": "DISARM {code}", "when": "DISARMED"},
+                    {"label": "Home", "item": "Alarm_Home", "command": "ON", "code": false}]})"));
+    cJSON *lights = nullptr;   // its first tile opens it
+    for (cJSON *pg = cJSON_GetObjectItem(doc, "pages")->child; pg; pg = pg->next)
+      if (std::string(cJSON_GetStringValue(cJSON_GetObjectItem(pg, "id"))) == "lights")
+        lights = pg;
+    cJSON_ReplaceItemInArray(cJSON_GetObjectItem(lights, "buttons"), 0,
+                             cJSON_Parse(R"({"label": "Alarm", "icon": "shield", "open": "alarm"})"));
+    char *text = cJSON_PrintUnformatted(doc);
+    e.set_config(text);
+    cJSON_free(text);
+    cJSON_Delete(doc);
+    set_state("Alarm_State", "DISARMED", "String");
+    set_state("Alarm_Message", "", "String");
+    e.idle(30000000);
+    e.on_message(loaded("home"));
+    e.on_message(event("home", "swipe", "left"));
+    e.on_message(loaded("buttons"));
+    e.on_message(event("buttons", "tile1", "release"));
+    CHECK(e.current() == "alarm");
+    rec.out.clear();
+    e.on_message(loaded("keypad"));
+    CHECK(rec.has("title.txt=\"Alarm\"") && rec.has("places.val=4") && rec.has("longest.val=4"));
+    CHECK(rec.has("vis b31_hs,1") && rec.has("vis b33_hs,1") && !rec.has("vis b41_hs,1"));   // the set of three
+    CHECK(rec.has("vis k10i,1") && rec.has("k12.txt=\"C\""));                             // backspace, 0, C
+    const auto drawn = [&](const std::string &word, int colour) {
+      return std::any_of(rec.out.begin(), rec.out.end(), [&](const std::string &c) {
+        return c.rfind("xstr ", 0) == 0 && c.find("\"" + word + "\"") != std::string::npos &&
+               c.find("," + std::to_string(colour) + ",") != std::string::npos; });
+    };
+    CHECK(drawn("Disarmed", 21920) && drawn("Away", 52857));   // the state in green; a pill not lit
+    e.on_message(event("keypad", "key", "press"));
+    e.on_message(event("keypad", "button1", "1234"));
+    CHECK(commands.back() == std::make_pair(std::string("Alarm_Command"), std::string("ARM_AWAY 1234")));
+    CHECK(rec.has("message.txt=\"Gesendet\"") && rec.has("vis message,1"));
+    const size_t sent = commands.size();
+    e.on_message(event("keypad", "button2", ""));                 // no code: it asks for one
+    CHECK(commands.size() == sent && rec.has("message.txt=\"Code eingeben\""));
+    e.on_message(event("keypad", "button3", ""));                 // one without a code, to its own item
+    CHECK(commands.back() == std::make_pair(std::string("Alarm_Home"), std::string("ON")));
+    e.on_message(event("keypad", "button1", "1111"));
+    rec.out.clear();
+    e.idle(30000000 + 7000);                                      // the state is still DISARMED: not accepted
+    CHECK(rec.has("message.txt=\"Nicht angenommen\""));
+    e.on_message(event("keypad", "button1", "1234"));
+    set_state("Alarm_State", "ARMED_AWAY", "String");
+    rec.out.clear();
+    e.on_state("Alarm_State");
+    CHECK(drawn("Armed away", 63488));                            // red now
+    e.idle(30000000 + 8000);
+    CHECK(!rec.has("message.txt=\"Nicht angenommen\""));          // it followed
+    e.on_message(event("keypad", "button2", "4321"));
+    set_state("Alarm_Message", "Window open", "String");
+    rec.out.clear();
+    e.idle(30000000 + 9000);
+    CHECK(rec.has("message.txt=\"Window open\""));                // the result item's word
+    CHECK(rec.has_suffix_of("fill ", ",10597"));                  // ... and the button no longer lit
+    e.on_message(event("keypad", "key", "release"));             // a key at 39 s, then none
+    rec.out.clear();
+    e.idle(30000000 + 9000 + 19000);
+    CHECK(!rec.has("code.txt=\"\""));
+    e.idle(30000000 + 9000 + 20000);                              // 20 s without one: the code goes
+    CHECK(rec.has("code.txt=\"\""));
+    e.on_message(event("keypad", "close", "release"));
+    e.set_config(read("test/host/data/office.json"));
+  }
+
+  {  // keypad buttons by the state ("show_when"): disarmed the two to arm, armed only "Off" -- the page anew when the
+     // set changes, a button's event then meaning the buttons that show
+    cJSON *doc = cJSON_Parse(read("test/host/data/office.json").c_str());
+    cJSON_AddItemToArray(cJSON_GetObjectItem(doc, "pages"), cJSON_Parse(R"({"id": "alarm", "type": "keypad",
+        "title": "Alarm", "item": "Alarm_Command", "state": {"item": "Alarm_State"},
+        "buttons": [{"label": "Away", "command": "ARM_AWAY {code}", "show_when": "DISARMED"},
+                    {"label": "Home", "command": "ARM_HOME {code}", "show_when": "DISARMED"},
+                    {"label": "Off", "command": "DISARM {code}", "show_when": ["ARMED_AWAY", "ARMED_HOME"]}]})"));
+    cJSON *lights = nullptr;
+    for (cJSON *pg = cJSON_GetObjectItem(doc, "pages")->child; pg; pg = pg->next)
+      if (std::string(cJSON_GetStringValue(cJSON_GetObjectItem(pg, "id"))) == "lights")
+        lights = pg;
+    cJSON_ReplaceItemInArray(cJSON_GetObjectItem(lights, "buttons"), 0,
+                             cJSON_Parse(R"({"label": "Alarm", "icon": "shield", "open": "alarm"})"));
+    char *text = cJSON_PrintUnformatted(doc);
+    e.set_config(text);
+    cJSON_free(text);
+    cJSON_Delete(doc);
+    set_state("Alarm_State", "DISARMED", "String");
+    e.idle(40000000);
+    e.on_message(loaded("home"));
+    e.on_message(event("home", "swipe", "left"));
+    e.on_message(loaded("buttons"));
+    e.on_message(event("buttons", "tile1", "release"));
+    rec.out.clear();
+    e.on_message(loaded("keypad"));
+    CHECK(rec.has("vis b21_hs,1") && rec.has("vis b22_hs,1") && !rec.has("vis b11_hs,1"));
+    e.on_message(event("keypad", "button2", "1234"));
+    CHECK(commands.back() == std::make_pair(std::string("Alarm_Command"), std::string("ARM_HOME 1234")));
+    set_state("Alarm_State", "ARMED_HOME", "String");
+    rec.out.clear();
+    e.on_state("Alarm_State");                                    // another set: swapped in place, no page anew
+    CHECK(!rec.has_prefix("page ") && rec.has("vis b21_hs,0") && rec.has("vis b22_hs,0") && rec.has("vis b11_hs,1"));
+    CHECK(rec.has_prefix("picq ") && rec.has_prefix("fill "));    // the buttons' place back, the new pill
+    e.on_message(event("keypad", "button1", "1234"));             // the one that shows: "Off"
+    CHECK(commands.back() == std::make_pair(std::string("Alarm_Command"), std::string("DISARM 1234")));
+    e.on_message(event("keypad", "close", "release"));
+    e.set_config(read("test/host/data/office.json"));
+  }
+
   {  // a cover group page with presets (the group's metadata): the pills in the first row's place, three members a
      // sheet under them; a preset's position goes to the whole group, a member's row still opens it
     cJSON *doc = cJSON_Parse(read("test/host/data/office.json").c_str());

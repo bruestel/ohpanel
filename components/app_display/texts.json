@@ -26,6 +26,7 @@
                       ["retracted", "extended", "retracting", "extending"], ["open", "closed", "opening", "closing"],
                       ["open", "closed", "opening", "closing"], ["open", "closed", "opening", "closing"]],
       "cover_all": "All", "thermostat_target": "Target", "heating": "heating", "cooling": "cooling",
+      "keypad_sent": "Sent", "keypad_refused": "Not accepted", "keypad_enter": "Enter the code",
       "qr_wifi": "Wi-Fi", "qr_password": "Password"
     },
     {
@@ -53,6 +54,7 @@
                       ["eingefahren", "ausgefahren", "fährt ein", "fährt aus"], ["offen", "zu", "öffnet", "schließt"],
                       ["offen", "geschlossen", "öffnet", "schließt"], ["offen", "geschlossen", "öffnet", "schließt"]],
       "cover_all": "Alle", "thermostat_target": "Ziel", "heating": "heizt", "cooling": "kühlt",
+      "keypad_sent": "Gesendet", "keypad_refused": "Nicht angenommen", "keypad_enter": "Code eingeben",
       "qr_wifi": "WLAN", "qr_password": "Passwort"
     },
     {
@@ -80,6 +82,7 @@
                       ["rentré", "sorti", "rentre", "sort"], ["ouvert", "fermé", "s'ouvre", "se ferme"],
                       ["ouverte", "fermée", "s'ouvre", "se ferme"], ["ouvert", "fermé", "s'ouvre", "se ferme"]],
       "cover_all": "Tous", "thermostat_target": "Cible", "heating": "chauffe", "cooling": "refroidit",
+      "keypad_sent": "Envoyé", "keypad_refused": "Refusé", "keypad_enter": "Saisir le code",
       "qr_wifi": "WiFi", "qr_password": "Mot de passe"
     },
     {
@@ -107,6 +110,7 @@
                       ["recogido", "extendido", "recogiendo", "extendiendo"], ["abierta", "cerrada", "abriendo", "cerrando"],
                       ["abierta", "cerrada", "abriendo", "cerrando"], ["abierta", "cerrada", "abriendo", "cerrando"]],
       "cover_all": "Todas", "thermostat_target": "Objetivo", "heating": "calentando", "cooling": "enfriando",
+      "keypad_sent": "Enviado", "keypad_refused": "No aceptado", "keypad_enter": "Introduzca el código",
       "qr_wifi": "WiFi", "qr_password": "Contraseña"
     },
     {
@@ -134,6 +138,7 @@
                       ["ritratta", "estesa", "rientra", "esce"], ["aperta", "chiusa", "si apre", "si chiude"],
                       ["aperta", "chiusa", "si apre", "si chiude"], ["aperto", "chiuso", "si apre", "si chiude"]],
       "cover_all": "Tutte", "thermostat_target": "Obiettivo", "heating": "riscalda", "cooling": "raffredda",
+      "keypad_sent": "Inviato", "keypad_refused": "Non accettato", "keypad_enter": "Inserire il codice",
       "qr_wifi": "WiFi", "qr_password": "Password"
     },
     {
@@ -161,6 +166,7 @@
                       ["ingerold", "uitgerold", "rolt in", "rolt uit"], ["open", "dicht", "gaat open", "gaat dicht"],
                       ["open", "dicht", "gaat open", "gaat dicht"], ["open", "dicht", "gaat open", "gaat dicht"]],
       "cover_all": "Alle", "thermostat_target": "Doel", "heating": "verwarmt", "cooling": "koelt",
+      "keypad_sent": "Verzonden", "keypad_refused": "Niet geaccepteerd", "keypad_enter": "Voer de code in",
       "qr_wifi": "WiFi", "qr_password": "Wachtwoord"
     },
     {
@@ -188,6 +194,7 @@
                       ["recolhido", "estendido", "a recolher", "a estender"], ["aberta", "fechada", "a abrir", "a fechar"],
                       ["aberto", "fechado", "a abrir", "a fechar"], ["aberto", "fechado", "a abrir", "a fechar"]],
       "cover_all": "Todas", "thermostat_target": "Alvo", "heating": "a aquecer", "cooling": "a arrefecer",
+      "keypad_sent": "Enviado", "keypad_refused": "Não aceite", "keypad_enter": "Introduza o código",
       "qr_wifi": "WiFi", "qr_password": "Palavra-passe"
     },
     {
@@ -215,6 +222,7 @@
                       ["inde", "ude", "kører ind", "kører ud"], ["åben", "lukket", "åbner", "lukker"],
                       ["åben", "lukket", "åbner", "lukker"], ["åben", "lukket", "åbner", "lukker"]],
       "cover_all": "Alle", "thermostat_target": "Mål", "heating": "varmer", "cooling": "køler",
+      "keypad_sent": "Sendt", "keypad_refused": "Ikke accepteret", "keypad_enter": "Indtast koden",
       "qr_wifi": "WiFi", "qr_password": "Adgangskode"
     },
     {
@@ -242,6 +250,7 @@
                       ["inne", "ute", "går in", "går ut"], ["öppen", "stängd", "öppnar", "stänger"],
                       ["öppen", "stängd", "öppnar", "stänger"], ["öppen", "stängd", "öppnar", "stänger"]],
       "cover_all": "Alla", "thermostat_target": "Mål", "heating": "värmer", "cooling": "kyler",
+      "keypad_sent": "Skickat", "keypad_refused": "Inte godkänt", "keypad_enter": "Ange koden",
       "qr_wifi": "WiFi", "qr_password": "Lösenord"
     },
     {
@@ -269,6 +278,7 @@
                       ["inne", "ute", "går inn", "går ut"], ["åpen", "lukket", "åpner", "lukker"],
                       ["åpen", "lukket", "åpner", "lukker"], ["åpen", "lukket", "åpner", "lukker"]],
       "cover_all": "Alle", "thermostat_target": "Mål", "heating": "varmer", "cooling": "kjøler",
+      "keypad_sent": "Sendt", "keypad_refused": "Ikke godtatt", "keypad_enter": "Tast inn koden",
       "qr_wifi": "WiFi", "qr_password": "Passord"
     },
     {
@@ -296,6 +306,7 @@
                       ["sisällä", "ulkona", "menee sisään", "menee ulos"], ["auki", "kiinni", "avautuu", "sulkeutuu"],
                       ["auki", "kiinni", "avautuu", "sulkeutuu"], ["auki", "kiinni", "avautuu", "sulkeutuu"]],
       "cover_all": "Kaikki", "thermostat_target": "Tavoite", "heating": "lämmittää", "cooling": "jäähdyttää",
+      "keypad_sent": "Lähetetty", "keypad_refused": "Ei hyväksytty", "keypad_enter": "Syötä koodi",
       "qr_wifi": "WiFi", "qr_password": "Salasana"
     },
     {
@@ -320,6 +331,7 @@
                       ["прибрана", "разпъната", "прибира се", "разпъва се"], ["отворена", "затворена", "отваря", "затваря"],
                       ["отворена", "затворена", "отваря", "затваря"], ["отворена", "затворена", "отваря", "затваря"]],
       "cover_all": "Всички", "thermostat_target": "Цел", "heating": "отоплява", "cooling": "охлажда",
+      "keypad_sent": "Изпратено", "keypad_refused": "Не е приет", "keypad_enter": "Въведете кода",
       "qr_wifi": "WiFi", "qr_password": "Парола"
     },
     {
@@ -344,6 +356,7 @@
                       ["zatažená", "vysunutá", "zatahuje", "vysouvá"], ["otevřeno", "zavřeno", "otevírá", "zavírá"],
                       ["otevřeno", "zavřeno", "otevírá", "zavírá"], ["otevřeno", "zavřeno", "otevírá", "zavírá"]],
       "cover_all": "Vše", "thermostat_target": "Cíl", "heating": "topí", "cooling": "chladí", "qr_wifi": "WiFi",
+      "keypad_sent": "Odesláno", "keypad_refused": "Nepřijato", "keypad_enter": "Zadejte kód",
       "qr_password": "Heslo"
     },
     {
@@ -368,6 +381,7 @@
                       ["μαζεμένη", "ανοιγμένη", "μαζεύεται", "ανοίγει"], ["ανοιχτό", "κλειστό", "ανοίγει", "κλείνει"],
                       ["ανοιχτό", "κλειστό", "ανοίγει", "κλείνει"], ["ανοιχτό", "κλειστό", "ανοίγει", "κλείνει"]],
       "cover_all": "Όλα", "thermostat_target": "Στόχος", "heating": "θερμαίνει", "cooling": "ψύχει",
+      "keypad_sent": "Στάλθηκε", "keypad_refused": "Δεν έγινε δεκτό", "keypad_enter": "Εισαγάγετε τον κωδικό",
       "qr_wifi": "WiFi", "qr_password": "Κωδικός"
     },
     {
@@ -392,6 +406,7 @@
                       ["sees", "väljas", "tõmbub sisse", "tuleb välja"], ["avatud", "suletud", "avaneb", "sulgub"],
                       ["avatud", "suletud", "avaneb", "sulgub"], ["avatud", "suletud", "avaneb", "sulgub"]],
       "cover_all": "Kõik", "thermostat_target": "Siht", "heating": "kütab", "cooling": "jahutab",
+      "keypad_sent": "Saadetud", "keypad_refused": "Ei aktsepteeritud", "keypad_enter": "Sisestage kood",
       "qr_wifi": "WiFi", "qr_password": "Parool"
     },
     {
@@ -416,6 +431,7 @@
                       ["istigh", "amuigh", "ag teacht isteach", "ag dul amach"], ["oscailte", "dúnta", "ag oscailt", "ag dúnadh"],
                       ["oscailte", "dúnta", "ag oscailt", "ag dúnadh"], ["oscailte", "dúnta", "ag oscailt", "ag dúnadh"]],
       "cover_all": "Gach", "thermostat_target": "Sprioc", "heating": "ag téamh", "cooling": "ag fuarú",
+      "keypad_sent": "Seolta", "keypad_refused": "Níor glacadh leis", "keypad_enter": "Cuir isteach an cód",
       "qr_wifi": "WiFi", "qr_password": "Pasfhocal"
     },
     {
@@ -440,6 +456,7 @@
                       ["uvučena", "izvučena", "uvlači se", "izvlači se"], ["otvoreno", "zatvoreno", "otvara se", "zatvara se"],
                       ["otvoreno", "zatvoreno", "otvara se", "zatvara se"], ["otvoreno", "zatvoreno", "otvara se", "zatvara se"]],
       "cover_all": "Sve", "thermostat_target": "Cilj", "heating": "grije", "cooling": "hladi", "qr_wifi": "WiFi",
+      "keypad_sent": "Poslano", "keypad_refused": "Nije prihvaćeno", "keypad_enter": "Unesite kod",
       "qr_password": "Lozinka"
     },
     {
@@ -464,6 +481,7 @@
                       ["behúzva", "kinyitva", "behúzódik", "kinyílik"], ["nyitva", "zárva", "nyílik", "záródik"],
                       ["nyitva", "zárva", "nyílik", "záródik"], ["nyitva", "zárva", "nyílik", "záródik"]],
       "cover_all": "Mind", "thermostat_target": "Cél", "heating": "fűt", "cooling": "hűt", "qr_wifi": "WiFi",
+      "keypad_sent": "Elküldve", "keypad_refused": "Nincs elfogadva", "keypad_enter": "Adja meg a kódot",
       "qr_password": "Jelszó"
     },
     {
@@ -488,6 +506,7 @@
                       ["suvyniota", "išskleista", "suvyniojama", "išskleidžiama"], ["atidaryta", "uždaryta", "atsidaro", "užsidaro"],
                       ["atidaryta", "uždaryta", "atsidaro", "užsidaro"], ["atidaryta", "uždaryta", "atsidaro", "užsidaro"]],
       "cover_all": "Visi", "thermostat_target": "Tikslas", "heating": "šildo", "cooling": "vėsina",
+      "keypad_sent": "Išsiųsta", "keypad_refused": "Nepriimta", "keypad_enter": "Įveskite kodą",
       "qr_wifi": "WiFi", "qr_password": "Slaptažodis"
     },
     {
@@ -512,6 +531,7 @@
                       ["ievilkta", "izvilkta", "ievelkas", "izvelkas"], ["atvērts", "aizvērts", "atveras", "aizveras"],
                       ["atvērts", "aizvērts", "atveras", "aizveras"], ["atvērts", "aizvērts", "atveras", "aizveras"]],
       "cover_all": "Visi", "thermostat_target": "Mērķis", "heating": "silda", "cooling": "dzesē",
+      "keypad_sent": "Nosūtīts", "keypad_refused": "Nav pieņemts", "keypad_enter": "Ievadiet kodu",
       "qr_wifi": "WiFi", "qr_password": "Parole"
     },
     {
@@ -536,6 +556,7 @@
                       ["miġbura", "miftuħa", "qed tinġabar", "qed tinfetaħ"], ["miftuħ", "magħluq", "qed jinfetaħ", "qed jingħalaq"],
                       ["miftuħ", "magħluq", "qed jinfetaħ", "qed jingħalaq"], ["miftuħ", "magħluq", "qed jinfetaħ", "qed jingħalaq"]],
       "cover_all": "Kollha", "thermostat_target": "Mira", "heating": "qed isaħħan", "cooling": "qed ibierd",
+      "keypad_sent": "Mibgħut", "keypad_refused": "Mhux aċċettat", "keypad_enter": "Daħħal il-kodiċi",
       "qr_wifi": "WiFi", "qr_password": "Password"
     },
     {
@@ -560,6 +581,7 @@
                       ["zwinięta", "rozwinięta", "zwija się", "rozwija się"], ["otwarta", "zamknięta", "otwiera się", "zamyka się"],
                       ["otwarta", "zamknięta", "otwiera się", "zamyka się"], ["otwarta", "zamknięta", "otwiera się", "zamyka się"]],
       "cover_all": "Wszystkie", "thermostat_target": "Cel", "heating": "grzeje", "cooling": "chłodzi",
+      "keypad_sent": "Wysłano", "keypad_refused": "Nie przyjęto", "keypad_enter": "Wprowadź kod",
       "qr_wifi": "WiFi", "qr_password": "Hasło"
     },
     {
@@ -584,6 +606,7 @@
                       ["strânsă", "întinsă", "se strânge", "se întinde"], ["deschis", "închis", "se deschide", "se închide"],
                       ["deschis", "închis", "se deschide", "se închide"], ["deschis", "închis", "se deschide", "se închide"]],
       "cover_all": "Toate", "thermostat_target": "Țintă", "heating": "încălzește", "cooling": "răcește",
+      "keypad_sent": "Trimis", "keypad_refused": "Neacceptat", "keypad_enter": "Introduceți codul",
       "qr_wifi": "WiFi", "qr_password": "Parolă"
     },
     {
@@ -608,6 +631,7 @@
                       ["zatiahnutá", "vysunutá", "zaťahuje sa", "vysúva sa"], ["otvorené", "zatvorené", "otvára sa", "zatvára sa"],
                       ["otvorené", "zatvorené", "otvára sa", "zatvára sa"], ["otvorené", "zatvorené", "otvára sa", "zatvára sa"]],
       "cover_all": "Všetky", "thermostat_target": "Cieľ", "heating": "kúri", "cooling": "chladí",
+      "keypad_sent": "Odoslané", "keypad_refused": "Neprijaté", "keypad_enter": "Zadajte kód",
       "qr_wifi": "WiFi", "qr_password": "Heslo"
     },
     {
@@ -632,6 +656,7 @@
                       ["zvita", "razprta", "se zvija", "se razpira"], ["odprto", "zaprto", "se odpira", "se zapira"],
                       ["odprto", "zaprto", "se odpira", "se zapira"], ["odprto", "zaprto", "se odpira", "se zapira"]],
       "cover_all": "Vse", "thermostat_target": "Cilj", "heating": "greje", "cooling": "hladi", "qr_wifi": "WiFi",
+      "keypad_sent": "Poslano", "keypad_refused": "Ni sprejeto", "keypad_enter": "Vnesite kodo",
       "qr_password": "Geslo"
     }
   ]

@@ -83,6 +83,8 @@ struct Callbacks {
   std::function<bool(const std::string &item, appoh::ItemState &out)> state;
   /* Sends a command to an openHAB item. */
   std::function<void(const std::string &item, const std::string &command)> command;
+  /* ... one holding a code (the keypad page's): not logged (else: command). */
+  std::function<void(const std::string &item, const std::string &command)> secret_command;
   /* Switches a relay (index 0/1) the panel controls directly. */
   std::function<void(int index, bool on)> relay;
   /* The restart button of the settings page. */
@@ -540,6 +542,28 @@ class Engine {
   bool thermo_touching_ = false;     // a touch began on the ring (not inside it)
   Timed<double> thermo_sent_;        // a target sent: shown until the item says so, or a while has passed
   Timed<int> mode_tapped_;           // a mode just tapped: lit until the item says so, or a while has passed
+
+  // the keypad page (page type "keypad"): the code is typed on the display, which sends it with a button's event
+  struct KeypadButton {
+    std::string label, icon, item, command, when;
+    bool code = true;   // only with a code typed
+  };
+  std::vector<KeypadButton> keypad_buttons(const cJSON *page) const;   // those that show in the state now, 4 at most
+  void draw_keypad(const cJSON *page);
+  void keypad_refresh(const cJSON *page);   // the state and the buttons
+  void keypad_event(const cJSON *page, const std::string &component, const std::string &value);
+  void keypad_message(const std::string &text, int colour, int64_t for_ms);   // over the code's places a while
+  void keypad_clear(const cJSON *page);   // the code typed gone, its places empty
+  void keypad_tick();
+  int64_t keypad_key_ms_ = 0;          // a key last touched: the code goes after a while without one
+  int64_t keypad_message_until_ = 0;   // a message shows until then
+  Timed<int> keypad_tapped_;           // a button just pressed: lit until the state is its "when", or a while
+  Timed<std::string> keypad_waiting_;  // the state a button sent for: not accepted when the state does not get there
+  std::string keypad_result_;          // the result item's state when the code went (a new one: shown)
+  int64_t keypad_result_until_ = 0;
+  bool keypad_blink_on_ = true;        // the state blinking (a rule's "blink"): shown or not
+  std::string keypad_shown_;           // the buttons that show (another set in another state: drawn anew)
+  int64_t keypad_blink_ms_ = 0;
   struct ColourTemp {
     std::string unit;          // kelvin, mired, percent
     double min = 0, max = 100;

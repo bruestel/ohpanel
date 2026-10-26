@@ -25,8 +25,8 @@ written can be set as well, see [Formatting values](#formatting-values).
   `ohpanel-...` (category "OHpanel" in the icon chooser, `boards/nspanel/nextion/own_icons.py`):
   animations whose frames keep still what does not move
   (`ohpanel-equalizer-1` .. `-8`, `ohpanel-equalizer-retro-1` .. `-8` (a hi-fi
-  spectrum display with peak hold), `ohpanel-speaker-wave-1` .. `-3`), and
-  `ohpanel-openhab`.
+  spectrum display with peak hold), `ohpanel-speaker-wave-1` .. `-3`),
+  `ohpanel-openhab` and the keypad's code places (`ohpanel-code-empty`, `ohpanel-code-typed`).
 - `color` is a palette name (`white`, `black`, `red`, `green`, `blue`,
   `yellow`, `brown`, `grey`, `light-grey`, `dark-grey`), one of the theme's
   colours (`theme-accent`, `theme-text`, `theme-dim`, which follow the theme
@@ -42,7 +42,7 @@ written can be set as well, see [Formatting values](#formatting-values).
 | `version` | `1` | required; a document with another version is refused |
 | `display` | object | language and formats of the display texts, see below |
 | `home` | object | the home screen, see below |
-| `swipe` | array of page ids | the pages reached by swiping left/right, in order, round from the last to the first; home, the start screen, is always first, wherever (or whether) the row names it. Only button pages (`buttons`); every other page (entities, weather, QR, media, cover, light, the info and the settings page) opens from a tile or a shortcut |
+| `swipe` | array of page ids | the pages reached by swiping left/right, in order, round from the last to the first; home, the start screen, is always first, wherever (or whether) the row names it. Only button pages (`buttons`); every other page (entities, weather, QR, media, cover, light, thermostat, keypad, the info and the settings page) opens from a tile or a shortcut |
 | `pages` | array of pages | every other page |
 
 ## Formatting values
@@ -461,6 +461,62 @@ item reports it (6 s at most); a command carries the item's unit ("21.5 °C").
  "heating": {"item": "Thermostat_Kitchen__Heating"},
  "mode": {"item": "Thermostat_Kitchen__OperatingMode"},
  "modes": [{"label": "Auto", "value": "auto"}, {"label": "Manual", "value": "manual"}, {"label": "Off", "value": "off"}]}
+```
+
+### `keypad`
+
+A code typed on the panel and sent with a button: an alarm system's modes, a door's "Open".
+
+| Key | Value | |
+|---|---|---|
+| `buttons` | 1 to 4 buttons, see below | required; under the code on the left (NSPanel EU, on the keys' last two rows) or under the keys (US), larger the fewer there are |
+| `item` | an item | where the buttons send to, unless one names its own |
+| `state` | `{item, value_style?, format?, icon?, color?}` | the state over the code: its item's value, written and coloured by its rules (`format`: the words, `icon`, `color`, `blink`), e.g. `[{"equals": "ARMED_AWAY", "format": "Armed away", "icon": "shield-lock", "color": "red"}]` |
+| `text`, `icon`, `color` | | without a `state`: what shows over the code instead, e.g. `"Door code"` with `lock` |
+| `length` | 1 to 8 | the code's places, filling as it is typed (without: one appears per digit, up to 8) |
+| `keys` | `digits` (default), `phone` | the bottom row: backspace, 0, C (clears) -- or `*`, 0, `#`, backspace then at the end of the code's places |
+| `result` | `{item}` | a reply from openHAB: a String item a rule (or the alarm binding) writes a text to when a code arrives, say "Wrong code" or "Window open". When it changes within 10 s after sending, its text shows where the code was for a few seconds, and the panel stops waiting for the state. Shown as it is, never interpreted. The web interface calls it "Reply from openHAB" |
+
+A **button** is `{"label", "icon"?, "item"?, "command"?, "code"?, "when"?, "show_when"?}`:
+
+| Key | |
+|---|---|
+| `label`, `icon` | on the button (the icon before the label) |
+| `item` | where it sends to (default: the page's `item`) |
+| `command` | what it sends; `{code}` is the code typed, e.g. `"ARM_AWAY {code}"` (default `"{code}"`: the code alone) |
+| `code` | `false`: it works without a code typed too (else the panel asks for one) |
+| `when` | the `state` it stands for: lit in the accent while the state is that; after it was pressed, "Not accepted" shows when the state does not get there within 6 s |
+| `show_when` | a state, or a list of them: the button shows only then, e.g. "Off" only armed, `["ARMED_AWAY", "ARMED_HOME"]`; the buttons that show take the places as if there were no others (one alone: large). Needs the page's `state` |
+
+The code stays on the display while it is typed: it shows only as places
+filling, never the digits, and goes to the panel only with a button, which
+then sends the command and forgets it; a code left typed goes after 20 s
+without a key, and when the page closes. The panel checks no code itself:
+whether it is right is for openHAB (a rule, an alarm binding) to say. A key
+pressed lights a disc behind it. After sending "Sent" shows where the code
+was, or the `result` item's new state, or "Not accepted".
+
+openHAB writes every command to its event log, a code too. A log filter keeps
+it out (in `log4j2.xml`, a `RegexFilter` on the item's name in the `event`
+logger).
+
+```json
+{"id": "alarm", "type": "keypad", "title": "Alarm", "item": "Alarm_Command", "length": 4,
+ "state": {"item": "Alarm_State", "value_style": [
+   {"equals": "DISARMED", "format": "Disarmed", "icon": "shield-off", "color": "green"},
+   {"equals": "ARMED_AWAY", "format": "Armed away", "icon": "shield-lock", "color": "red"},
+   {"equals": "ALARM", "format": "Alarm!", "icon": "shield-alert", "color": "red", "blink": 500}]},
+ "buttons": [{"label": "Away", "icon": "shield-lock", "command": "ARM_AWAY {code}", "show_when": "DISARMED"},
+             {"label": "Home", "icon": "shield-home", "command": "ARM_HOME {code}", "show_when": "DISARMED"},
+             {"label": "Off", "icon": "shield-off", "command": "DISARM {code}",
+              "show_when": ["ARMED_AWAY", "ARMED_HOME", "ALARM"]}]}
+```
+
+A door: one button, the code alone to a String item a rule checks.
+
+```json
+{"id": "door", "type": "keypad", "title": "Front door", "text": "Door code", "icon": "lock",
+ "buttons": [{"label": "Open", "icon": "lock-open-variant", "item": "FrontDoor_Code"}]}
 ```
 
 ### `media`

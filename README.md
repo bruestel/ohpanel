@@ -23,7 +23,8 @@ web interface, which shows a live preview of the display: what you change there 
 
 - **Pages of your own**, configured as JSON or clicked together in the web interface: buttons, lists of
   values, lights (brightness, colour temperature, colour wheel), covers and awnings (alone or as a group, with
-  presets), thermostats, a media player with its cover and a station list, the weather forecast, QR codes
+  presets), thermostats, a keypad (an alarm system's modes, a door code), a media player with its cover and a
+  station list, the weather forecast, QR codes
 - **A home screen** with the weather, temperatures, status icons and shortcuts (animated, e.g. a turning
   washing machine), two info lines (the next bus, say) and the two hardware buttons with their relays,
   which openHAB can switch too
@@ -62,6 +63,12 @@ web interface, which shows a live preview of the display: what you change there 
 <td><img src="docs/images/screens/display-qr.png" alt="QR code"></td>
 </tr>
 <tr><td align="center">Values as cards</td><td align="center">Values as rows, coloured by rules</td><td align="center">Guest WiFi as a QR code</td></tr>
+<tr>
+<td><img src="docs/images/screens/display-keypad.png" alt="Keypad"></td>
+<td><img src="docs/images/screens/display-waste.png" alt="Waste collection"></td>
+<td><img src="docs/images/screens/display-info.png" alt="Panel info"></td>
+</tr>
+<tr><td align="center">An alarm system's keypad</td><td align="center">Waste collection, by date</td><td align="center">Panel info</td></tr>
 </table>
 
 All of them, and the web interface, are in the [demo](https://bruestel.github.io/ohpanel/demo/): the real

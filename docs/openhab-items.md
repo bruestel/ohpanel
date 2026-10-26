@@ -58,6 +58,13 @@ Number:Temperature Thermostat_Kitchen_Setpoint "Kitchen target [%.1f %unit%]" { 
 Switch             Thermostat_Kitchen_Heating  "Kitchen heating"         { channel="<thermostat>:heating" }
 String             Thermostat_Kitchen_Mode     "Kitchen heating mode"    { channel="<thermostat>:mode" }   // auto, manual, off
 
+// --- Alarm (type "keypad") --------------------------------------------------------------------------------------
+// the panel sends "ARM_AWAY 1234" and the like to Alarm_Command; a rule (or the alarm system's binding) checks the
+// code and sets Alarm_State: DISARMED, ARMED_HOME, ARMED_AWAY, ALARM
+
+String Alarm_State   "Alarm state"     { channel="<alarm>:state" }
+String Alarm_Command "Alarm command"
+
 // --- Media player (type "media") and the station list (type "media_favorites") ------------------------------
 // the channels of the Sonos binding; other players have their own names for the same
 
