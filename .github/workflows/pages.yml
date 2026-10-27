@@ -1,6 +1,7 @@
-# GitHub Pages: the landing page, the web interface's demo (tools/build_demo.py) and the browser flasher with the
-# factory image of the latest release's zip (a release's files cannot be fetched from another origin: the
-# flasher serves its own copy), and the licences of what they serve (licences/).
+# GitHub Pages: the landing page, the web interface's demo (tools/build_demo.py), the browser flasher, and the
+# files of the latest release and the latest test build (tools/pages_updates.py: a release's files cannot be fetched
+# from another origin, the flasher and the web interface's update take these copies), with the licences of what
+# they serve (licences/).
 name: pages
 
 on:
@@ -37,35 +38,13 @@ jobs:
           cp site/index.html _site/
           mkdir -p _site/flash
           cp site/flash/index.html _site/flash/
-      - name: The latest release's factory image, and the licences that go with it
+      - name: The releases' files (the latest release, the latest test build), and the licences that go with them
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           mkdir -p _site/licences
           cp LICENSE THIRD-PARTY-NOTICES.md boards/nspanel/nextion/assets/fonts/MDI-LICENSE.txt _site/licences/
-          tag=$(gh release view --repo "$GITHUB_REPOSITORY" --json tagName -q .tagName 2>/dev/null || true)
-          if [ -n "$tag" ]; then
-            gh release download "$tag" --repo "$GITHUB_REPOSITORY" --pattern 'ohpanel-*.zip' --dir /tmp/release
-            for zip in /tmp/release/ohpanel-*.zip; do   # a zip per panel variant (one for all before 0.11.0)
-              unzip -q -o "$zip" -d /tmp/release
-            done
-            for dir in /tmp/release/ohpanel-*/licences; do   # each zip's the same: one after the other
-              cp "$dir"/* _site/licences/
-            done
-            # a factory image and a manifest per panel variant the release has (tools/variant.py); manifest.json the
-            # EU's, as before there were variants
-            for image in /tmp/release/ohpanel-*/ohpanel-nspanel-*-factory-*.bin; do
-              variant=$(basename "$image" | sed -E 's/^ohpanel-nspanel-([a-z]+)-factory-.*/\1/')
-              cp "$image" "_site/flash/ohpanel-nspanel-$variant-factory.bin"
-              cat > "_site/flash/manifest-$variant.json" <<EOF
-          {"name": "OHpanel", "version": "${tag#v}", "new_install_prompt_erase": true,
-           "builds": [{"chipFamily": "ESP32", "parts": [{"path": "ohpanel-nspanel-$variant-factory.bin", "offset": 0}]}]}
-          EOF
-            done
-            cp _site/flash/manifest-eu.json _site/flash/manifest.json
-          else
-            echo "no release yet: the flasher says so"
-          fi
+          python3 tools/pages_updates.py _site   # update/<channel>/, the flasher's manifests (no release yet: none)
       - uses: actions/upload-pages-artifact@v3
         with:
           path: _site

@@ -73,8 +73,11 @@ The web interface runs without a panel: `demo/mock.js` answers every `/api/v1/..
 `screenshots.mjs` needs Chromium and Node 22, nothing else. After a change to the display design or the web
 interface, run the three again: the pictures follow.
 
-The GitHub workflow `pages.yml` publishes the landing page and the browser flasher (`site/`, `site/flash/`) and the demo on GitHub Pages; the
-flasher takes the factory images from the latest release's zips.
+The GitHub workflow `pages.yml` publishes the landing page and the browser flasher (`site/`, `site/flash/`) and the demo on GitHub Pages,
+and with `tools/pages_updates.py` the files of the latest release and of the latest test build when it is newer
+(`update/stable/`, `update/test/`: per panel the factory image, the firmware and the display design, and
+`update.json` with their versions and SHA-256): what the flasher installs and the web interface's update fetches,
+since a release's own files cannot be fetched from another page.
 
 ## Releases
 
@@ -91,7 +94,7 @@ them (the fonts' licences ask for that). The workflow
 The display design is the one file GitHub cannot build, so `build.sh` keeps a copy in
 `boards/nspanel/nextion/display/` (the old one removed), committed with the manifest that names it. On the tag the
 workflow builds the firmware, runs the host tests, makes the zips with `tools/make_release.py`, publishes the release
-and starts `pages.yml` again: the flasher takes the new factory image. `make_release.py` also works locally; it
+and starts `pages.yml` again, a test build too: the flasher and the web interface's update take the new files. `make_release.py` also works locally; it
 refuses a firmware built from uncommitted changes (`-dirty`) and a missing display design.
 
 The workflow `ci.yml` runs the firmware build, the host tests, the web interface check and the demo on every push.

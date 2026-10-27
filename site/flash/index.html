@@ -41,7 +41,7 @@ a{color:var(--accent)}
   </header>
 
   <div class="warn"><b>Mains off.</b> Take the panel off the wall and disconnect it from mains before you open it.
-    The serial adapter powers it with 3.3&nbsp;V &mdash; never connect both.</div>
+    The serial adapter powers it with 3.3&nbsp;V: never connect both.</div>
 
   <div class="card">
     <h2>Before you click</h2>
@@ -60,6 +60,11 @@ a{color:var(--accent)}
       <label><input type="radio" name="variant" value="eu" checked> NSPanel EU (square)</label>
       <label id="usChoice" hidden><input type="radio" name="variant" value="us"> NSPanel US (tall, untested)</label>
     </div>
+    <!-- the latest release, or the latest test build when there is a newer one (tools/pages_updates.py) -->
+    <div class="variants" id="channels" hidden>
+      <label><input type="radio" name="channel" value="" checked> <span id="stableName">The latest release</span></label>
+      <label><input type="radio" name="channel" value="-test"> <span id="testName">The test build</span></label>
+    </div>
     <div class="install">
       <esp-web-install-button id="installer" manifest="manifest-eu.json">
         <button slot="activate" class="btn">Connect &amp; install OHpanel</button>
@@ -70,7 +75,9 @@ a{color:var(--accent)}
       <span id="version"></span>
     </div>
     <p class="muted">Tick <i>Erase device</i> when the panel ran other firmware before (Sonoff's, Tasmota, ESPHome).
-      The factory image comes from the <a href="https://github.com/bruestel/ohpanel/releases/latest">latest release</a>.</p>
+      The factory image comes from the <a href="https://github.com/bruestel/ohpanel/releases/latest">latest release</a>,
+      or the <a href="https://github.com/bruestel/ohpanel/releases">test build</a> when you choose it: something to try,
+      not yet tested as well.</p>
   </div>
 
   <div class="card">
@@ -79,7 +86,7 @@ a{color:var(--accent)}
       <li>Take the wire off <code>IO0</code>, unplug the adapter and plug it in again: OHpanel starts.</li>
       <li>Close the panel and put it back on the wall.</li>
       <li>Join its open WiFi <code>ohpanel-xxxxxx</code>, choose your network, connect openHAB and write the display
-        design (<code id="tftName">ohpanel-nspanel-eu-display-&lt;version&gt;.tft</code>, about 15 minutes) &mdash;
+        design (<code id="tftName">ohpanel-nspanel-eu-display-&lt;version&gt;.tft</code>, about 15 minutes):
         <a href="https://github.com/bruestel/ohpanel/blob/main/docs/install.md#join-your-wifi">step by step</a>.</li>
     </ol>
   </div>
@@ -90,15 +97,29 @@ a{color:var(--accent)}
 </main>
 <script>
 const $ = id => document.getElementById(id);
-fetch('manifest-eu.json').then(r => r.ok ? r.json() : null).then(m => {
+const get = name => fetch(name).then(r => r.ok ? r.json() : null).catch(() => null);
+// the manifests there are: per variant the latest release's, and the test build's ("-test") when there is one
+const manifests = {};
+Promise.all(['eu', 'us', 'eu-test', 'us-test'].map(k => get('manifest-' + k + '.json').then(m => { manifests[k] = m; })))
+  .then(() => {
+    const test = manifests['eu-test'] || manifests['us-test'], stable = manifests.eu || manifests.us;
+    if (stable) $('stableName').textContent = 'The latest release, ' + stable.version;
+    if (test) $('testName').textContent = 'The test build, ' + test.version;
+    $('channels').hidden = !test;
+    choose();
+  });
+const picked = name => (document.querySelector('input[name=' + name + ']:checked') || {}).value || '';
+function choose() {
+  const channel = picked('channel');
+  // the US firmware only where the release (or the test build) has it
+  $('usChoice').hidden = !manifests['us' + channel];
+  if ($('usChoice').hidden && picked('variant') === 'us') document.querySelector('input[value=eu]').checked = true;
+  const variant = picked('variant') || 'eu', m = manifests[variant + channel];
+  $('installer').setAttribute('manifest', 'manifest-' + variant + channel + '.json');
   $('version').textContent = m ? 'Version ' + m.version : 'No release yet.';
-}).catch(() => { $('version').textContent = 'No release yet.'; });
-// the US firmware only where the release has it
-fetch('manifest-us.json', {method: 'HEAD'}).then(r => { $('usChoice').hidden = !r.ok; }).catch(() => {});
-document.querySelectorAll('input[name=variant]').forEach(input => input.addEventListener('change', () => {
-  $('installer').setAttribute('manifest', 'manifest-' + input.value + '.json');
-  $('tftName').textContent = 'ohpanel-nspanel-' + input.value + '-display-<version>.tft';
-}));
+  $('tftName').textContent = 'ohpanel-nspanel-' + variant + '-display-<version>.tft';
+}
+document.querySelectorAll('input[name=variant], input[name=channel]').forEach(i => i.addEventListener('change', choose));
 </script>
 </body>
 </html>
