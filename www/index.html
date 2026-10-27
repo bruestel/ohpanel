@@ -6604,8 +6604,8 @@ function pvThermostatEditor(box, head, hint, page) {
    the buttons -- what each sends and in which state it is lit. */
 function pvKeypadEditor(box, head, hint, page) {
   head.textContent = page.title || page.id;
-  hint.textContent = 'A keypad: a code typed on the panel (it shows only as places filling, never the digits), sent with '
-                   + 'one of up to four buttons -- an alarm\'s modes, a door\'s "Open". Changes show at once; Save stores them.';
+  hint.textContent = 'A keypad: a code typed on the panel and sent with a button, e.g. an alarm\'s modes or a door\'s '
+                   + '"Open". The panel never shows the digits. Changes show at once; Save stores them.';
   const st = page.state || {};
   const setState = (k, v) => pvEdit((c, p) => {
     const s = Object.assign({}, p.state);
@@ -6624,14 +6624,12 @@ function pvKeypadEditor(box, head, hint, page) {
         field('Reply from openHAB (optional)', itemField((page.result || {}).item || '', v => pvEdit((c, p) => {
           if (v) p.result = {item: v}; else delete p.result;
         }), 'String'))),
-    note('State: shows over the code; its rules give it words, an icon and a colour, e.g. "ARMED_AWAY" as "Armed away" in '
-         + 'red. A button with a state to be lit in ("Lit while the state is") waits up to 6 s for the state to become that: '
-         + 'when it does not, "Not accepted" shows.'),
-    note('Reply: a String item your rule (or the alarm binding) writes a text to when a code arrives, e.g. "Wrong code" or '
-         + '"Window open". When it changes within 10 s after sending, the panel shows that text where the code was, for a '
-         + 'few seconds, and stops waiting for the state. The panel never reads anything into the text.'));
+    note('State: shown over the code, with words, icon and colour from its rules. A button with "Lit while the state is" '
+         + 'waits up to 6 s for that state, else "Not accepted" shows.'),
+    note('Reply: a String item your rule writes a text to, e.g. "Wrong code". If it changes within 10 s after sending, the '
+         + 'panel shows the text for a few seconds instead of waiting for the state.'));
   if (st.item)
-    box.append(field('State: words, icon and colour by its state (rules, the first that matches counts)',
+    box.append(field('State: words, icon and colour (rules, the first match counts)',
                      rulesField(st.value_style, v => setState('value_style', v), true, true, false, st)));
   else
     box.append(two(field('Text over the code', textInput(page.text, v => pvEdit((c, p) => { if (v) p.text = v; else delete p.text; }),
@@ -6659,9 +6657,9 @@ function pvKeypadEditor(box, head, hint, page) {
               {maxLength: 120, spellcheck: false, placeholder: st.item ? 'e.g. ARMED_AWAY, ARMED_HOME' : 'needs a state'}))),
       pvFlag('Works without a code too', b.code === false, on => set('code', on ? false : undefined)));
   }
-  box.append(note('"Sends": {code} is the code typed, e.g. "ARM_AWAY {code}"; empty sends the code alone. A button needs a '
-                  + 'code unless it works without one; the panel then asks for it. "Shows only while": states, separated by '
-                  + 'commas -- armed only "Off", say; empty: always.'));
+  box.append(note('"Sends": {code} is the code typed, e.g. "ARM_AWAY {code}"; empty sends only the code. Without '
+                  + '"Works without a code", the panel asks for one. "Shows only while": states, separated by commas, '
+                  + 'e.g. only "Off" while armed; empty: always.'));
 }
 
 /* The favourites page's form: the station catalogue and the player it plays on when not opened from one. */

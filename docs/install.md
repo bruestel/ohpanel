@@ -5,7 +5,7 @@ that, the updates of the firmware and of the display's design, comes over WiFi f
 
 > [!IMPORTANT]
 > OHpanel is for the **Sonoff NSPanel**: the **EU version** (the square one) and the **US version** (the tall one,
-> its screen upright). Each has a firmware and a display design of its own -- `nspanel-eu` or `nspanel-us` in the
+> its screen upright). Each has a firmware and a display design of its own, `nspanel-eu` or `nspanel-us` in the
 > files' names below; take the ones of your panel (a panel refuses the other's firmware). The US version's is new
 > and untested on a real panel so far: tell us how it works. The photos show the EU version. The NSPanel Pro is a
 > different device.

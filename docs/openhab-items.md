@@ -13,7 +13,7 @@ metadata. Mostly the configuration names what each field says; a group's rows (a
 ```
 // --- Home screen ------------------------------------------------------------------------------------------------
 
-// the two relays: a plain Switch each, no channel -- the panel keeps it in step with its relay
+// the two relays: a plain Switch each, no channel; the panel keeps it in step with its relay
 // (home.relays[].item; "relay": false on the second: the button switches the item only, not the relay)
 Switch Kitchen_Ceiling             "Kitchen ceiling light"
 Switch Kitchen_Counter_Switch      "Counter light"                   { channel="<light>:switch" }
@@ -36,7 +36,7 @@ String  Washer_State         "Washer state"                  { channel="<washer>
 Switch  Waste_Paper_Alarm    "Paper collection tomorrow"     // a rule: ON from the evening before until the morning of
 Switch  Waste_Organic_Alarm  "Organic collection tomorrow"
 
-// the two info lines: line, destination, departure (left, main, right) -- from a public transport binding or a rule
+// the two info lines: line, destination, departure (left, main, right), from a public transport binding or a rule
 String Bus1_Line             "Next bus line"
 String Bus1_Destination      "Next bus destination"
 String Bus1_Departure        "Next bus departure"
@@ -76,7 +76,7 @@ String Speaker_Artist        "Artist"                       { channel="sonos:<pl
 String Speaker_Album         "Album"                        { channel="sonos:<player>:<id>:currentalbum" }
 String Speaker_PlayUri       "Play URI"                     { channel="sonos:<player>:<id>:playuri" }
 
-// the station catalogue: no channel, no rule -- its command options are the stations (stream URI=key), its
+// the station catalogue: no channel, no rule; its command options are the stations (stream URI=key), its
 // "ohpanel" metadata their names, short names, icons and logos (docs/panel-config.md, media_favorites)
 String Radio_Stations "Radio stations" {
     commandDescription=" " [options="x-rincon-mp3radio://radio.example/one.m3u=one,x-rincon-mp3radio://radio.example/news.m3u=news"],
@@ -113,7 +113,7 @@ Number:Energy Grid_Export_Today "Export today [%.1f kWh]"
 Number:Energy Solar_Today       "Solar today [%.1f kWh]"
 Number:Energy Solar_Yesterday   "Solar yesterday [%.1f kWh]"
 
-// plants: soil moisture each; the page's rules colour them (at most 20 red, 30 yellow) -- or, with a group and
+// plants: soil moisture each; the page's rules colour them (at most 20 red, 30 yellow), or, with a group and
 // "plant" metadata, by each one's own thresholds (docs/panel-config.md, entities with metadata)
 Number:Dimensionless Plant_Ficus    "Ficus soil moisture [%d %%]"      { channel="<sensor>:moisture" }
 Number:Dimensionless Plant_Monstera "Monstera soil moisture [%d %%]"   { channel="<sensor>:moisture" }

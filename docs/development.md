@@ -30,11 +30,11 @@ Each panel variant has a firmware and a display design of its own (`tools/varian
 320x480; environment `nspanel-us`; not yet tried on a real panel). The variant is `custom_variant` of the environment
 in `platformio.ini`; it picks the display manifest (`boards/nspanel/nextion/display-manifest-<variant>.json`) and
 the preview's layout (`www/layout-<variant>.json`), names the release files (`ohpanel-nspanel-<variant>-...`) and
-the firmware's project (`CMakeLists.txt`: `ohpanel` for the EU, `ohpanel-us` for the US) -- so a panel refuses an
+the firmware's project (`CMakeLists.txt`: `ohpanel` for the EU, `ohpanel-us` for the US), so a panel refuses an
 update meant for the other variant. `boards/nspanel/nextion/build.sh <variant>` builds the variant's design:
 `boards/nspanel/nextion/layout.py` takes `OHPANEL_VARIANT` and is `layout_eu.py` or `layout_us.py` (the same names,
 the same objects on every page, as many a sheet: the firmware fills both alike), and the pictures that depend on
-the layout -- backgrounds at the display's size, tiles, controls, the logo -- are the variant's
+the layout (backgrounds at the display's size, tiles, controls, the logo) are the variant's
 (`boards/nspanel/nextion/assets/<variant>/`, written by `assets/generate.py`); CI and the release build every
 variant that has one (`pio run $(python3 tools/variant.py)`).
 
