@@ -3866,8 +3866,12 @@ function drawPage(box, cfg, id) {
     el.style.justifyContent = o.xc === 1 ? 'center' : o.xc === 2 ? 'flex-end' : 'flex-start';
     el.style.alignItems = o.yc === 1 ? 'center' : o.yc === 2 ? 'flex-end' : 'flex-start';
     if (want.blink && !Array.isArray(want.icon)) el.dataset.blink = want.blink;   // on and off, see the ticker below
-    if (want.logo) {   // a station logo, drawn over its field (Engine::draw_logo)
-      el.appendChild(logoCanvas(want.logo, want.bg || '#000'));
+    if (want.logo) {   // a station logo, centred on its field and larger than it, not cut off (Engine::draw_logo)
+      const lc = logoCanvas(want.logo, want.bg || '#000');
+      lc.style.cssText += ';position:absolute;left:' + Math.round((o.w - want.logo.w) / 2) + 'px;top:'
+                        + Math.round((o.h - want.logo.h) / 2) + 'px';
+      el.style.overflow = 'visible';
+      el.appendChild(lc);
     } else if (want.icons) {  // several glyphs of the icon font, space-separated as on the display
       want.icons.forEach((name, k) => {
         if (k) el.appendChild(document.createTextNode(' '));
