@@ -249,13 +249,13 @@ void Engine::draw_entities(const cJSON *page, const std::string &physical) {
     cb_.members(group, ignored, true);
   }
   const cJSON *all = rows_of(page);
-  const int sheets = (std::max(cJSON_IsArray(all) ? cJSON_GetArraySize(all) : 0, 1) + per - 1) / per;
-  // the sheets as dots at the bottom (as the swipe row's on home), the one shown full
-  std::string dots;
-  for (int k = 0; k < sheets && sheets > 1; k++)
-    dots += (k ? " " : "") + icon_glyph(k == sheet_ ? "circle-medium" : "circle-small");
-  txt("dots", dots);
-  vis("dots", sheets > 1);
+  const int sheets = sheets_of(page);
+  // the sheets as dots at the bottom, the one shown full -- in the swipe row its dots instead (draw_dots), not these
+  // first
+  if (!in_swipe_row()) {
+    txt("dots", sheets > 1 ? sheet_dots(sheets, sheet_) : "");
+    vis("dots", sheets > 1);
+  }
   for (int r = 0; r < per; r++) {
     const cJSON *at = cJSON_GetArrayItem(all, sheet_ * per + r);
     const cJSON *row = cJSON_IsObject(at) ? at : nullptr;

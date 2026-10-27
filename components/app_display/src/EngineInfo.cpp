@@ -53,12 +53,12 @@ void Engine::draw_weather(const cJSON *page) {
   if (now_)
     title += (title.empty() ? "" : " · ") + format_time(settings_.date_format, when, t);
   txt("title", title);
-  // the days as dots at the bottom (as an entity page's sheets), the one shown full
-  std::string dots;
-  for (int k = 0; k < n && n > 1; k++)
-    dots += (k ? " " : "") + icon_glyph(k == sheet_ ? "circle-medium" : "circle-small");
-  txt("dots", dots);
-  vis("dots", n > 1);
+  // the days as dots at the bottom (as an entity page's sheets), the one shown full -- in the swipe row its dots
+  // instead (draw_dots), not these first
+  if (!in_swipe_row()) {
+    txt("dots", n > 1 ? sheet_dots(n, sheet_) : "");
+    vis("dots", n > 1);
+  }
 
   const cJSON *icon = member(d, "icon");
   bind(icon, [this, icon] {

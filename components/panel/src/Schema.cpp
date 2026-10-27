@@ -52,8 +52,11 @@ const char *const kSettingsId = "settings";
 /* So is the info page; a page "info" (of type "system") only gives it a title. */
 const char *const kInfoId = "info";
 
-/* The page type that may be in the swipe row (after home): button pages. */
-bool swipe_type(const std::string &t) { return t == "buttons"; }
+/* The page types that may be in the swipe row (besides home): those without gestures of their own across the page --
+   a list's or the weather's sheets come before the next page (Engine::swipe). */
+bool swipe_type(const std::string &t) {
+  return t == "buttons" || t == "entities" || t == "weather" || t == "qr" || t == "system";
+}
 
 class Validator {
  public:
@@ -105,20 +108,24 @@ class Validator {
       if (!cJSON_IsArray(swipe)) {
         fail("swipe", "must be an array of page ids");
       } else {
+        // its first page is the start page (home unless the row begins with another one; home only if named)
         index = 0;
+        std::set<std::string> seen;
         for (const cJSON *s = swipe->child; s; s = s->next, index++) {
+          if (cJSON_IsString(s) && !seen.insert(s->valuestring).second)
+            fail(at("swipe", index), "is in the swipe row twice");
           if (cJSON_IsString(s) && std::strcmp(s->valuestring, "home") == 0)
             continue;
           page_ref(s, at("swipe", index));
-          // only button pages (Engine::swipe_row skips others too); the rest open from a tile or a shortcut
+          // only these types (Engine::swipe_row skips others too); the rest open from a tile or a shortcut
           if (!cJSON_IsString(s))
             continue;
           const std::string id = s->valuestring;
           const std::string type = id == kInfoId ? "system" : id == kSettingsId ? "settings"
                                    : types_.count(id) ? types_[id] : "";
           if (!type.empty() && !swipe_type(type))
-            fail(at("swipe", index), "only button pages can be in the swipe row; a page of type \"" + type +
-                                     "\" opens from a tile or a shortcut");
+            fail(at("swipe", index), "only button, entities, weather, QR and info pages can be in the swipe row; a page "
+                                     "of type \"" + type + "\" opens from a tile or a shortcut");
         }
       }
     }

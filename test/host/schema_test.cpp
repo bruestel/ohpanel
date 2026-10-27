@@ -254,7 +254,13 @@ int main() {
                    "\"stations\":{}}]"),
                "pages[0].stations");
   expect_valid("settings page opened", doc("\"home\":{\"shortcuts\":[{\"icon\":\"cog\",\"open\":\"settings\"}]}"));
-  expect_issue("info page not in the swipe row", doc("\"swipe\":[\"info\"]"), "swipe[0]");   // button pages only
+  // besides button pages: lists, the weather, QR codes and the info page; the first is the start page, home too only
+  // when named
+  expect_valid("info page in the swipe row, the start page", doc("\"swipe\":[\"info\"]"));
+  expect_valid("pages of other types in the swipe row",
+               doc(R"("pages":[{"id":"e","type":"entities","title":"x","rows":[{"item":"A"}]},
+                   {"id":"q","type":"qr","title":"x","text":"y"}],"swipe":["e","home","q"])"));
+  expect_issue("a page twice in the swipe row", doc("\"swipe\":[\"home\",\"info\",\"info\"]"), "swipe[2]");
   expect_valid("info page titled", doc("\"pages\":[{\"id\":\"info\",\"type\":\"system\",\"title\":\"Panel\"}]"));
   expect_issue("info page id taken", doc("\"pages\":[{\"id\":\"info\",\"type\":\"qr\",\"title\":\"x\",\"text\":\"y\"}]"),
                "pages[0].id");

@@ -405,10 +405,7 @@ void Engine::draw_favorites(const cJSON *page) {
     vis(obj, true);
   send("ref_star");
   // the sheets as dots
-  std::string dots;
-  for (int s = 0; sheets > 1 && s < sheets; s++)
-    dots += (s ? " " : "") + icon_glyph(s == station_sheet_ ? "circle-medium" : "circle-small");
-  txt("dots", dots);
+  txt("dots", sheets > 1 ? sheet_dots(sheets, station_sheet_) : "");
   // the logos over the icons, one per idle(): the page shows first
   for (int k = 0; k < kTilesPerSheet; k++) {
     const int i = station_sheet_ * kTilesPerSheet + k;

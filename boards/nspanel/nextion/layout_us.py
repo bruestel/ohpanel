@@ -34,7 +34,7 @@ TILE_VISIBLE_W, TILE_VISIBLE_H = TILE_W - 2 * TILE_INSET, TILE_H - 2 * TILE_INSE
 COLUMNS, ROWS = 2, 4
 GAP = (VISIBLE_W - 2 * MARGIN - COLUMNS * TILE_VISIBLE_W) // (COLUMNS - 1)   # 10
 GRID_TOP = 46
-BUTTON_DOTS = (VISIBLE_W // 2 - 100, 446, 200, 30)
+BUTTON_DOTS = (MARGIN, 446, VISIBLE_W - 2 * MARGIN, 30)
 
 
 def button_tiles():
@@ -154,7 +154,7 @@ ENTITY_LINE = (90, 90, 90)
 ENTITY_FONT = 2
 ENTITY_ROWS_Y, ENTITY_ROWS_STEP, ENTITY_ROWS_H, ENTITY_ROWS_N = 44, 56, 48, 7
 ENTITY_ROWS_RADIUS = 10
-ENTITY_DOTS = (VISIBLE_W // 2 - 100, 450, 200, 26)
+ENTITY_DOTS = (MARGIN, 450, VISIBLE_W - 2 * MARGIN, 26)
 
 # The boot page: the title, the hotspot's QR code under it in the middle, the rows of a label and a value under the
 # code, the logo at the bottom.
@@ -177,7 +177,7 @@ SPLASH_LOGO = ((VISIBLE_W - SPLASH_LOGO_W) // 2, (VISIBLE_H - SPLASH_LOGO_H) // 
 # The panel's own page: the eight cards in one column, a line each -- the label small above the value, or the
 # label smaller and the value in two lines.
 SYSTEM_CARD_W, SYSTEM_CARD_H = VISIBLE_W - 2 * MARGIN, 50     # 296 x 50
-SYSTEM_CARDS = [(MARGIN, 38 + r * (SYSTEM_CARD_H + 4)) for r in range(8)]
+SYSTEM_CARDS = [(MARGIN, 36 + r * (SYSTEM_CARD_H + 2)) for r in range(8)]   # the page dots under them (ENTITY_DOTS)
 SYSTEM_CARD_RADIUS = 12
 SYSTEM_TEXT_X = 48
 SYSTEM_TEXT_FONT, SYSTEM_VALUE_FONT = 0, 2

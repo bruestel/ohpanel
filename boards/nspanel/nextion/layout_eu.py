@@ -52,7 +52,7 @@ SETTINGS_BUTTON_RADIUS = 14
 SETTINGS_TEXT_W, SETTINGS_VALUE_W = 280, 140   # a row's label from the left, its value right-aligned
 
 
-BUTTON_DOTS = (VISIBLE_W // 2 - 100, 288, 200, 30)   # the page dots under the grid
+BUTTON_DOTS = (MARGIN, 288, VISIBLE_W - 2 * MARGIN, 30)   # the page dots under the grid, as wide as it shows
 
 
 def button_tiles():
@@ -203,7 +203,7 @@ ENTITY_LINE = (90, 90, 90)                   # the list's thin line between rows
 ENTITY_FONT = 2
 ENTITY_ROWS_Y, ENTITY_ROWS_STEP, ENTITY_ROWS_H, ENTITY_ROWS_N = 44, 36, 32, 7
 ENTITY_ROWS_RADIUS = 10
-ENTITY_DOTS = (VISIBLE_W // 2 - 100, 294, 200, 26)   # the sheets' dots: below the cards' last row (294)
+ENTITY_DOTS = (MARGIN, 294, VISIBLE_W - 2 * MARGIN, 26)   # the dots: below the cards' last row (294)
 
 # The boot page: the title ("Initializing ..."), four rows of a label and a
 # value (font 2), the hotspot's QR code beside them, the logo at the bottom.

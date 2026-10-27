@@ -587,10 +587,7 @@ void Engine::draw_covers(const cJSON *page) {
   const int first = look.presets.empty() ? 0 : 1;   // the presets in the first row's place
   const int per = kCoverRowsPerSheet - first, sheets = std::max(1, (static_cast<int>(rows.size()) + per - 1) / per);
   sheet_ = std::clamp(sheet_, 0, sheets - 1);
-  std::string dots;
-  for (int s = 0; sheets > 1 && s < sheets; s++)
-    dots += (s ? " " : "") + icon_glyph(s == sheet_ ? "circle-medium" : "circle-small");
-  txt("dots", dots);
+  txt("dots", sheets > 1 ? sheet_dots(sheets, sheet_) : "");
   vis("dots", sheets > 1);
   // the whole group, at the top of every sheet
   CoverLook all;

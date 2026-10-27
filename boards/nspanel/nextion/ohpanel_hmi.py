@@ -486,7 +486,7 @@ def weather_page(p: Project) -> None:
         icon(page, f"{c}_icon", x + 20, y + h / 2, ICON_FONT, maxl=4, bco=TILE_OFF_565)
         text(page, f"{c}_value", (x + 38, y + 6, w - 44, 26), 2, maxl=16, bco=TILE_OFF_565)
         text(page, f"{c}_text", (x + 38, y + 32, w - 44, 18), 0, maxl=16, pco=LIGHT_GREY, bco=TILE_OFF_565)
-    text(page, "dots", layout.ENTITY_DOTS, ICON_FONT, xcen=1, maxl=30, pco=LIGHT_GREY)
+    text(page, "dots", layout.ENTITY_DOTS, ICON_FONT, xcen=1, maxl=DOTS_BYTES, pco=LIGHT_GREY)
     close(page)
     # everything hidden while the page loads: the firmware shows what the day has; the title and the cross at once
     on_load(page, loaded(page) + ["vis 255,0", "vis title,1", "vis close_hs,1", "vis close,1"])
@@ -518,7 +518,7 @@ def entities_pages(p: Project) -> None:
 
     page = new_page(p, "entities", touch=True)
     title(page)
-    text(page, "dots", layout.ENTITY_DOTS, ICON_FONT, xcen=1, maxl=30, pco=LIGHT_GREY)
+    text(page, "dots", layout.ENTITY_DOTS, ICON_FONT, xcen=1, maxl=DOTS_BYTES, pco=LIGHT_GREY)
     h = layout.ENTITY_LIST_H
     for r in range(1, layout.ENTITY_LIST_N + 1):
         y = layout.ENTITY_LIST_Y + (r - 1) * layout.ENTITY_LIST_STEP
@@ -535,7 +535,7 @@ def entities_pages(p: Project) -> None:
 
     page = new_page(p, "entities_cards", touch=True)
     title(page)
-    text(page, "dots", layout.ENTITY_DOTS, ICON_FONT, xcen=1, maxl=30, pco=LIGHT_GREY)
+    text(page, "dots", layout.ENTITY_DOTS, ICON_FONT, xcen=1, maxl=DOTS_BYTES, pco=LIGHT_GREY)
     w, h, ctx = layout.SYSTEM_CARD_W, layout.SYSTEM_CARD_H, layout.SYSTEM_TEXT_X
     for k, (x, y) in enumerate(layout.SYSTEM_CARDS, start=1):
         c = f"card{k}"
@@ -549,7 +549,7 @@ def entities_pages(p: Project) -> None:
 
     page = new_page(p, "entities_rows", touch=True)
     title(page)
-    text(page, "dots", layout.ENTITY_DOTS, ICON_FONT, xcen=1, maxl=30, pco=LIGHT_GREY)
+    text(page, "dots", layout.ENTITY_DOTS, ICON_FONT, xcen=1, maxl=DOTS_BYTES, pco=LIGHT_GREY)
     h, row_w = layout.ENTITY_ROWS_H, VISIBLE_W - 2 * layout.MARGIN
     right = layout.RIGHT - 10   # the value inside the card
     for r in range(1, layout.ENTITY_ROWS_N + 1):
@@ -603,6 +603,8 @@ def system_page(p: Project) -> None:
     # the IP card opens the network page (Engine::draw_network_page)
     x, y = layout.SYSTEM_CARDS[6]
     hotspot(page, "card7_hs", (x, y, w, h), event("system", "card7", "release"))
+    # the page dots, in the swipe row (Engine::draw_dots shows them)
+    text(page, "dots", layout.ENTITY_DOTS, ICON_FONT, xcen=1, maxl=DOTS_BYTES, pco=LIGHT_GREY)
     close(page)
     # everything hidden while the page loads: the firmware shows what it has (no card flashes with the design's
     # picture); the title and the close cross at once
@@ -691,7 +693,7 @@ def covers_page(p: Project) -> None:
     top. Dots for the sheets."""
     page = new_page(p, "covers", touch=True)
     title(page)
-    text(page, "dots", layout.ENTITY_DOTS, ICON_FONT, xcen=1, maxl=30, pco=LIGHT_GREY)
+    text(page, "dots", layout.ENTITY_DOTS, ICON_FONT, xcen=1, maxl=DOTS_BYTES, pco=LIGHT_GREY)
     gap, end = layout.COVERS_BUTTON_GAP, layout.COVERS_BUTTON_END
     x0, w = layout.MARGIN, VISIBLE_W - 2 * layout.MARGIN
     button_bco = rgb565(COVER_BUTTON)
@@ -850,6 +852,20 @@ def keypad_page(p: Project) -> None:
     on_load(page, loaded(page) + [f"vis {o},0" for o in hidden])
 
 
+# The page dots ("dots" on the pages that have them): a dot a sheet of the swipe row's pages (Engine::draw_dots), side
+# by side without a space -- as many as the narrower of the fields takes (the manifest's "dots"). A dot is 3 bytes
+# (UTF-8), its field holds DOTS_MAX of them.
+DOTS_GLYPH = "circle-medium"
+DOTS_MAX = 24
+DOTS_BYTES = 3 * DOTS_MAX
+
+
+def dots_max() -> int:
+    advance = fonts.icon_ink(ICON_FONT, DOTS_GLYPH)[0]
+    return min(layout.ENTITY_DOTS[2] // advance, layout.BUTTON_DOTS[2] // advance, DOTS_MAX)
+
+
+
 def buttons_page(p: Project) -> None:
     """The button page (page type "buttons"; the favourites, page type
     "media_favorites", draw on it too): 2 rows of 4 tiles on the layout's grid
@@ -879,7 +895,7 @@ def buttons_page(p: Project) -> None:
         icon(page, f"{b}_center", x + dx + w / 2, y + dy + h / 2, ICON_FONT_XL, maxl=4, pco=0, bco=0)
         hotspot(page, f"{b}_hs", (x, y, layout.TILE_W, layout.TILE_H), event("buttons", b, "release"),
                 event("buttons", b, "press"))
-    text(page, "dots", layout.BUTTON_DOTS, ICON_FONT, xcen=1, maxl=30, pco=LIGHT_GREY)
+    text(page, "dots", layout.BUTTON_DOTS, ICON_FONT, xcen=1, maxl=DOTS_BYTES, pco=LIGHT_GREY)
     close(page)
     on_load(page, loaded(page) + ["vis 255,0", "vis close_hs,1"] + [f"vis tile{i}_center,0" for i in range(1, 9)])
 
@@ -1079,6 +1095,8 @@ def qr_page(p: Project) -> None:
     hotspot(qr, "qr_area", layout.QR_AREA)
     for k, box in enumerate(layout.QR_CAPTION, start=1):
         text(qr, f"caption{k}", box, 2, xcen=1, maxl=80, pco=TITLE_GREY)
+    # the page dots, in the swipe row (Engine::draw_dots)
+    text(qr, "dots", layout.ENTITY_DOTS, ICON_FONT, xcen=1, maxl=DOTS_BYTES, pco=LIGHT_GREY)
     close(qr)
     on_load(qr, loaded(qr))
 
@@ -1239,6 +1257,15 @@ def background_pages(p: Project) -> list[str]:
             if page.objects()[0].get("sta") == 2 and page.objects()[0].get("pic") == BG]
 
 
+def no_close_on_start(p: Project) -> None:
+    """The start page (the swipe row's first, when it is not home) has no close cross: the firmware sets no_close
+    (Program.s) before it opens it (Engine::show_physical), and every page with a cross hides it as it loads -- after
+    whatever its own loading showed, so it does not flash up."""
+    for page in p.pages.values():
+        if any(o.name == "close" for o in page.objects()[1:]):
+            on_load(page, ["if(no_close==1)", "{", "  vis close,0", "  vis close_hs,0", "}"])
+
+
 def hidden_until_drawn(p: Project, composites: set[int]) -> None:
     """A picture composed onto a background (compose.py: the logo, a weather
     icon, a tile) shows the default background's variant as designed; the
@@ -1310,6 +1337,7 @@ def program(p: Project, version: str, bg: int, close_pic: int) -> None:
     p.program = "\r\n".join([
         f"//OHpanel's display design ({here}): run once at power-on",
         "int sys0=0,sys1=0,sys2=0//scratch",
+        "int no_close=0//the page coming is the start page (not home): no close cross (no_close_on_start())",
         "int swipex=0,swipey=0//where the finger was last while it touched a page",
         f"int th_accent={accent},th_text={text_colour},th_dim={dim}//the theme's colours",
         f"int design_ver={int32(int(version, 16))}//the design's version {version}",
@@ -1520,6 +1548,7 @@ def main():
     busy_indicator(p)
     background_globals(p)
     hidden_until_drawn(p, {pid for bg in pictures.values() for slot in bg.values() for pid in slot.values()})
+    no_close_on_start(p)
     check_icons(p)
 
     print("composites:", sum(len(v) for s in pictures.values() for v in s.values()), "pictures")
@@ -1540,6 +1569,7 @@ def main():
 
     m = manifest(p, bg_ids, pictures)
     m["fit"], m["fonts"] = fit(p, out)
+    m["dots"] = dots_max()   # how many page dots fit in their field
     m["units"] = UNITS
     m["range"] = RANGE
     # the weather page's low after the high (Engine::draw_weather): where its places start, a step apart, how many;

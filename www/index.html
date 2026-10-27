@@ -312,6 +312,7 @@ details.advanced[open]>summary{margin-bottom:.6rem}
 .pages .pg .t .ttl{min-width:0;overflow:hidden;text-overflow:ellipsis}
 .pages .pg .t .chip{flex:none;font-size:11px;line-height:1.5;padding:0 .5rem;border-radius:999px;
   border:1px solid var(--line);background:var(--surface);color:var(--dim)}
+.pages .pg .t .chip.start{color:var(--accent);border-color:color-mix(in srgb,var(--accent) 45%,transparent)}
 .pages .pg .t .pid{flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;font:12px ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--dim)}
 .pages .pg .acts button{height:1.8rem;padding:0 .55rem}
 .pages .pg .acts{display:flex;gap:.3rem}
@@ -944,7 +945,7 @@ pre.box{margin:0;padding:.6rem .7rem;max-height:18rem;overflow:auto;background:v
         <button class="pvarrow" id="vUp" type="button" title="Previous sheet (swipe down)" aria-label="Previous sheet"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7.4 15.4 12 10.8l4.6 4.6L18 14l-6-6-6 6z"/></svg></button>
         <button class="pvarrow" id="vDown" type="button" title="Next sheet (swipe up)" aria-label="Next sheet"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7.4 8.6 12 13.2l4.6-4.6L18 10l-6 6-6-6z"/></svg></button>
         <button class="b sec" id="vBack" type="button">Back</button>
-        <button class="b sec" id="vHome" type="button">Home</button>
+        <button class="b sec" id="vStart" type="button">Start</button>
         <span class="sub">Use it like the panel: swipe (or the arrows, or the arrow keys), tap buttons to open pages, the cross goes back.</span>
       </div>
       <div class="pved" id="vEd" hidden></div>
@@ -956,11 +957,11 @@ pre.box{margin:0;padding:.6rem .7rem;max-height:18rem;overflow:auto;background:v
     <div class="cols">
       <div class="card">
         <h2>Pages</h2>
-        <p class="sub">Swiping goes through the swipe row, from home (always first, the start screen) in this order;
-          the page dots show where one is. Only button pages go into the row (the list button beside one); drag a
-          page in the row by its handle to order it. Every other page opens from a tile or a shortcut.</p>
+        <p class="sub">Swiping goes through the swipe row in this order. Its first page (★) is the start page: the
+          panel starts there and goes back to it. Button pages, lists, the weather, QR codes and the info page can go
+          into the row; drag one by its handle to order it. Every other page opens from a tile or a shortcut.</p>
         <div class="pgarea">
-          <h3>Swipe row <span class="sub">home and button pages</span></h3>
+          <h3>Swipe row <span class="sub">its first is the start page</span></h3>
           <div class="pages" id="pgRow"></div>
         </div>
         <div class="pgarea">
@@ -983,7 +984,7 @@ pre.box{margin:0;padding:.6rem .7rem;max-height:18rem;overflow:auto;background:v
         <div class="row stack">
           <label>Background<select id="vBg"></select></label>
           <label>Language<select id="vLang"><!-- texts: begin --><option value="en">English</option><option value="de">Deutsch</option><option value="fr">Français</option><option value="es">Español</option><option value="it">Italiano</option><option value="nl">Nederlands</option><option value="pt">Português</option><option value="da">Dansk</option><option value="sv">Svenska</option><option value="nb">Norsk</option><option value="fi">Suomi</option><option value="bg">Български</option><option value="cs">Čeština</option><option value="el">Ελληνικά</option><option value="et">Eesti</option><option value="ga">Gaeilge</option><option value="hr">Hrvatski</option><option value="hu">Magyar</option><option value="lt">Lietuvių</option><option value="lv">Latviešu</option><option value="mt">Malti</option><option value="pl">Polski</option><option value="ro">Română</option><option value="sk">Slovenčina</option><option value="sl">Slovenščina</option><!-- texts: end --></select></label>
-          <label>Back to home<select id="vHomeAfter"></select></label>
+          <label>Back to the start page<select id="vHomeAfter"></select></label>
           <label>Swiping to another page<select id="vFade"></select></label>
           <label>A cover appears<select id="vReveal"><option value="">dissolving in</option>
             <option value="center">from the middle outwards</option><option value="sharpen">blurred, then sharp</option>
@@ -2693,7 +2694,7 @@ async function savePanel(text) {
     updateSaveBar('the JSON does not parse');
     return;
   }
-  // pages without the page dots leave the swipe row (SWIPE_TYPES): the panel would refuse them
+  // pages of other types leave the swipe row (SWIPE_TYPES): the panel would refuse them
   const dropped = [];
   if (parsed && Array.isArray(parsed.swipe)) {
     const pages = pagesOf(parsed);
@@ -2702,12 +2703,12 @@ async function savePanel(text) {
       if (!ok) dropped.push(pageTitle(pages.find(q => q.id === id)));
       return ok;
     });
-    if (parsed.swipe.length <= 1) delete parsed.swipe;
+    if (!parsed.swipe.length || (parsed.swipe.length === 1 && parsed.swipe[0] === 'home')) delete parsed.swipe;
   }
   try {
     await api('/panel', {method: 'PUT', headers: {'Content-Type': 'application/json'},
                          body: JSON.stringify(parsed, null, 2)});
-    setMsg($('pMsg'), dropped.length ? 'Saved. Out of the swipe row (no page dots): ' + dropped.join(', ') + '.' : 'Saved.', 'ok');
+    setMsg($('pMsg'), dropped.length ? 'Saved. Out of the swipe row (a type it does not take): ' + dropped.join(', ') + '.' : 'Saved.', 'ok');
     panelSaved = canonical(JSON.stringify(parsed));
     updateSaveBar();
     loadPanel();
@@ -3230,9 +3231,10 @@ function fillEntities(page) {
   const bg = list ? undefined : PALETTE['dark-grey'];
   const sheets = Math.ceil(Math.max(rows.length, 1) / per);
   // the sheets as dots at the bottom, the one shown full (Engine::draw_entities)
+  // (one sheet: the row's page dots, drawPage, Engine::draw_dots)
   f.dots = sheets > 1 ? {icons: Array.from({length: sheets}, (_, k) => k === PV.sheet ? 'circle-medium' : 'circle-small'),
                          color: PALETTE['light-grey']}
-                      : {hide: true};
+                      : undefined;
   for (let i = 0; i < per; i++) {
     const at = PV.sheet * per + i, r = rows[at], n = (cards ? 'card' : 'row') + (i + 1);
     const parts = cards ? ['_pic', '_icon', '_text', '_value']
@@ -3369,7 +3371,7 @@ function fillWeather(page) {
   const name = d.title || (ahead === 0 ? t.today : ahead === 1 ? t.tomorrow : t.weekdays[when.getDay()]);
   const f = {title: {text: name + ' · ' + strftime(disp.date, when)}};
   f.dots = days.length > 1 ? {icons: days.map((_, k) => k === PV.sheet ? 'circle-medium' : 'circle-small'), color: PALETTE['light-grey']}
-                           : {hide: true};
+                           : undefined;   // (one day: the row's page dots, drawPage)
   f.weather_pic = d.icon ? {pic: weatherPic(d.icon)} : {hide: true};
   const deg = ref => { if (!ref) return ''; const [num, unit] = numberUnit(ref); return num === '' ? '' : num + (unit.startsWith('°') ? '°' : unit ? ' ' + unit : ''); };
   // the high large and the low under it; with the condition in words the high smaller, the low right after it (the
@@ -3703,13 +3705,12 @@ function renderPreview() {
   showScreenInputs(cfg);
   renderPages(cfg);
   const sel = $('vPage'), want = PV.page;
-  // the swipe row first (home and its pages, in its order), then the other pages by type, each type's by title
+  // the swipe row first (its pages in its order, the start page ★), then the other pages by type, each type's by title
   sel.innerHTML = '';
   const {inRow} = pageOrder(cfg);
   const row = document.createElement('optgroup');
   row.label = 'Swipe row';
-  row.appendChild(new Option('Home', 'home'));
-  inRow.forEach(p => row.appendChild(new Option(pageTitle(p), p.id)));
+  inRow.forEach((p, i) => row.appendChild(new Option((i === 0 ? '★ ' : '') + pageTitle(p), p.id)));
   sel.appendChild(row);
   // a cover named by its item's metadata: that asked for, the list anew once it is there
   pagesOf(cfg).filter(p => p.type === 'cover' && !p.title && p.item && !OPTS[p.item]).forEach(p => loadOptions(p.item));
@@ -3719,9 +3720,15 @@ function renderPreview() {
     list.forEach(p => group.appendChild(new Option(pageTitle(p), p.id)));
     sel.appendChild(group);
   });
-  sel.value = [...sel.options].some(o => o.value === want) ? want : 'home';
+  if (!inRow.some(p => p.id === 'home')) {   // home, out of the row: still there to look at and edit
+    const group = document.createElement('optgroup');
+    group.label = 'Home screen';
+    group.appendChild(new Option('Home', 'home'));
+    sel.appendChild(group);
+  }
+  sel.value = [...sel.options].some(o => o.value === want) ? want : startPage(cfg);
   if (sel.value !== PV.page) { PV.page = sel.value; PV.history = []; PV.sheet = 0; }
-  $('vBack').disabled = PV.page === 'home';
+  $('vBack').disabled = PV.page === startPage(cfg);
   pvKeep();
   pvArrows();
 
@@ -3753,16 +3760,28 @@ function drawPage(box, cfg, id) {
   const fill = !page ? fillHome(cfg) : kind && kind.fill ? kind.fill(page, cfg) : {};
 
   /* The objects the design adds to every page: the close cross and the page
-     dots, which show where the page sits in the swipe row. */
-  fill.close = {pic: 'close:x'};
+     dots, which show where the page sits in the swipe row. The start page,
+     when it is not home, has no cross: nothing to go back to. */
+  fill.close = id !== 'home' && id === startPage(cfg) ? {hide: true} : {pic: 'close:x'};
   // the busy indicator only shows when the panel does not answer (Engine::render)
   ['busy1', 'busy2', 'busy3'].forEach(n => { fill[n] = {hide: true}; });
   const row = swipeRow(cfg);
   const at = row.length > 1 ? row.indexOf(page ? page.id : 'home') : -1;
-  // the same glyphs the firmware writes (Engine::draw_dots)
-  // (the favourites' and the entity pages' own: their sheets)
-  if (!fill.dots) fill.dots = at < 0 ? {text: ''}
-    : {icons: row.map((_, i) => i === at ? 'circle-medium' : 'circle-small'), color: PALETTE['light-grey']};
+  // the same glyphs the firmware writes (Engine::draw_dots): in the row a dot for every sheet of its pages, the one
+  // shown full (the sheet shown, or a neighbour's first); more than the field takes (its width, an em of its icon
+  // font a dot): a dot a page. Out of the row a list's, the weather's or the favourites' own sheets
+  if (at >= 0) {
+    const sheets = [], perPage = row.map((_, i) => i === at ? 'circle-medium' : 'circle-small');
+    const shownSheet = id === PV.page ? PV.sheet : 0;
+    row.forEach(rid => {
+      const n = rid === 'home' ? 1 : pvSheetsOf(pagesOf(cfg).find(p => p.id === rid));
+      for (let k = 0; k < n; k++) sheets.push(rid === id && k === (n > 1 ? shownSheet : 0) ? 'circle-medium' : 'circle-small');
+    });
+    const field = layout.objects.find(o => o.n === 'dots'), font = field && LAYOUT.fonts[field.f];
+    const em = font && font.icon ? font.icon.em : 19;
+    const room = field ? Math.floor(field.w / em) : 8;
+    fill.dots = {icons: sheets.length <= room ? sheets : perPage, color: PALETTE['light-grey']};
+  } else if (!fill.dots) fill.dots = {text: ''};
 
   box.innerHTML = '';
   /* Pages that show the configurable background get the chosen one. */
@@ -3872,11 +3891,11 @@ function drawPage(box, cfg, id) {
                         + Math.round((o.h - want.logo.h) / 2) + 'px';
       el.style.overflow = 'visible';
       el.appendChild(lc);
-    } else if (want.icons) {  // several glyphs of the icon font, space-separated as on the display
-      want.icons.forEach((name, k) => {
-        if (k) el.appendChild(document.createTextNode(' '));
+    } else if (want.icons) {  // several glyphs of the icon font side by side, an em apart as on the display
+      const em = font.icon ? font.icon.em : font.height;
+      want.icons.forEach(name => {
         const i = iconCanvas(name, el.style.color, font.height);
-        if (i) el.appendChild(i);
+        if (i) { i.style.marginRight = (em - font.height) + 'px'; el.appendChild(i); }
       });
     } else if (Array.isArray(want.icon)) {  // icons shown in turn (Engine::show_icon), see the ticker below
       el.dataset.anim = want.interval || 500;
@@ -4283,42 +4302,49 @@ function pvPage(id) {
   return id === 'home' ? null : pagesOf(PV.cfg).find(p => p.id === id) || null;
 }
 
-function pvOpen(id, remember = true) {
+/* `lastSheet`: a swipe back into a list or the weather: on its last sheet (Engine::open). */
+function pvOpen(id, remember = true, lastSheet = false) {
   if (id !== 'home' && !pvPage(id)) { setMsg($('vMsg'), 'no page "' + id + '"', 'err'); return; }
   if (remember && id !== PV.page) PV.history.push(PV.page);
-  if (id === 'home') PV.history = [];
+  if (id === startPage(PV.cfg)) PV.history = [];
   PV.page = id;
-  PV.sheet = 0;
+  PV.sheet = lastSheet ? Math.max(0, pvSheetsOf(pvPage(id)) - 1) : 0;
   PV.target = null;
   renderPreview();
 }
 
+/* Back where the page was opened from; with nothing to go back to, the start page (Engine::back). */
 function pvBack() {
-  let target = 'home';
+  const start = startPage(PV.cfg);
+  let target = start;
   while (PV.history.length) {
     target = PV.history.pop();
     if (target === 'home' || pvPage(target)) break;
-    target = 'home';
+    target = start;
   }
   pvOpen(target, false);
+}
+
+/* A list's or the weather's sheets (one for the others). */
+function pvSheetsOf(page) {
+  if (page && page.type === 'weather') return Math.max(1, daysOf(page).length);
+  if (page && page.type === 'entities') return Math.max(1, pvSheets(page));
+  return 1;
 }
 
 /* left/right walk the configured row (the finger moving left brings the next
    page in); up/down page through long entity lists. */
 function pvSwipe(direction) {
-  const page = pvPage(PV.page);
+  const page = pvPage(PV.page), row = swipeRow(PV.cfg), at = row.indexOf(PV.page);
   if (page && (page.type === 'entities' || page.type === 'weather')) {   // its sheets (rows, days): left brings the next
     if (direction !== 'left' && direction !== 'right') return;
-    const sheets = page.type === 'weather' ? daysOf(page).length : pvSheets(page);
     const next = PV.sheet + (direction === 'left' ? 1 : -1);
-    if (next >= 0 && next < sheets) { PV.sheet = next; renderPreview(); }
-    return;
+    if (next >= 0 && next < pvSheetsOf(page)) { PV.sheet = next; renderPreview(); return; }
+    if (at < 0) return;   // past its last (first) sheet: in the row, the next page (the one before) -- Engine::swipe
   }
   if (direction === 'up' || direction === 'down') return;
-  const row = swipeRow(PV.cfg);
-  const at = row.indexOf(PV.page);
   if (at < 0 || row.length < 2) return;
-  pvOpen(row[(at + (direction === 'left' ? 1 : row.length - 1)) % row.length], false);
+  pvOpen(row[(at + (direction === 'left' ? 1 : row.length - 1)) % row.length], false, direction === 'right');
 }
 
 /* ---- editing in the preview ----
@@ -7767,37 +7793,46 @@ function pageRefs(cfg, id) {
   return refs;
 }
 
-/* The page type that may be in the swipe row after home: button pages
-   (Engine::swipe_row, the configuration's check). */
-const SWIPE_TYPES = ['buttons'];
-function swipeable(p) { return !!p && SWIPE_TYPES.includes(p.type); }
+/* The page types that may be in the swipe row besides home (Engine::swipe_row, the configuration's check): those
+   without gestures of their own across the page -- a list's or the weather's sheets come before the next page. */
+const SWIPE_TYPES = ['buttons', 'entities', 'weather', 'qr', 'system'];
+function swipeable(p) { return !!p && (p.type === 'home' || SWIPE_TYPES.includes(p.type)); }
+/* Home in the page lists: a page like the others, in the swipe row or not. */
+const HOME_PAGE = {id: 'home', title: 'Home', type: 'home'};
 
-/* The swipe row as the panel reads it: home always first -- the start screen
-   -- then the configuration's row without it (Engine::swipe_row). */
+/* The swipe row as the panel reads it (Engine::swipe_row): the configuration's, in its order -- home only where it
+   names it --; its first is the start page, what "back" and the time without a touch go to. No row: home alone. */
 function swipeRow(cfg) {
-  const pages = pagesOf(cfg);
-  return ['home'].concat(((cfg && Array.isArray(cfg.swipe)) ? cfg.swipe : [])
-    .filter(id => id !== 'home' && swipeable(pages.find(q => q.id === id))));
+  const pages = pagesOf(cfg), row = [];
+  ((cfg && Array.isArray(cfg.swipe)) ? cfg.swipe : []).forEach(id => {
+    if (!row.includes(id) && (id === 'home' || swipeable(pages.find(q => q.id === id)))) row.push(id);
+  });
+  return row.length ? row : ['home'];
 }
-/* The row written back: home first, or no row at all with nothing besides it. */
+const startPage = cfg => swipeRow(cfg)[0];
+/* The row written back as it is; home alone is no row at all. */
 function setSwipe(c, ids) {
-  ids = ids.filter(id => id !== 'home');
-  if (ids.length) c.swipe = ['home'].concat(ids); else delete c.swipe;
+  ids = ids.filter((id, i) => ids.indexOf(id) === i);
+  if (ids.length && !(ids.length === 1 && ids[0] === 'home')) c.swipe = ids; else delete c.swipe;
 }
 
-/* The pages in two areas: the swipe row (home first, fixed) and the others,
-   opened from buttons and shortcuts. A page moves by its handle -- dragged
-   (mouse, finger or pen), within an area or into the other -- or with the
-   arrow keys on the focused handle, across the areas too. */
+/* The pages in two areas: the swipe row (its first the start page; home in it
+   or not) and the others, opened from buttons and shortcuts. A page moves by
+   its handle -- dragged (mouse, finger or pen), within an area or into the
+   other -- or with the arrow keys on the focused handle, across the areas too. */
 function renderPages(cfg) {
   const rowBox = $('pgRow'), otherBox = $('pgOther');
   if (!rowBox || !cfg) return;
   rowBox.innerHTML = otherBox.innerHTML = '';
   const {inRow} = pageOrder(cfg);
 
-  const home = pgItem({id: 'home', title: 'Home', type: 'home'}, cfg, 'home');
-  rowBox.appendChild(home);
-  inRow.forEach(p => rowBox.appendChild(pgItem(p, cfg, 'row')));
+  inRow.forEach((p, i) => rowBox.appendChild(pgItem(p, cfg, 'row', i === 0, inRow.length)));
+  if (!inRow.some(p => p.id === 'home')) {   // home, out of the row: back into it with its list button
+    const head = document.createElement('div');
+    head.className = 'pgtype';
+    head.textContent = 'Home screen';
+    otherBox.append(head, pgItem(HOME_PAGE, cfg, 'other'));
+  }
   // the others by type (a heading each, in the order of the types), each type's by title -- as the page choice
   pagesByType(cfg, inRow).forEach(([type, list]) => {
     const head = document.createElement('div');
@@ -7806,7 +7841,8 @@ function renderPages(cfg) {
     otherBox.appendChild(head);
     list.forEach(p => otherBox.appendChild(pgItem(p, cfg, 'other')));
   });
-  [[rowBox, 'Button pages join the row with the list button beside them.'], [otherBox, 'No other pages.']].forEach(([box, text]) => {
+  [[rowBox, 'Button pages, lists, the weather, QR codes and the info page join the row with the list button beside them.'],
+   [otherBox, 'No other pages.']].forEach(([box, text]) => {
     const hint = document.createElement('div');
     hint.className = 'pghint';
     hint.textContent = text;
@@ -7814,12 +7850,12 @@ function renderPages(cfg) {
   });
 }
 
-/* The pages as the lists show them: the swipe row in its order (home before
-   it), then the others by their title -- their order means nothing, they open
-   from tiles and shortcuts. */
+/* The pages as the lists show them: the swipe row in its order (home as one
+   of them, when it is in it), then the others by their title -- their order
+   means nothing, they open from tiles and shortcuts. */
 function pageOrder(cfg) {
   const pages = pagesOf(cfg);
-  const inRow = swipeRow(cfg).slice(1).map(id => pages.find(p => p.id === id)).filter(Boolean);
+  const inRow = swipeRow(cfg).map(id => id === 'home' ? HOME_PAGE : pages.find(p => p.id === id)).filter(Boolean);
   const others = pages.filter(p => !inRow.includes(p))
     .sort((a, b) => pageTitle(a).localeCompare(pageTitle(b), undefined, {sensitivity: 'base', numeric: true}));
   return {inRow, others};
@@ -7836,21 +7872,15 @@ function pageTitle(p) {
   return p.id;
 }
 
-/* A page of the list -- `place`: "home" (first, pinned), "row" (the swipe row:
-   a handle to order it, and out of the row) or "other" (no handle; a button
-   page can join the row). */
-function pgItem(p, cfg, place) {
+/* A page of the list -- `place`: "row" (the swipe row: a handle to order it,
+   and out of the row; `start`: its first, the start page; `rowSize`: how many
+   it has) or "other" (no handle; a page of a type the row takes can join it). */
+function pgItem(p, cfg, place, start = false, rowSize = 0) {
   const el = document.createElement('div');
-  el.className = 'pg' + (place === 'home' ? ' pinned' : place === 'other' ? ' free' : '');
+  el.className = 'pg' + (place === 'other' ? ' free' : '');
   el.dataset.id = p.id;
   if (place === 'other') {
     // nothing to drag: the other pages keep their order by title
-  } else if (place === 'home') {
-    const lock = document.createElement('span');
-    lock.className = 'grip lock';
-    lock.title = 'The start screen: always first';
-    lock.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="' + LOCK_PATH + '"/></svg>';
-    el.appendChild(lock);
   } else {
     const grip = document.createElement('button');
     grip.type = 'button'; grip.className = 'grip';
@@ -7869,14 +7899,19 @@ function pgItem(p, cfg, place) {
   ttl.textContent = pageTitle(p);
   const chip = document.createElement('span');
   chip.className = 'chip';
-  chip.textContent = p.type === 'home' ? 'Start screen' : PAGE_TYPES[p.type] || p.type;
+  chip.textContent = p.type === 'home' ? 'Home screen' : PAGE_TYPES[p.type] || p.type;
   chip.title = 'Type of the page';
+  // the row's first: where the panel starts, and goes back to (back, the close cross, the time without a touch)
+  const startChip = document.createElement('span');
+  startChip.className = 'chip start';
+  startChip.textContent = '★ Start';
+  startChip.title = 'The start page: the swipe row\'s first, where the panel starts and goes back to';
   const pid = document.createElement('code');
   pid.className = 'pid';
   pid.textContent = '#' + p.id;
   pid.title = 'Id of the page: what buttons, shortcuts and the configuration refer to';
   if (place === 'other') t.append(ttl, pid);   // under its type's heading: no chip of the type again
-  else t.append(ttl, chip, pid);
+  else t.append(...[ttl, start ? startChip : null, chip, pid].filter(Boolean));
   const acts = document.createElement('div');
   acts.className = 'acts';
   // icons, so title, type and id have the room (Material Design Icons open-in-new, delete-outline)
@@ -7901,7 +7936,7 @@ function pgItem(p, cfg, place) {
   if (place === 'other' && swipeable(p))
     move('M3 16H10V14H3M18 14V10H16V14H12V16H16V20H18V16H22V14M14 6H3V8H14M14 10H3V12H14V10Z', 'Into the swipe row (at its end)', 'Put into the swipe row:',
          c => setSwipe(c, swipeRow(c).concat([p.id])));
-  else if (place === 'row')
+  else if (place === 'row' && !(p.type === 'home' && rowSize === 1))   // home alone stays (the row is never empty)
     move('M14 10H3V12H14V10M14 6H3V8H14V6M3 16H10V14H3V16M14.4 22L17 19.4L19.6 22L21 20.6L18.4 18L21 15.4L19.6 14L17 16.6L14.4 14L13 15.4L15.6 18L13 20.6L14.4 22Z', 'Out of the swipe row (it then opens from a tile or a shortcut)', 'Take out of the swipe row:',
          c => setSwipe(c, swipeRow(c).filter(id => id !== p.id)));
   if (p.type !== 'home' && !p.builtin && p.id !== INFO_PAGE.id) {
@@ -7919,7 +7954,7 @@ function pgItem(p, cfg, place) {
         c.pages = c.pages.filter(q => q.id !== p.id);
         setSwipe(c, swipeRow(c));
       });
-      if (PV.page === p.id) pvOpen('home', false);
+      if (PV.page === p.id) pvOpen(startPage(PV.cfg), false);
     });
     acts.appendChild(del);
   }
@@ -7997,8 +8032,8 @@ function showNewPageFields() {
   const type = $('pgType').value, kind = PAGE_KINDS[type] || {};
   $('pgItemBox').hidden = !kind.item;
   $('pgTextBox').hidden = !kind.text;
-  $('pgSwipe').checked = SWIPE_TYPES.includes(type);
-  $('pgSwipeBox').hidden = !SWIPE_TYPES.includes(type);   // only a button page can go into the row
+  $('pgSwipe').checked = type === 'buttons';   // a button page into the row at once, the others when asked
+  $('pgSwipeBox').hidden = !SWIPE_TYPES.includes(type);   // only these types can go into the row
 }
 Object.entries(PAGE_KINDS).filter(([, k]) => k.choice).forEach(([type, k]) => $('pgType').appendChild(new Option(k.choice, type)));
 $('pgType').addEventListener('change', showNewPageFields);
@@ -8036,11 +8071,11 @@ function pvArrows() {
   const inRow = row.indexOf(PV.page) >= 0 && row.length > 1;
   $('vPrev').disabled = $('vNext').disabled = !inRow;
   const page = pvPage(PV.page);
-  if (page && (page.type === 'entities' || page.type === 'weather')) {   // left and right: its sheets
-    const sheets = page.type === 'weather' ? daysOf(page).length : pvSheets(page);
+  if (page && (page.type === 'entities' || page.type === 'weather') && !inRow) {   // left and right: its sheets
+    const sheets = pvSheetsOf(page);
     $('vPrev').disabled = PV.sheet === 0;
     $('vNext').disabled = PV.sheet >= sheets - 1;
-  }
+  }   // (in the row: its sheets, then the next page)
   const sheets = page && page.type === 'media_favorites' ? Math.ceil(stationsOf(page).length / 8) : 1;
   $('vUp').hidden = $('vDown').hidden = sheets < 2;
   $('vUp').disabled = PV.sheet === 0;
@@ -8158,7 +8193,7 @@ function pvAction(component) {
   $('vNext').addEventListener('click', () => pvSwipe('left'));
   $('vUp').addEventListener('click', () => pvSwipe('down'));
   $('vDown').addEventListener('click', () => pvSwipe('up'));
-  $('vHome').addEventListener('click', () => pvOpen('home', false));
+  $('vStart').addEventListener('click', () => pvOpen(startPage(PV.cfg), false));   // the swipe row's first
   const showEditing = pvShowEditing;
   showEditing();   // as the address says (pvFromHash)
   $('vEdit').addEventListener('click', () => {

@@ -291,7 +291,14 @@ class Engine {
   void show_frames(const std::string &obj, std::vector<std::string> frames, int interval_ms);
   void show_text(const std::string &obj, const std::string &text, int blink_ms);
   RuleStyle style_of(const cJSON *ref, const cJSON *rules = nullptr) const;
-  std::vector<std::string> swipe_row() const;
+  const std::vector<std::string> &swipe_row() const { return swipe_row_; }
+  std::string start_page() const { return swipe_row_.front(); }   // the row's first: where "back" ends
+  int sheets_of(const cJSON *page);   // a list's, the weather's, a cover group's sheets (else 1)
+  bool in_swipe_row() const;   // the page shown is in the swipe row (of more than one): its dots are the row's
+  std::string sheet_dots(int sheets, int at) const;   // a dot a sheet, `at` full
+  void make_swipe_row();   // swipe_row_ from the configuration (set_config)
+  std::vector<std::string> swipe_row_{"home"};
+  bool no_close_sent_ = false;   // what the display's no_close says (Program.s; the display starts with 0)
   bool refresh_paused_ = false;   // inside a ref_stop .. ref_star of our own
   static std::string degrees_only(const std::string &unit);
   void draw_range(const cJSON *home);
@@ -307,7 +314,7 @@ class Engine {
   bool started_ = false;
   std::string current_ = "home";           // logical page
   int64_t now_ms_ = 0, touched_ms_ = -1;   // idle(): the clock, the last touch (-1: none yet)
-  int64_t home_ms_ = 0;                    // the last time on home (home_after counts from leaving it)
+  int64_t start_ms_ = 0;                   // the last time on the start page (home_after counts from leaving it)
   ScreenSettings screen_;                  // display.screen, with what its items say
   bool screen_known_ = false;              // a configuration was read (set_config) before
   bool asleep_ = false;                    // the black page of the night is shown
@@ -332,6 +339,7 @@ class Engine {
   bool building_buttons_ = false;          // draw_buttons shows the buttons itself, all at once
   bool bar_[8] = {};                       // the tiles with a bar (a value in %), for draw_buttons to show
   int sheet_ = 0;                          // entity pages: which eight rows
+  int dots_max_ = 8;                       // how many page dots fit in their field (manifest "dots")
   time_t now_ = 0;
   bool dated_rules_ = false;   // the configuration has rules by a date (within_days): redrawn as the time goes on
 
@@ -390,7 +398,7 @@ class Engine {
   void bind(const cJSON *ref, std::function<void()> draw);
 
   // --- navigation
-  void open(const std::string &id, bool remember = true);
+  void open(const std::string &id, bool remember = true, bool last_sheet = false);   // last_sheet: a swipe back
   void back();
   void swipe(const std::string &direction);
   void show_physical(const std::string &name);
@@ -420,9 +428,10 @@ class Engine {
     int step = 0;
     int64_t at = 0;
     std::string target;
+    bool last_sheet = false;   // a swipe back: the page on its last sheet
   } fade_;
   int fade_step_ms_ = 0;   // display.page_fade over the steps, set as a fade starts
-  void fade_to(const std::string &id);
+  void fade_to(const std::string &id, bool last_sheet = false);
   void fade_tick();
   int64_t volume_sent_ms_ = 0, light_sent_ms_ = 0;   // the last value sent while a slider moves
 

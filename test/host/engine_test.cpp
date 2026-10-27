@@ -795,7 +795,7 @@ int main(int argc, char **argv) {
     rec.out.clear();
     e.on_message(loaded("entities"));
     const std::string full = icon_glyph("circle-medium"), small = icon_glyph("circle-small");
-    CHECK(rec.has("row1_longtext.txt=\"Extra\"") && rec.has("dots.txt=\"" + full + " " + small + "\"") && rec.has("vis dots,1"));
+    CHECK(rec.has("row1_longtext.txt=\"Extra\"") && rec.has("dots.txt=\"" + full + small + "\"") && rec.has("vis dots,1"));
     CHECK(rec.has("vis row7_line,0"));
     CHECK(rec.has("vis row2_wide,1") && rec.has("vis row2_text,0") && rec.has("vis row2_longtext,0"));   // a wide row
     CHECK(rec.has("vis row1_wide,0"));                                                                     // beside one that is not
@@ -807,7 +807,7 @@ int main(int argc, char **argv) {
     CHECK(e.current() == "pv" && rec.has_prefix("page "));   // still the page, its second sheet
     rec.out.clear();
     e.on_message(loaded("entities"));
-    CHECK(rec.has("dots.txt=\"" + small + " " + full + "\"") && rec.has("vis row3_icon,0"));
+    CHECK(rec.has("dots.txt=\"" + small + full + "\"") && rec.has("vis row3_icon,0"));
     e.on_message(event("entities", "swipe", "left"));   // past the last: nothing
     e.on_message(event("entities", "swipe", "right"));
     rec.out.clear();
@@ -916,12 +916,12 @@ int main(int argc, char **argv) {
     CHECK(rec.has(pic_cmd("chip1_pic", "aurora", "wchip1", "box")));
     CHECK(rec.has("vis chip5_pic,0") && rec.has("vis chip6_icon,0"));   // four extras: two cards empty
     const std::string full = icon_glyph("circle-medium"), small = icon_glyph("circle-small");
-    CHECK(rec.has("dots.txt=\"" + full + " " + small + " " + small + "\"") && rec.has("vis dots,1"));
+    CHECK(rec.has("dots.txt=\"" + full + small + small + "\"") && rec.has("vis dots,1"));
     e.on_message(event("weather", "swipe", "left"));           // tomorrow
     CHECK(e.current() == "weather" && rec.has_prefix("page "));
     rec.out.clear();
     e.on_message(loaded("weather"));
-    CHECK(rec.has_prefix("title.txt=\"Morgen · ") && rec.has("dots.txt=\"" + small + " " + full + " " + small + "\""));
+    CHECK(rec.has_prefix("title.txt=\"Morgen · ") && rec.has("dots.txt=\"" + small + full + small + "\""));
     CHECK(rec.has("vis high,1") && rec.has("vis condition,0"));   // no condition that day: the high large, as before
     e.on_message(event("weather", "swipe", "left"));           // the day after: its weekday
     rec.out.clear();
@@ -2198,6 +2198,74 @@ int main(int argc, char **argv) {
     CHECK(commands.back() == std::make_pair(std::string("Alarm_Command"), std::string("DISARM 1234")));
     e.on_message(event("keypad", "close", "release"));
     e.set_config(read("test/host/data/office.json"));
+  }
+
+  {  // a swipe row without home: its first page is the start page (no close cross there, "back" goes to it); a list's
+     // sheets come before the next page, and swiping back lands on the list's last sheet
+    cJSON *doc = cJSON_Parse(read("test/host/data/office.json").c_str());
+    cJSON_ReplaceItemInObject(doc, "swipe", cJSON_Parse(R"(["lights", "schedule", "guest-wifi"])"));
+    char *text = cJSON_PrintUnformatted(doc);
+    rec.out.clear();
+    e.set_config(text);
+    cJSON_free(text);
+    cJSON_Delete(doc);
+    CHECK(e.current() == "lights");                               // home was shown: the start page now
+    CHECK(rec.has("no_close=1"));                                 // its cross hidden as it loads
+    e.on_message(loaded("buttons"));
+    CHECK(rec.has("vis close,0") && rec.has("vis close_hs,0"));   // nothing to go back to
+    e.on_message(event("buttons", "swipe", "left"));
+    CHECK(e.current() == "schedule");
+    e.on_message(loaded("entities"));
+    // its sheets first (16 rows: more than one), then the next page
+    int sheets = 1;
+    for (; sheets < 10; sheets++) {
+      e.on_message(event("entities", "swipe", "left"));
+      if (e.current() != "schedule")
+        break;
+      e.on_message(loaded("entities"));
+    }
+    CHECK(sheets > 1 && e.current() == "guest-wifi");
+    e.on_message(loaded("qr"));
+    e.on_message(event("qr", "swipe", "right"));                  // back: on the list's last sheet, so as many to go
+    for (int k = 1; k < sheets; k++) {
+      CHECK(e.current() == "schedule");
+      e.on_message(loaded("entities"));
+      e.on_message(event("entities", "swipe", "right"));
+    }
+    CHECK(e.current() == "schedule");
+    e.on_message(loaded("entities"));
+    e.on_message(event("entities", "swipe", "right"));
+    CHECK(e.current() == "lights");
+    rec.out.clear();
+    e.on_message(loaded("buttons"));
+    {   // a dot for every sheet of the row's pages: this one first, the list's, the QR code's
+      std::string want = icon_glyph("circle-medium");
+      for (int k = 0; k < sheets + 1; k++)
+        want += icon_glyph("circle-small");
+      CHECK(rec.has("dots.txt=\"" + want + "\""));
+    }
+    e.on_message(event("buttons", "swipe", "right"));             // round to the last
+    CHECK(e.current() == "guest-wifi");
+    e.on_message(loaded("qr"));
+    rec.out.clear();
+    e.on_message(event("qr", "close", "release"));                // the cross: to the start page
+    CHECK(e.current() == "lights" && !rec.has("no_close=0"));
+    e.on_message(loaded("buttons"));
+    {   // home in the row but not first, shown: a configuration saved keeps it
+      cJSON *d2 = cJSON_Parse(read("test/host/data/office.json").c_str());
+      cJSON_ReplaceItemInObject(d2, "swipe", cJSON_Parse(R"(["lights", "home"])"));
+      char *t2 = cJSON_PrintUnformatted(d2);
+      e.set_config(t2);
+      e.on_message(event("buttons", "swipe", "left"));
+      CHECK(e.current() == "home");
+      e.on_message(loaded("home"));
+      e.set_config(t2);
+      CHECK(e.current() == "home");
+      cJSON_free(t2);
+      cJSON_Delete(d2);
+    }
+    e.set_config(read("test/host/data/office.json"));
+    CHECK(e.current() == "home");                                 // home in the row: it stays
   }
 
   {  // a cover group page with presets (the group's metadata): the pills in the first row's place, three members a

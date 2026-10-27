@@ -42,7 +42,7 @@ written can be set as well, see [Formatting values](#formatting-values).
 | `version` | `1` | required; a document with another version is refused |
 | `display` | object | language and formats of the display texts, see below |
 | `home` | object | the home screen, see below |
-| `swipe` | array of page ids | the pages reached by swiping left/right, in order, round from the last to the first; home, the start screen, is always first, wherever (or whether) the row names it. Only button pages (`buttons`); every other page (entities, weather, QR, media, cover, light, thermostat, keypad, the info and the settings page) opens from a tile or a shortcut |
+| `swipe` | array of page ids | the pages reached by swiping, in this order, round from the last to the first. The **first is the start page**: the panel starts there and goes back to it (close cross, `home_after`); it has no close cross unless it is home. Home is only in the row if named (`"home"`); without a row: home alone. Allowed: `buttons`, `entities`, `weather` and `qr` pages and `info`; a list's or the weather's sheets come before the next page. Other pages open from a tile or a shortcut |
 | `pages` | array of pages | every other page |
 
 ## Formatting values
@@ -89,7 +89,7 @@ with a `format` it shows the whole text instead.
 | `language` | `en` (default), `bg`, `cs`, `da`, `de`, `el`, `es`, `et`, `fi`, `fr`, `ga`, `hr`, `hu`, `it`, `lt`, `lv`, `mt`, `nb`, `nl`, `pl`, `pt`, `ro`, `sk`, `sl`, `sv` | language of the texts the panel itself writes (on/off, weekdays, months, "no value", the info, settings, cover and thermostat words) and how it writes numbers: `1,234.5` (en, ga, mt), `1.234,5` (de, da, el, es, hr, it, nl, ro, sl), `1 234,5` (bg, cs, et, fi, fr, hu, lt, lv, nb, pl, pt, sk, sv) |
 | `date_format` | string | how dates are written; default: the language's own, short enough for the home screen (`%a, %e %b` "Mon, 5 Oct", `%a, %e. %b` "Mo, 5. Okt.", `%a %e %b` "lun 5 oct", `%a %-d.%-m.` "ma 5.10." ...); e.g. `%a, %e. %b %y` ("Mo, 5. Okt. 26") or `%d/%m/%Y` |
 | `time_format` | string | e.g. `%H:%M` (default, "09:35"), `%-H:%M` ("9:35"), `%I:%M %p` ("01:35 PM") or `%-I:%M %p` ("1:35 PM"); with `%p` the display shows AM/PM small above the minutes |
-| `home_after` | number | seconds without a touch (on the screen or a button) after which another page goes back to home; not a media page while its player plays (paused, it counts from then); default 60, 0: never; at most 3600 |
+| `home_after` | number | seconds without a touch (on the screen or a button) after which another page goes back to the start page (the swipe row's first, home unless the row begins with another one); not a media page while its player plays (paused, it counts from then); default 60, 0: never; at most 3600 |
 | `page_fade` | number | a swipe to another page fades the screen out and in again, that many ms each way (in 4 steps), hiding how the display draws the new page; default 0 (not), at most 1000 |
 | `cover_reveal` | string | how the media page's cover appears: `dissolve` (in a random order, the default), `center` (from the middle outwards), `sharpen` (blurred first, 8 x 8 and then 4 x 4 points averaged, then sharp; a third more to draw), `wipe` (row by row from the top) |
 | `screen` | object | the screen's brightness, see below |
@@ -139,6 +139,9 @@ the home screen, weather dates and fields with `format`. Values openHAB
 formats itself (`displayState`) keep openHAB's format.
 
 ## Home screen
+
+The start page, unless the swipe row begins with another one (see `swipe`). Taken out of the row, its clock,
+weather, status icons and info lines do not show; the hardware buttons still switch, only their labels are gone.
 
 | Member | Type | |
 |---|---|---|

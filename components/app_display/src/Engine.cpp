@@ -257,6 +257,8 @@ bool Engine::load_design(const char *manifest_json, const char *weather_json) {
     return cJSON_IsNumber(v) && v->valueint > 0 ? v->valueint : dflt;
   };
   display_size_ = {snum("w", 480), snum("h", 320), snum("visible_w", 450), snum("visible_h", 320)};
+  const cJSON *dm = member(m, "dots");
+  dots_max_ = cJSON_IsNumber(dm) && dm->valueint > 0 ? dm->valueint : 8;
   fit_.clear();
   const cJSON *fit = member(m, "fit");
   for (const cJSON *pg = cJSON_IsObject(fit) ? fit->child : nullptr; pg; pg = pg->next)
@@ -329,6 +331,7 @@ void Engine::set_config(const std::string &json) {
   dated_rules_ = json.find("\"within_days\"") != std::string::npos;
   const ScreenSettings before = settings_.screen;
   settings_ = display_settings(member(config_, "display"));
+  make_swipe_row();
   screen_config(before);
   const std::string notify = str(member(member(config_, "display"), "notifications"), "item");
   if (notify != notify_item_) {
@@ -338,9 +341,10 @@ void Engine::set_config(const std::string &json) {
   update_theme();
   if (status_.openhab)
     prefetch_at_ = now_ms_ + kPrefetchDelayMs;   // a catalogue the new configuration names
-  // the page shown may be gone
-  if (current_ != "home" && !page_config(current_)) {
-    current_ = "home";
+  // the page shown may be gone -- or home, taken out of the row: the start page then
+  const bool home_in_row = std::find(swipe_row_.begin(), swipe_row_.end(), "home") != swipe_row_.end();
+  if ((current_ != "home" && !page_config(current_)) || (current_ == "home" && !home_in_row)) {
+    current_ = start_page();
     history_.clear();
   }
   if (started_)
@@ -388,14 +392,14 @@ void Engine::start() {
   if (started_)
     return;
   started_ = true;
-  current_ = "home";
+  current_ = start_page();
   history_.clear();
   send_theme();
   if (shown_ == "boot" && boot_shown_ms_ >= 0 && now_ms_ - boot_shown_ms_ < kBootPageMinMs) {
     start_at_ms_ = boot_shown_ms_ + kBootPageMinMs;   // the boot page a moment longer (idle())
     return;
   }
-  show_physical("home");
+  show_current();
 }
 
 // ----------------------------------------------------------------- output --
@@ -855,20 +859,27 @@ void Engine::show_physical(const std::string &wanted) {
   // what was still to be drawn belongs to the page going: on the next it would land wherever it lands
   logo_queue_.clear();
   cover_job_.reset();
+  // the start page (not home) has no close cross: the page hides it as it loads (ohpanel_hmi.py no_close_on_start)
+  const cJSON *cfg = current_ == "home" ? nullptr : page_config(current_);
+  const bool no_close = cfg && current_ == start_page() && name == template_of(cfg);
+  if (no_close != no_close_sent_) {
+    no_close_sent_ = no_close;
+    send(std::string("no_close=") + (no_close ? "1" : "0"));
+  }
   send("page " + std::to_string(it->second.id));
   note_drawn_ = false;
 }
 
-void Engine::open(const std::string &id, bool remember) {
+void Engine::open(const std::string &id, bool remember, bool last_sheet) {
   const cJSON *page = id == "home" ? nullptr : page_config(id);
   if (id != "home" && !page)
     return;
   if (remember && id != current_)
     history_.push_back(current_);
-  if (id == "home")
+  if (id == start_page())
     history_.clear();
   current_ = id;
-  sheet_ = 0;
+  sheet_ = last_sheet ? std::max(0, sheets_of(page) - 1) : 0;   // a swipe back: where it ends
   light_view_ = 0;
   station_sheet_ = 0;
   favorites_asked_ = false;
@@ -877,13 +888,13 @@ void Engine::open(const std::string &id, bool remember) {
 }
 
 void Engine::back() {
-  std::string target = "home";
+  std::string target = start_page();
   while (!history_.empty()) {
     target = history_.back();
     history_.pop_back();
     if (target == "home" || page_config(target))
       break;
-    target = "home";
+    target = start_page();
   }
   open(target, false);
 }
@@ -894,27 +905,16 @@ void Engine::swipe(const std::string &direction) {
   if ((shown_ == "cover" && now_ms_ - cover_drag_.since_ms < 1000) ||
       (shown_ == "thermostat" && now_ms_ - thermo_drag_.since_ms < 1000))
     return;   // a finger moving on the cover's drawing, on the thermostat's ring: not a swipe
-  if (type_of(page) == PageType::Entities || type_of(page) == PageType::Weather ||
-      (type_of(page) == PageType::Cover && member(page, "group"))) {
-    // the finger moving left brings the next sheet (rows, a day), as the next page in the row
-    if (direction != "left" && direction != "right")
-      return;
-    int sheets = static_cast<int>(days_of(page).size());
-    if (type_of(page) == PageType::Cover)   // the group's rows, the whole group first: four a sheet
-      sheets = std::max(1, (static_cast<int>(cover_rows(page).size()) + cover_rows_per_sheet(page) - 1) /
-                               cover_rows_per_sheet(page));
-    if (type_of(page) == PageType::Entities) {
-      const cJSON *rows = rows_of(page);
-      const int count = cJSON_IsArray(rows) ? cJSON_GetArraySize(rows) : 0;
-      const int per = rows_per_sheet(page);
-      sheets = std::max(1, (count + per - 1) / per);
-    }
+  const std::vector<std::string> &row = swipe_row();
+  if (const int sheets = sheets_of(page); sheets > 1 && (direction == "left" || direction == "right")) {
+    // the finger moving left brings the next sheet (rows, a day), as the next page in the row; past the last (the
+    // first) one, a page in the row goes on to the next page (the one before, on its last sheet)
     const int next = sheet_ + (direction == "left" ? 1 : -1);
     if (next >= 0 && next < sheets) {
       sheet_ = next;
       show_physical(template_of(page));
+      return;
     }
-    return;
   }
   if (type_of(page) == PageType::MediaFavorites) {   // sheets of stations: the finger moving left or up brings the next
     const int count = static_cast<int>(stations_of(page).size());
@@ -928,14 +928,39 @@ void Engine::swipe(const std::string &direction) {
   }
   if (direction != "left" && direction != "right")
     return;
-  const std::vector<std::string> row = swipe_row();
   const int n = static_cast<int>(row.size());
   const auto it = std::find(row.begin(), row.end(), current_);
   if (it == row.end() || n < 2)
     return;
   // the finger moving left brings the next page in, as on a phone
   const int at = static_cast<int>(it - row.begin());
-  fade_to(row[(at + (direction == "left" ? 1 : n - 1)) % n]);
+  fade_to(row[(at + (direction == "left" ? 1 : n - 1)) % n], direction == "right");
+}
+
+bool Engine::in_swipe_row() const {
+  return swipe_row_.size() > 1 && std::find(swipe_row_.begin(), swipe_row_.end(), current_) != swipe_row_.end();
+}
+
+std::string Engine::sheet_dots(int sheets, int at) const {
+  std::string dots;
+  for (int k = 0; k < sheets; k++)
+    dots += icon_glyph(k == at ? "circle-medium" : "circle-small");
+  return dots;
+}
+
+int Engine::sheets_of(const cJSON *page) {
+  if (type_of(page) == PageType::Weather)
+    return std::max(1, static_cast<int>(days_of(page).size()));
+  if (type_of(page) == PageType::Cover && member(page, "group"))   // the group's rows, the whole group first
+    return std::max(1, (static_cast<int>(cover_rows(page).size()) + cover_rows_per_sheet(page) - 1) /
+                           cover_rows_per_sheet(page));
+  if (type_of(page) == PageType::Entities) {
+    const cJSON *rows = rows_of(page);
+    const int count = cJSON_IsArray(rows) ? cJSON_GetArraySize(rows) : 0;
+    const int per = rows_per_sheet(page);
+    return std::max(1, (count + per - 1) / per);
+  }
+  return 1;
 }
 
 /* The swipe's page change, softened: the backlight down in a few steps, the
@@ -948,14 +973,14 @@ constexpr int kFadeSteps = 4;
 constexpr int64_t kFadeWaitMs = 1500;   // the page not there by then: the light back anyway
 }  // namespace
 
-void Engine::fade_to(const std::string &id) {
+void Engine::fade_to(const std::string &id, bool last_sheet) {
   // display.page_fade: so long each way, in kFadeSteps steps
   fade_step_ms_ = settings_.page_fade / kFadeSteps;
   if (fade_step_ms_ <= 0 || level_ <= 0 || asleep_) {
-    open(id, false);
+    open(id, false, last_sheet);
     return;
   }
-  fade_ = Fade{1, 0, now_ms_ - fade_step_ms_, id};   // the first step at once
+  fade_ = Fade{1, 0, now_ms_ - fade_step_ms_, id, last_sheet};   // the first step at once
   fade_tick();
 }
 
@@ -969,7 +994,7 @@ void Engine::fade_tick() {
     send("dim=" + std::to_string(full * (kFadeSteps - fade_.step) / kFadeSteps));
     if (fade_.step >= kFadeSteps) {
       fade_.phase = 2;
-      open(fade_.target, false);
+      open(fade_.target, false, fade_.last_sheet);
     }
   } else if (fade_.phase == 2) {
     if (now_ms_ - fade_.at >= kFadeWaitMs) {   // never loaded: back to the brightness in use
@@ -985,22 +1010,24 @@ void Engine::fade_tick() {
   }
 }
 
-/* The pages reached by swiping, in order: home always first -- the start
-   screen -- then the configuration's swipe row without it (an older one may
-   name home elsewhere, or not at all). */
-/* The swipe row: home first, then the configured button pages -- the only
-   ones that may be in it (the configuration checks that too, Schema); the
-   others open from a tile or a shortcut. */
-std::vector<std::string> Engine::swipe_row() const {
-  std::vector<std::string> row{"home"};
+/* The pages reached by swiping, in the configuration's order ("swipe"), made once a configuration: home, if it names
+   it, and pages of the types that may be in it -- buttons, entities, weather, QR, info (the configuration checks
+   that too, Schema); the others open from a tile or a shortcut. Its first is the start page (start_page()); none
+   (no row): home alone. */
+void Engine::make_swipe_row() {
+  swipe_row_.clear();
   const cJSON *list = member(config_, "swipe");
   for (const cJSON *e = cJSON_IsArray(list) ? list->child : nullptr; e; e = e->next) {
-    if (!cJSON_IsString(e) || std::string(e->valuestring) == "home")
+    if (!cJSON_IsString(e) || std::find(swipe_row_.begin(), swipe_row_.end(), e->valuestring) != swipe_row_.end())
       continue;
-    if (type_of(page_config(e->valuestring)) == PageType::Buttons)
-      row.push_back(e->valuestring);
+    // the same types as the configuration's check (panel/Schema.cpp swipe_type: another component)
+    const PageType type = type_of(page_config(e->valuestring));
+    if (std::string(e->valuestring) == "home" || type == PageType::Buttons || type == PageType::Entities ||
+        type == PageType::Weather || type == PageType::Qr || type == PageType::System)
+      swipe_row_.push_back(e->valuestring);
   }
-  return row;
+  if (swipe_row_.empty())
+    swipe_row_.push_back("home");
 }
 
 void Engine::on_page_loaded(const std::string &name) {
@@ -1049,10 +1076,14 @@ void Engine::on_page_loaded(const std::string &name) {
     return;
   }
   if (name != expected_) {
-    // The display moved by itself (to home, e.g. after its own restart).
+    // The display moved by itself (to home, e.g. after its own restart): the start page
     if (name == "home") {
-      current_ = "home";
+      current_ = start_page();
       history_.clear();
+      if (current_ != "home") {
+        show_current();
+        return;
+      }
     } else {
       return;  // a page this firmware does not drive (settings)
     }
@@ -1102,6 +1133,7 @@ void Engine::link_down() {
 void Engine::link_up() {
   display_away();
   link_ = true;
+  no_close_sent_ = false;   // a display (re)started: its no_close is 0 again
   send_theme();
   if (started_)
     show_current();
@@ -1146,6 +1178,11 @@ void Engine::render() {
     }
   }
   draw_dots();
+  // the start page, when it is not home: nothing to go back to, no close cross
+  if (current_ != "home" && current_ == start_page()) {
+    vis("close", false);
+    vis("close_hs", false);
+  }
 }
 
 /* The design ships with one background; another one is set at runtime on the
@@ -1245,23 +1282,25 @@ void Engine::on_options(const std::string &item) {
 /* A weather page's days: its "days", or the page itself (a page of one day, as before "days" came). */
 void Engine::draw_dots() {
   const cJSON *cfg = current_ == "home" ? nullptr : page_config(current_);
-  if (const PageType type = type_of(cfg); type == PageType::MediaFavorites || type == PageType::Entities ||
-                                          type == PageType::Weather || (type == PageType::Cover && member(cfg, "group")))
-    return;   // their dots are their sheets (draw_favorites, draw_entities, draw_covers)
+  const bool in_row = in_swipe_row();
+  if (!in_row && (type_of(cfg) == PageType::MediaFavorites || sheets_of(cfg) > 1))
+    return;   // out of the row their dots are their sheets (draw_favorites, draw_entities, draw_weather, draw_covers)
   const auto page = pages_.find(shown_);
   if (page == pages_.end() || std::find(page->second.crop.begin(), page->second.crop.end(), "dots") ==
                                   page->second.crop.end())
     return;
-  const std::string full = icon_glyph("circle-medium"), small = icon_glyph("circle-small");
-  std::string dots;
-  const std::vector<std::string> row = swipe_row();
-  for (const std::string &id : row) {
-    if (!dots.empty())
-      dots += " ";
-    dots += current_ == id ? full : small;
+  // a dot for every sheet of the row's pages, as one row of screens, the one shown full -- more than the field
+  // takes: a dot a page
+  std::string sheets, pages;
+  int count = 0;
+  for (const std::string &id : swipe_row_) {
+    const int n = id == "home" ? 1 : sheets_of(page_config(id));
+    sheets += sheet_dots(n, id == current_ ? (n > 1 ? sheet_ : 0) : -1);
+    pages += sheet_dots(1, id == current_ ? 0 : -1);
+    count += n;
   }
-  const bool in_row = row.size() > 1 && std::find(row.begin(), row.end(), current_) != row.end();
-  txt("dots", in_row ? dots : "");
+  txt("dots", !in_row ? "" : count <= dots_max_ ? sheets : pages);
+  vis("dots", in_row);   // (a page that hides everything as it loads: the info page, a list)
 }
 
 // ----------------------------------------------------------------- events --
@@ -1722,12 +1761,13 @@ void Engine::idle(int64_t now_ms) {
   // a player that plays stays (and the volume card over it): what plays is what one looks at
   const cJSON *shown_page = current_ == "home" ? nullptr : page_config(current_);
   const bool playing = shown_page && type_of(shown_page) == PageType::Media && media_playing(shown_page);
-  if (current_ == "home" || asleep_ || note_ || playing)
-    home_ms_ = now_ms;  // (not away from a notification either)  // the time on another page counts from leaving home at the earliest
+  // the time on another page counts from leaving the start page at the earliest (not from a notification either)
+  if (current_ == start_page() || asleep_ || note_ || playing)
+    start_ms_ = now_ms;
   else if (settings_.home_after > 0 && started_ &&
-           now_ms - std::max(touched_ms_, home_ms_) >= settings_.home_after * 1000LL) {
-    home_ms_ = now_ms;
-    open("home", false);
+           now_ms - std::max(touched_ms_, start_ms_) >= settings_.home_after * 1000LL) {
+    start_ms_ = now_ms;
+    open(start_page(), false);
   }
   screen_tick();
   // numbers from items go into the stored configuration once they settle
@@ -1805,9 +1845,9 @@ void Engine::screen_tick() {
   }
   if (asleep_) {
     asleep_ = false;
-    current_ = "home";
+    current_ = start_page();
     history_.clear();
-    show_physical("home");
+    show_current();
   }
   set_level(level);
 }

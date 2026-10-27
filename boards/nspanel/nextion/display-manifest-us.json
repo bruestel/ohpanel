@@ -311,6 +311,7 @@
     "title",
     "caption1",
     "caption2",
+    "dots",
     "busy1",
     "busy2",
     "busy3"
@@ -423,6 +424,7 @@
    "background": true,
    "crop": [
     "title",
+    "dots",
     "busy1",
     "busy2",
     "busy3"
@@ -14859,6 +14861,7 @@
    ]
   }
  },
+ "dots": 15,
  "units": {
   "outdoor_u": {
    "x": 12,
@@ -15764,6 +15767,7 @@
    "qr_area",
    "caption1",
    "caption2",
+   "dots",
    "close_hs",
    "close",
    "busy1",
@@ -16045,6 +16049,7 @@
    "card8_line2",
    "card8_badge",
    "card7_hs",
+   "dots",
    "close_hs",
    "close",
    "busy1",
@@ -16228,5 +16233,5 @@
    "close"
   ]
  },
- "design": "302c1d9b"
+ "design": "fb4f8ee7"
 }
