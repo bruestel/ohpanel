@@ -107,7 +107,13 @@ it needs; not in the hotspot.
 
 ## Updates
 
-A firmware update over WiFi (Settings > Firmware,
+The simplest way: Settings > Firmware > **Check for updates**. The web interface looks for the latest release on
+GitHub (with *Test builds too* also the latest test build), and installs its firmware with one click; once the
+panel runs it, the same button offers the display design the new firmware needs. The browser downloads the files
+from the project's GitHub Pages, checks them against their SHA-256 and hands them to the panel: the browser needs
+the internet, the panel does not. Nothing is looked for unless the button is pressed.
+
+By hand: a firmware update over WiFi (Settings > Firmware,
 `ohpanel-nspanel-eu-firmware-<version>.bin`, next to the factory image in
 `.pio/build/nspanel/`) replaces only the firmware (the icon set is part of it). If the new firmware was built for another display design, the web
 interface says so on every page and names the file: write

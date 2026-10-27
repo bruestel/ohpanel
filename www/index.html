@@ -194,6 +194,10 @@ input:not([type=checkbox]):focus-visible,select:focus-visible,textarea:focus-vis
 input[type=checkbox]:focus:not(:focus-visible){outline:none}  /* a click leaves no ring; the keyboard's stays */
 .row{display:grid;grid-template-columns:repeat(auto-fit,minmax(12rem,1fr));gap:.75rem}
 .actions{display:flex;flex-wrap:wrap;gap:.5rem;align-items:center}
+#uTestBox{margin:0 0 .85rem}
+#uTestBox .sub{color:var(--dim);font-size:13px}
+#uMsg{margin-top:.45rem}
+#uNotes{color:var(--theme);font-size:14px;margin-left:.25rem}
 button.b,a.b{appearance:none;height:2rem;padding:0 .9rem;font-size:14px;font-weight:600;cursor:pointer;
          color:#fff;background:var(--theme-shade);border:1px solid var(--theme-shade);border-radius:6px}
 button.b:hover,a.b:hover{background:var(--theme);border-color:var(--theme)}
@@ -1166,6 +1170,21 @@ pre.box{margin:0;padding:.6rem .7rem;max-height:18rem;overflow:auto;background:v
     </div>
   </section>
   <section data-page="firmware" hidden>
+    <div class="card">
+      <h2>Updates</h2>
+      <p class="sub">Looks for a newer OHpanel on GitHub. The browser fetches it and hands it to the panel: the
+        browser needs the internet, the panel does not.</p>
+      <label class="check" id="uTestBox"><input type="checkbox" role="switch" id="uTest"> Test builds too
+        <span class="sub">(the next version before its release, less tried)</span></label>
+      <div class="actions">
+        <button class="b sec" id="uCheck" type="button">Check for updates</button>
+        <button class="b" id="uFirmware" type="button" hidden>Install the firmware</button>
+        <button class="b" id="uDisplay" type="button" hidden>Write the display design</button>
+        <a id="uNotes" target="_blank" rel="noopener" hidden>What is new</a>
+      </div>
+      <progress id="uProg" value="0" max="100" hidden></progress>
+      <div class="msg" id="uMsg"></div>
+    </div>
     <div class="card">
       <h2>Firmware update</h2>
       <p class="sub" id="oInfo">&nbsp;</p>
@@ -8512,6 +8531,111 @@ $('oStart').addEventListener('click', () => {
   xhr.send(file);
   setTimeout(pollTransfer, 800);  // the bar on top follows what the panel reports
 });
+
+/* ---- updates from GitHub ----
+   The latest release and the latest test build as the Pages site keeps them (tools/pages_updates.py): a release's
+   own files cannot be fetched from another page. Looked for only when asked; the browser downloads the file, checks
+   it against its SHA-256 and sends it to the panel as an upload would. */
+const UPDATES = 'https://bruestel.github.io/ohpanel/update/';
+let UPD = null;   // what was found: {u: its update.json, v: this panel variant's files, channel}
+
+/* A version's order: 0.11.0-rc1 before 0.11.0, a build past a tag (0.11.0-rc1-6-gabc1234) after the tag. */
+function versionKey(v) {
+  const m = /^v?(\d+)\.(\d+)\.(\d+)(?:-rc(\d+))?(-\d+-g[0-9a-f]+)?/.exec(v || '');
+  return m ? [+m[1], +m[2], +m[3], m[4] ? +m[4] : 1e6, m[5] ? 1 : 0] : [-1];
+}
+function newer(a, b) {
+  const x = versionKey(a), y = versionKey(b);
+  for (let i = 0; i < Math.max(x.length, y.length); i++)
+    if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0);
+  return false;
+}
+
+async function checkUpdates() {
+  $('uFirmware').hidden = $('uDisplay').hidden = $('uNotes').hidden = $('uProg').hidden = true;
+  setMsg($('uMsg'), 'Looking…');
+  const get = ch => fetch(UPDATES + ch + '/update.json', {cache: 'no-store'}).then(r => r.ok ? r.json() : null)
+    .then(u => u && Object.assign(u, {channel: ch})).catch(() => null);
+  const [stable, test] = await Promise.all([get('stable'), $('uTest').checked ? get('test') : null]);
+  const best = test && (!stable || newer(test.version, stable.version)) ? test : stable;
+  if (!best) { setMsg($('uMsg'), 'GitHub could not be reached: the browser needs the internet.', 'err'); return; }
+  const variant = ((info && info.board) || 'nspanel-eu').replace(/^nspanel-/, ''), v = best.variants[variant];
+  if (!v || !v.firmware) { setMsg($('uMsg'), best.version + ' has no firmware for this panel.', 'err'); return; }
+  UPD = {u: best, v, channel: best.channel};
+  const running = (info && info.version) || '', dp = (info && info.display) || {};
+  const kind = best.channel === 'test' ? 'test build ' : '';
+  if (newer(best.version, running)) {
+    $('uFirmware').hidden = false;
+    $('uNotes').href = best.url;
+    $('uNotes').hidden = false;
+    setMsg($('uMsg'), 'OHpanel ' + kind + best.version + ' is there (this panel runs ' + running + '). Once the panel '
+           + 'runs it, look again: a new display design follows the same way.', 'ok');
+  } else if (v.display && dp.design_expected === v.design && dp.design !== v.design) {
+    $('uDisplay').hidden = false;
+    setMsg($('uMsg'), 'The display design ' + v.design + ' of ' + best.version + ' is still to be written.', 'ok');
+  } else {
+    setMsg($('uMsg'), 'Up to date: this panel runs ' + running + ', the latest ' + (kind || 'release ') + 'is '
+           + best.version + '.', 'ok');
+  }
+}
+
+/* The update's firmware or display design: downloaded, checked, sent to the panel (/api/v1/ota, /display/tft). */
+async function installUpdate(kind) {
+  const {u, v, channel} = UPD, name = v[kind], size = v[kind + '_size'], sum = v[kind + '_sha256'];
+  if (!confirm(kind === 'firmware' ? 'Install OHpanel ' + u.version + '? The panel restarts with it.'
+               : 'Write the display design ' + v.design + '? The screen is unusable until it has finished (about 15 minutes).'))
+    return;
+  const buttons = [$('uCheck'), $('uFirmware'), $('uDisplay')];
+  buttons.forEach(b => { b.disabled = true; });
+  const done = (text, cls) => { setMsg($('uMsg'), text, cls); buttons.forEach(b => { b.disabled = false; }); };
+  $('uProg').hidden = false; $('uProg').value = 0;
+  setMsg($('uMsg'), 'Downloading ' + name + '…');
+  let data;
+  try {   // the download: the first half of the bar
+    const r = await fetch(UPDATES + channel + '/' + name, {cache: 'no-store'});
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const reader = r.body.getReader(), parts = [];
+    let got = 0;
+    for (;;) {
+      const {done: end, value} = await reader.read();
+      if (end) break;
+      parts.push(value);
+      got += value.length;
+      $('uProg').value = got * 50 / size;
+    }
+    data = new Blob(parts);
+  } catch (e) { done('The download failed: ' + e.message, 'err'); return; }
+  if (data.size !== size) { done('The download is incomplete (' + data.size + ' of ' + size + ' bytes).', 'err'); return; }
+  if (crypto.subtle) {   // (only on a secure page, the panel's https one)
+    const hash = [...new Uint8Array(await crypto.subtle.digest('SHA-256', await data.arrayBuffer()))]
+      .map(b => b.toString(16).padStart(2, '0')).join('');
+    if (hash !== sum) { done('The download does not match its checksum: not sent to the panel.', 'err'); return; }
+  }
+  setMsg($('uMsg'), kind === 'firmware' ? 'Sending it to the panel…' : 'Writing to the display…');
+  const xhr = new XMLHttpRequest();   // the upload: the second half
+  xhr.open('POST', '/api/v1' + (kind === 'firmware' ? '/ota' : '/display/tft'));
+  xhr.setRequestHeader('Content-Type', 'application/octet-stream');
+  xhr.upload.onprogress = ev => { if (ev.lengthComputable) $('uProg').value = 50 + ev.loaded * 50 / ev.total; };
+  xhr.onload = () => {
+    let err = '';
+    try { err = JSON.parse(xhr.responseText).error || ''; } catch (e) {}
+    if (xhr.status !== 200) { done(err || 'HTTP ' + xhr.status, 'err'); return; }
+    $('uProg').value = 100;
+    done(kind === 'firmware' ? 'Done. The panel restarts with ' + u.version + '; check again then for its display design.'
+         : 'Done. The display restarts with the new design.', 'ok');
+  };
+  xhr.onerror = () => done('The upload was aborted.', 'err');
+  xhr.send(data);
+  setTimeout(pollTransfer, 800);   // the bar on top follows what the panel reports
+}
+$('uCheck').addEventListener('click', checkUpdates);
+// the browser remembers whether test builds are wanted
+try { $('uTest').checked = localStorage.getItem('ohpanel.update.test') === '1'; } catch (e) { /* no storage */ }
+$('uTest').addEventListener('change', () => {
+  try { localStorage.setItem('ohpanel.update.test', $('uTest').checked ? '1' : '0'); } catch (e) { /* no storage */ }
+});
+$('uFirmware').addEventListener('click', () => installUpdate('firmware'));
+$('uDisplay').addEventListener('click', () => installUpdate('display'));
 
 /* ---- display firmware ---- */
 /* Sends the chosen file to `path`; progress comes from the browser's upload,
