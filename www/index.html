@@ -232,6 +232,7 @@ input[type=file]::file-selector-button{appearance:none;height:2rem;padding:0 .9r
 .net .lock{width:.95rem;height:.95rem;fill:var(--dim);flex:none}
 .net.hidden-net{color:var(--theme)}
 .msg{font-size:13px;color:var(--dim);min-height:1.2em}
+.pved .pvdel{margin-top:1.2rem;padding-top:.9rem;border-top:1px solid var(--line)}
 .msg.ok{color:var(--ok)} .msg.warn{color:var(--warn)} .msg.err{color:var(--err)}
 /* the offer to switch to https (openHAB settings): a tinted box under the address */
 .offer{border:1px solid var(--alt);background:color-mix(in srgb,var(--alt) 9%,var(--surface));border-radius:10px;
@@ -5572,6 +5573,7 @@ function pvEditor() {
     todo.className = 'msg warn';
     todo.id = 'vTodo';
     hint.after(todo);
+    pvDeletePage(box, page);
     return;
   }
   if (page && page.type !== 'buttons') {
@@ -5583,6 +5585,7 @@ function pvEditor() {
     head.textContent = page ? page.title || page.id : 'Home';
     hint.textContent = page ? 'Click a tile to edit it, a + to add one, or the title. Drag a tile onto another place to move it.'
                             : 'Click what you want to change: the clock, the weather, the outdoor temperature, a value row, an icon, an info line, a relay button, or a + to add one. Drag one onto another place of its kind to move it.';
+    pvDeletePage(box, page);
     return;
   }
   hint.textContent = 'Changes show at once and go into the JSON above; Save stores them on the panel.';
@@ -5604,6 +5607,7 @@ function pvEditor() {
   } else if (t === 'title') {
     head.textContent = 'Page title';
     box.append(pvRow(field('Title', textInput(page.title, v => pvEdit((c, p) => { p.title = v; }), {maxLength: 30}))));
+    pvDeletePage(box, page);
   } else if (t === 'weather') {
     head.textContent = h.weather_icon ? 'Weather' : 'Weather (not shown)';
     if (!h.weather_icon) hint.textContent = 'Choose the item with the condition code to show the weather icon.';
@@ -7940,6 +7944,28 @@ function pageTitle(p) {
 /* A page of the list -- `place`: "row" (the swipe row: a handle to order it,
    and out of the row; `start`: its first, the start page; `rowSize`: how many
    it has) or "other" (no handle; a page of a type the row takes can join it). */
+/* A page deleted, once asked, and what points to it taken out (pageRefs); shown, the start page instead. */
+function deletePage(p) {
+  const refs = pageRefs(PV.cfg, p.id);
+  const what = refs.length ? '\n\nAlso taken out (they point to it):\n- ' + refs.map(r => r[0]).join('\n- ') : '';
+  if (!confirm('Delete the page "' + (p.title || p.id) + '"?' + what)) return;
+  pvEdit(c => {
+    pageRefs(c, p.id).forEach(r => r[1](c));
+    c.pages = c.pages.filter(q => q.id !== p.id);
+    setSwipe(c, swipeRow(c));
+  });
+  if (PV.page === p.id) pvOpen(startPage(PV.cfg), false);
+}
+const deletable = p => !!p && p.type !== 'home' && !p.builtin && p.id !== INFO_PAGE.id;
+
+/* The editor's end for the page shown: delete it. */
+function pvDeletePage(box, page) {
+  if (!deletable(page)) return;
+  const b = pvButtons([['Delete this page', 'danger', () => deletePage(page)]]);
+  b.classList.add('pvdel');
+  box.appendChild(b);
+}
+
 function pgItem(p, cfg, place, start = false, rowSize = 0) {
   const el = document.createElement('div');
   el.className = 'pg' + (place === 'other' ? ' free' : '');
@@ -8012,23 +8038,13 @@ function pgItem(p, cfg, place, start = false, rowSize = 0) {
   else if (place === 'row' && !(p.type === 'home' && rowSize === 1))   // home alone stays (the row is never empty)
     move('M14 10H3V12H14V10M14 6H3V8H14V6M3 16H10V14H3V16M14.4 22L17 19.4L19.6 22L21 20.6L18.4 18L21 15.4L19.6 14L17 16.6L14.4 14L13 15.4L15.6 18L13 20.6L14.4 22Z', 'Out of the swipe row (it then opens from a tile or a shortcut)', 'Take out of the swipe row:',
          c => setSwipe(c, swipeRow(c).filter(id => id !== p.id)));
-  if (p.type !== 'home' && !p.builtin && p.id !== INFO_PAGE.id) {
+  if (deletable(p)) {
     const del = document.createElement('button');
     del.type = 'button'; del.className = 'b sec ib';
     del.innerHTML = icon('M6,19A2,2 0 0,0 8,21H16A2,2 0 0,0 18,19V7H6V19M8,9H16V19H8V9M15.5,4L14.5,3H9.5L8.5,4H5V6H19V4H15.5Z');
     del.title = 'Delete the page';
     del.setAttribute('aria-label', 'Delete ' + (p.title || p.id));
-    del.addEventListener('click', () => {
-      const refs = pageRefs(cfg, p.id);
-      const what = refs.length ? '\n\nAlso taken out (they point to it):\n- ' + refs.map(r => r[0]).join('\n- ') : '';
-      if (!confirm('Delete the page "' + (p.title || p.id) + '"?' + what)) return;
-      pvEdit(c => {
-        pageRefs(c, p.id).forEach(r => r[1](c));
-        c.pages = c.pages.filter(q => q.id !== p.id);
-        setSwipe(c, swipeRow(c));
-      });
-      if (PV.page === p.id) pvOpen(startPage(PV.cfg), false);
-    });
+    del.addEventListener('click', () => deletePage(p));
     acts.appendChild(del);
   }
   el.append(t, acts);
