@@ -770,6 +770,24 @@ def thermostat_page(p: Project) -> None:
     on_load(page, loaded(page) + ["vis 255,0", "vis title,1", "vis close_hs,1", "vis close,1"])
 
 
+def filled_circle(x0: int, y0: int, r: int, color: str) -> list[str]:
+    """A disc as the display draws it with fill, a run of rows a rectangle: round to the pixel. Its own cirs is a
+    polygon, flat on top, at the bottom and on the diagonals."""
+    rows = []
+    for y in range(-r, r):
+        half = math.sqrt(max(0.0, r * r - (y + 0.5) ** 2))   # the row's middle
+        left, right = round(x0 - half), round(x0 + half)
+        if right > left:
+            rows.append([y0 + y, left, right, 1])
+    runs = []
+    for row in rows:   # rows of the same width as the one before: one rectangle
+        if runs and runs[-1][1:3] == row[1:3] and runs[-1][0] + runs[-1][3] == row[0]:
+            runs[-1][3] += 1
+        else:
+            runs.append(row)
+    return [f"fill {left},{y},{right - left},{h},{color}" for y, left, right, h in runs]
+
+
 # The keypad page's code: its places as OHpanel's own icons (own_icons.py: smaller than MDI's circles, apart), in
 # event code as the bytes of their UTF-8 the project's encoding (iso-8859-1) writes; at most KEYPAD_LONGEST of them.
 KEYPAD_TYPED, KEYPAD_EMPTY = "ohpanel-code-typed", "ohpanel-code-empty"
@@ -783,7 +801,7 @@ def keypad_page(p: Project) -> None:
     """The keypad page (page type "keypad", Engine::draw_keypad): a code typed on the keys, sent with one of up to
     four buttons. The code is the display's own until then: each key adds to it (the variable "code"), the places
     under the state fill ("typed": as many as the firmware says, "places", else one per character typed), a key
-    pressed shows a disc in the accent behind it, drawn here (cirs, then its label again with xstr; ref, when let
+    pressed shows a disc in the accent behind it, drawn here (filled_circle(), then its label again with xstr; ref, when let
     go, puts the field back); the keys only tell the firmware that they were touched. A button sends the code with
     its event ("button<k>", the code as the value) and empties it. The bottom row is backspace, 0, C -- or with
     "phone" ("phone.val", set by the firmware) *, 0, #, backspace then on the code's places. The state and the
@@ -831,23 +849,23 @@ def keypad_page(p: Project) -> None:
         n = f"k{i + 1}"
         box = (x0 - kw // 2, y0 - kh // 2, kw, kh)
         text(page, n, box, KEYPAD_DIGIT_FONT, xcen=1, maxl=4, pco=WHITE, txt=label or "*")
-        disc = f"cirs {x0},{y0},{r},th_accent"
+        disc = filled_circle(x0, y0, r, "th_accent")
         draw = lambda obj, font: f"xstr {box[0]},{box[1]},{kw},{kh},{font},{WHITE},0,1,1,3,{obj}.txt"   # noqa: E731
         if i == 9:   # backspace, or "*"
             ico = icon(page, "k10i", x0, y0, ICON_FONT_LARGE, glyph="backspace-outline", pco=WHITE)
             ico.set("txt", bytes.fromhex(KEYPAD_BACKSPACE))
             ix, iy, iw, ih = (ico.get(k) for k in ("x", "y", "w", "h"))
-            press = [disc, "if(phone.val==1)", "{", "  " + draw(n, KEYPAD_DIGIT_FONT), "}else", "{",
+            press = disc + ["if(phone.val==1)", "{", "  " + draw(n, KEYPAD_DIGIT_FONT), "}else", "{",
                      # on the disc's colour, not on nothing: the icon font's smoothed edges came out black
                      f"  xstr {ix},{iy},{iw},{ih},{ICON_FONT_LARGE},{WHITE},th_accent,1,1,1,k10i.txt", "}"]
             # the icon's field is smaller than the disc: the key's background back first (Program.s bg_pic)
             act = ["if(phone.val==1)", "{", f"  ref {n}"] + ["  " + l for l in add("*")] + ["}else", "{",
                    f"  picq {box[0]},{box[1]},{kw},{kh},bg_pic", "  ref k10i"] + ["  " + l for l in backspace] + ["}"]
         elif i == 11:   # C, or "#"
-            press = [disc, draw(n, KEYPAD_DIGIT_FONT)]
+            press = disc + [draw(n, KEYPAD_DIGIT_FONT)]
             act = [f"ref {n}", "if(phone.val==1)", "{"] + ["  " + l for l in add("#")] + ["}else", "{", '  code.txt=""', "}"]
         else:
-            press = [disc, draw(n, KEYPAD_DIGIT_FONT)]
+            press = disc + [draw(n, KEYPAD_DIGIT_FONT)]
             act = [f"ref {n}"] + add(label)
         # moved: only the key as it was (the disc away)
         undo = [f"picq {box[0]},{box[1]},{kw},{kh},bg_pic", f"ref {n}", "ref k10i"] if i == 9 else [f"ref {n}"]
