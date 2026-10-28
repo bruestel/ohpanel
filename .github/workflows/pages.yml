@@ -49,7 +49,9 @@ jobs:
             for zip in /tmp/release/ohpanel-*.zip; do   # a zip per panel variant (one for all before 0.11.0)
               unzip -q -o "$zip" -d /tmp/release
             done
-            cp /tmp/release/ohpanel-*/licences/* _site/licences/
+            for dir in /tmp/release/ohpanel-*/licences; do   # each zip's the same: one after the other
+              cp "$dir"/* _site/licences/
+            done
             # a factory image and a manifest per panel variant the release has (tools/variant.py); manifest.json the
             # EU's, as before there were variants
             for image in /tmp/release/ohpanel-*/ohpanel-nspanel-*-factory-*.bin; do
