@@ -232,7 +232,7 @@ input[type=file]::file-selector-button{appearance:none;height:2rem;padding:0 .9r
 .net .lock{width:.95rem;height:.95rem;fill:var(--dim);flex:none}
 .net.hidden-net{color:var(--theme)}
 .msg{font-size:13px;color:var(--dim);min-height:1.2em}
-.msg.ok{color:var(--ok)} .msg.err{color:var(--err)}
+.msg.ok{color:var(--ok)} .msg.warn{color:var(--warn)} .msg.err{color:var(--err)}
 /* the offer to switch to https (openHAB settings): a tinted box under the address */
 .offer{border:1px solid var(--alt);background:color-mix(in srgb,var(--alt) 9%,var(--surface));border-radius:10px;
        padding:.75rem .9rem;margin:.6rem 0 .8rem}
@@ -322,8 +322,19 @@ details.advanced[open]>summary{margin-bottom:.6rem}
 .pages .pg .acts{display:flex;gap:.3rem}
 .pages .pg .acts .ib{width:1.8rem;padding:0;display:grid;place-items:center}
 .pages .pg .acts .ib svg{width:1.05rem;height:1.05rem;fill:currentColor}
-.pgnew{display:flex;flex-wrap:wrap;gap:.6rem;align-items:flex-end}
-.pgnew label:not(.check){flex:1 1 9rem}
+/* adding a page: a button under each list, the types' tiles opening under it */
+.pgadd{appearance:none;width:100%;border:1px dashed var(--line);border-radius:.5rem;background:none;
+  color:var(--theme);font:inherit;font-size:14px;padding:.45rem .6rem;text-align:left;cursor:pointer;margin:-.4rem 0 .9rem}
+.pgadd:hover,.pgadd[aria-expanded="true"]{border-color:var(--theme)}
+.pgpick{display:grid;grid-template-columns:repeat(auto-fill,minmax(11.5rem,1fr));gap:.4rem;margin:-.5rem 0 .9rem}
+.pgpick button{appearance:none;display:grid;grid-template-columns:auto minmax(0,1fr);gap:.1rem .5rem;align-items:center;
+  text-align:left;font:inherit;color:var(--fg);background:var(--surface2);border:1px solid transparent;
+  border-radius:.5rem;padding:.5rem .6rem;cursor:pointer}
+.pgpick button:hover,.pgpick button:focus-visible{border-color:var(--theme)}
+.pgpick button canvas{grid-row:span 2}
+.pgpick button b{font-size:14px;font-weight:600}
+.pgpick button span{grid-column:2;font-size:12px;color:var(--dim);line-height:1.3}
+.pages .pg .t .chip.todo{color:var(--warn);border-color:color-mix(in srgb,var(--warn) 50%,transparent)}
 .themerow{display:flex;flex-wrap:wrap;gap:.6rem 1.4rem;margin-top:.75rem}
 .screenh{margin:1.1rem 0 .2rem;font-size:14px}
 .screen{display:grid;gap:.9rem;margin-top:.6rem}
@@ -967,20 +978,14 @@ pre.box{margin:0;padding:.6rem .7rem;max-height:18rem;overflow:auto;background:v
         <div class="pgarea">
           <h3>Swipe row <span class="sub">its first is the start page</span></h3>
           <div class="pages" id="pgRow"></div>
+          <button class="pgadd" type="button" id="pgAddRow" aria-expanded="false">+ Add to the swipe row</button>
         </div>
         <div class="pgarea">
           <h3>Other pages <span class="sub">opened from tiles and shortcuts</span></h3>
           <div class="pages" id="pgOther"></div>
+          <button class="pgadd" type="button" id="pgAddOther" aria-expanded="false">+ Add a page</button>
         </div>
-        <form class="pgnew" id="pgNew">
-          <label>New page<select id="pgType"></select></label>
-          <label>Title<input type="text" id="pgTitle" maxlength="64" placeholder="e.g. Living room"></label>
-          <label id="pgItemBox">Item<input type="text" id="pgItem" spellcheck="false" placeholder="openHAB item"></label>
-          <label id="pgTextBox" hidden>Text<input type="text" id="pgText" maxlength="80" placeholder="e.g. WIFI:T:WPA;S:guest;P:secret;;"></label>
-          <label class="check" id="pgSwipeBox"><input type="checkbox" role="switch" id="pgSwipe" checked> In the swipe row</label>
-          <button class="b" type="submit">Add</button>
-          <span class="msg" id="pgMsg"></span>
-        </form>
+        <div class="pgpick" id="pgPick" hidden></div>
       </div>
       <div class="card">
         <h2>Display</h2>
@@ -2713,6 +2718,18 @@ async function savePanel(text) {
     updateSaveBar('the JSON does not parse');
     return;
   }
+  // a page still without what the panel needs (pageMissing): not sent, the first opened in the editor instead
+  const unfinished = pagesOf(parsed || {}).filter(p => pageMissing(p));
+  if (unfinished.length) {
+    const say = p => '"' + pageTitle(p) + '" still needs ' + pageMissing(p);
+    PV.edit = true;
+    pvShowEditing();
+    pvOpen(unfinished[0].id, false);
+    $('vWrap').scrollIntoView({block: 'start', behavior: 'smooth'});
+    setMsg($('pMsg'), 'Not saved: ' + unfinished.map(say).join('; ') + '.', 'err');
+    updateSaveBar(say(unfinished[0]) + (unfinished.length > 1 ? ' …' : ''));
+    return;
+  }
   // pages of other types leave the swipe row (SWIPE_TYPES): the panel would refuse them
   const dropped = [];
   if (parsed && Array.isArray(parsed.swipe)) {
@@ -3753,9 +3770,15 @@ function renderPreview() {
 
   syncBackgroundSelect(cfg);
   const template = drawPage(box, cfg, sel.value);
+  const missing = pageMissing(pvPage(PV.page));
+  if (missing) setMsg($('vMsg'), 'Unfinished: still to choose ' + missing + (PV.edit ? ', below' : ' (Edit preview)') + '.', 'warn');
   drawPeeks(cfg);
   pvOverlays(box, template);
   pvEditor();
+  if ($('vTodo')) {
+    $('vTodo').hidden = !missing;
+    $('vTodo').textContent = missing ? 'Unfinished: still to choose ' + missing + '.' : '';
+  }
   if (PV.entNow) PV.entNow();   // an entity page's members as they show now: with the states as they come
   scalePreview();
 }
@@ -5545,6 +5568,10 @@ function pvEditor() {
   const kind = page && PAGE_KINDS[page.type];
   if (kind && kind.editor) {   // a page with a form of its own (a button page: its tiles, below)
     kind.editor(box, head, hint, page);
+    const todo = document.createElement('p');   // what Save waits for, as it is now (renderPreview)
+    todo.className = 'msg warn';
+    todo.id = 'vTodo';
+    hint.after(todo);
     return;
   }
   if (page && page.type !== 'buttons') {
@@ -7763,30 +7790,49 @@ function openColorPicker(anchor, start, onApply) {
    what a new one gets (`make`) and the item it asks for and where that goes (`item`); how the preview fills the
    design's objects for it (`fill`); its form in the editor (`editor`; a button page's tiles have the generic one). */
 const PAGE_KINDS = {
-  buttons: {label: 'Buttons', choice: 'Buttons', make: p => { p.buttons = []; }, fill: fillButtons},
-  entities: {label: 'Entities', choice: 'Entities (a list)', make: p => { p.rows = []; }, fill: fillEntities,
-             editor: pvEntitiesEditor},
-  light: {label: 'Light', choice: 'Light', item: (p, item) => { p.brightness = {item}; }, fill: fillControl,
-          editor: pvLightEditor},
-  cover: {label: 'Cover', choice: 'Cover (blinds)', item: (p, item) => { p.item = item; },
+  buttons: {label: 'Buttons', about: 'Tiles that switch, dim or open pages', icon: 'view-grid-outline',
+            make: p => { p.buttons = []; }, fill: fillButtons},
+  entities: {label: 'Entities', about: 'A list of values, or a group\'s members', icon: 'format-list-bulleted',
+             make: p => { p.rows = []; }, fill: fillEntities, editor: pvEntitiesEditor},
+  light: {label: 'Light', about: 'Brightness, colour temperature, colour', icon: 'lightbulb-outline',
+          fill: fillControl, editor: pvLightEditor},
+  cover: {label: 'Cover', about: 'Blinds, shutters, an awning', icon: 'blinds',
           fill: p => p.group ? fillCovers(p) : fillCover(p), editor: pvCoverEditor},
-  thermostat: {label: 'Thermostat', choice: 'Thermostat', item: (p, item) => { p.item = item; }, fill: fillThermostat,
-               editor: pvThermostatEditor},
-  keypad: {label: 'Keypad', choice: 'Keypad (alarm, door code)', item: (p, item) => { p.item = item; },
+  thermostat: {label: 'Thermostat', about: 'The target temperature and its modes', icon: 'thermostat',
+               fill: fillThermostat, editor: pvThermostatEditor},
+  keypad: {label: 'Keypad', about: 'A code for an alarm or a door', icon: 'dialpad',
            make: p => { p.buttons = [{label: 'Send', icon: 'send'}]; }, fill: fillKeypad, editor: pvKeypadEditor},
-  media: {label: 'Media', choice: 'Media player', item: (p, item) => { p.control = {item}; }, fill: fillMedia,
-          editor: pvMediaEditor},
-  media_favorites: {label: 'Media favourites', choice: 'Media favourites (stations)',
-                    item: (p, item) => { p.stations = {item}; },   // the catalogue item
+  media: {label: 'Media', about: 'A speaker: what plays, its volume', icon: 'speaker',
+          fill: fillMedia, editor: pvMediaEditor},
+  media_favorites: {label: 'Media favourites', about: 'Radio stations to choose from', icon: 'star-outline',
                     fill: fillFavorites, editor: pvFavoritesEditor},
-  weather: {label: 'Weather', choice: 'Weather forecast',
-            item: (p, item) => { p.days = [{day: 0, icon: {item}}]; },   // today; more days in the preview's editor
+  weather: {label: 'Weather', about: 'The forecast, a sheet a day', icon: 'weather-partly-cloudy',
+            make: p => { p.days = [{day: 0}]; },   // today; more days in the preview's editor
             fill: fillWeather, editor: pvWeatherEditor},
-  qr: {label: 'QR code', choice: 'QR code', text: true, fill: fillQr, editor: pvQrEditor},
+  qr: {label: 'QR code', about: 'The guest WiFi, a link', icon: 'qrcode', fill: fillQr, editor: pvQrEditor},
   system: {label: 'Panel info', fill: fillSystem},
   settings: {label: 'Settings', fill: fillSettings},
 };
 const PAGE_TYPES = Object.fromEntries(Object.entries(PAGE_KINDS).map(([type, k]) => [type, k.label]));
+
+/* What a page still needs before the panel takes it (the members Schema.cpp requires), in words; '' when nothing.
+   A page added in the web interface starts without its items. */
+function pageMissing(p) {
+  const has = r => !!(r && r.item);
+  switch (p && p.type) {
+    case 'light': return has(p.brightness) ? '' : 'the brightness item';
+    case 'cover': return p.item || p.group ? '' : 'the item (or a group)';
+    case 'thermostat': return p.item ? '' : 'the target temperature item';
+    case 'keypad':
+      if (!(p.buttons || []).length) return 'a button';
+      return p.item || p.buttons.every(b => b && b.item) ? '' : 'the item the buttons send to';
+    case 'media': return has(p.control) ? '' : 'the player item';
+    case 'media_favorites': return has(p.stations) ? '' : 'the stations item';
+    case 'weather': return (p.days || [p]).every(d => has(d && d.icon)) ? '' : 'the condition item';
+    case 'qr': return p.text ? '' : 'the text';
+  }
+  return '';
+}
 
 function slugify(t) {
   return (t.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/ß/g, 'ss')
@@ -7929,8 +7975,16 @@ function pgItem(p, cfg, place, start = false, rowSize = 0) {
   pid.className = 'pid';
   pid.textContent = '#' + p.id;
   pid.title = 'Id of the page: what buttons, shortcuts and the configuration refer to';
-  if (place === 'other') t.append(ttl, pid);   // under its type's heading: no chip of the type again
-  else t.append(...[ttl, start ? startChip : null, chip, pid].filter(Boolean));
+  // a page still without what the panel needs (pageMissing): Save waits for it
+  const missing = pageMissing(p);
+  const todo = missing ? document.createElement('span') : null;
+  if (todo) {
+    todo.className = 'chip todo';
+    todo.textContent = 'unfinished';
+    todo.title = 'Still to choose: ' + missing;
+  }
+  if (place === 'other') t.append(...[ttl, todo, pid].filter(Boolean));   // under its type's heading: no chip of the type again
+  else t.append(...[ttl, start ? startChip : null, chip, todo, pid].filter(Boolean));
   const acts = document.createElement('div');
   acts.className = 'acts';
   // icons, so title, type and id have the room (Material Design Icons open-in-new, delete-outline)
@@ -8047,41 +8101,67 @@ function pgKey(ev, id) {
   if (grip) grip.focus();
 }
 
-function showNewPageFields() {
-  const type = $('pgType').value, kind = PAGE_KINDS[type] || {};
-  $('pgItemBox').hidden = !kind.item;
-  $('pgTextBox').hidden = !kind.text;
-  $('pgSwipe').checked = type === 'buttons';   // a button page into the row at once, the others when asked
-  $('pgSwipeBox').hidden = !SWIPE_TYPES.includes(type);   // only these types can go into the row
+/* Adding a page: the button under a list opens the types' tiles under it (under the swipe row only the types it
+   takes); a tile adds the page at once, titled by its type, and opens it in the preview's editor, where its items
+   and everything else are chosen. */
+function pgPick(btn, row) {
+  const pick = $('pgPick'), open = btn.getAttribute('aria-expanded') === 'true';
+  ['pgAddRow', 'pgAddOther'].forEach(id => $(id).setAttribute('aria-expanded', 'false'));
+  pick.hidden = true;
+  if (open) return;
+  pick.innerHTML = '';
+  const color = getComputedStyle(document.documentElement).getPropertyValue('--theme').trim();
+  Object.entries(PAGE_KINDS).filter(([type, k]) => k.about && (!row || SWIPE_TYPES.includes(type))).forEach(([type, k]) => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    const name = document.createElement('b'), about = document.createElement('span');
+    name.textContent = k.label;
+    about.textContent = k.about;
+    b.append(iconCanvas(k.icon, color, 22) || document.createElement('i'), name, about);
+    b.addEventListener('click', () => { pgPick(btn, row); addPage(type, row); });
+    pick.appendChild(b);
+  });
+  btn.after(pick);
+  btn.setAttribute('aria-expanded', 'true');
+  pick.hidden = false;
+  pick.querySelector('button').focus();
 }
-Object.entries(PAGE_KINDS).filter(([, k]) => k.choice).forEach(([type, k]) => $('pgType').appendChild(new Option(k.choice, type)));
-$('pgType').addEventListener('change', showNewPageFields);
-$('pgNew').addEventListener('submit', ev => {
-  ev.preventDefault();
-  const type = $('pgType').value, title = $('pgTitle').value.trim(), kind = PAGE_KINDS[type] || {};
-  const item = $('pgItem').value.trim(), text = $('pgText').value.trim();
-  if (!title && type !== 'system') { setMsg($('pgMsg'), 'A title, please.', 'err'); return; }
-  if (kind.item && !item) { setMsg($('pgMsg'), 'This kind of page needs an item.', 'err'); return; }
-  if (kind.text && !text) { setMsg($('pgMsg'), 'A QR code needs its text.', 'err'); return; }
+$('pgAddRow').addEventListener('click', ev => pgPick(ev.currentTarget, true));
+$('pgAddOther').addEventListener('click', ev => pgPick(ev.currentTarget, false));
+$('pgPick').addEventListener('keydown', ev => {
+  if (ev.key !== 'Escape') return;
+  const btn = $('pgPick').previousElementSibling;
+  pgPick(btn, btn.id === 'pgAddRow');
+  btn.focus();
+});
+
+function addPage(type, row) {
+  const kind = PAGE_KINDS[type];
   let id = '';
   pvEdit(c => {
-    const ids = new Set((c.pages || []).map(p => p.id).concat(['home', SETTINGS_PAGE.id, INFO_PAGE.id]));
-    const base = slugify(title || 'info');
-    id = base;
-    for (let n = 2; ids.has(id); n++) id = base + '-' + n;
-    const page = {id, type};
-    if (title) page.title = title;
+    const pages = c.pages || [];
+    const ids = new Set(pages.map(p => p.id).concat(['home', SETTINGS_PAGE.id, INFO_PAGE.id]));
+    const titles = new Set(pages.map(p => p.title));
+    let title = kind.label;
+    for (let n = 2; titles.has(title); n++) title = kind.label + ' ' + n;
+    id = slugify(title);
+    for (let n = 2; ids.has(id); n++) id = slugify(title) + '-' + n;
+    const page = {id, type, title};
     if (kind.make) kind.make(page);
-    if (kind.item) kind.item(page, item);
-    if (kind.text) page.text = text;
-    c.pages = (c.pages || []).concat([page]);
-    if ($('pgSwipe').checked && SWIPE_TYPES.includes(type)) setSwipe(c, swipeRow(c).concat([id]));
+    c.pages = pages.concat([page]);
+    if (row) setSwipe(c, swipeRow(c).concat([id]));
   });
-  $('pgTitle').value = ''; $('pgItem').value = ''; $('pgText').value = '';
-  setMsg($('pgMsg'), 'Added; Save stores it on the panel.', 'ok');
+  // straight into its editor (a button page's: its title), the title to type over
+  PV.edit = true;
+  pvShowEditing();
   pvOpen(id, false);
-});
-showNewPageFields();
+  if (type === 'buttons') { PV.target = 'title'; renderPreview(); }
+  $('vWrap').scrollIntoView({block: 'start', behavior: 'smooth'});
+  const labels = [...$('vEd').querySelectorAll('label')], named = t => labels.find(l => l.firstChild && l.firstChild.textContent === t);
+  const title = named('Page title (in the page list)') || named('Title');   // (the weather's days have titles too)
+  const input = title && title.querySelector('input');
+  if (input) { input.focus({preventScroll: true}); input.select(); }
+}
 
 /* The arrows beside the preview: the same moves as swiping, shown where a
    swipe does something. */
