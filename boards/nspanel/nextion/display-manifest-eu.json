@@ -16229,6 +16229,7 @@
    "places",
    "longest",
    "phone",
+   "moved",
    "back_hs",
    "k1",
    "k1_hs",
@@ -16269,5 +16270,5 @@
    "close"
   ]
  },
- "design": "8072d6ec"
+ "design": "17a0c504"
 }

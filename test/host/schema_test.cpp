@@ -260,6 +260,9 @@ int main() {
   expect_valid("pages of other types in the swipe row",
                doc(R"("pages":[{"id":"e","type":"entities","title":"x","rows":[{"item":"A"}]},
                    {"id":"q","type":"qr","title":"x","text":"y"}],"swipe":["e","home","q"])"));
+  expect_valid("a thermostat and a keypad in the swipe row",
+               doc(R"("pages":[{"id":"t","type":"thermostat","title":"x","item":"T"},
+                   {"id":"k","type":"keypad","title":"x","item":"K","buttons":[{"label":"Send"}]}],"swipe":["t","k"])"));
   expect_issue("a page twice in the swipe row", doc("\"swipe\":[\"home\",\"info\",\"info\"]"), "swipe[2]");
   expect_valid("info page titled", doc("\"pages\":[{\"id\":\"info\",\"type\":\"system\",\"title\":\"Panel\"}]"));
   expect_issue("info page id taken", doc("\"pages\":[{\"id\":\"info\",\"type\":\"qr\",\"title\":\"x\",\"text\":\"y\"}]"),

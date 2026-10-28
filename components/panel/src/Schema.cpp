@@ -53,9 +53,11 @@ const char *const kSettingsId = "settings";
 const char *const kInfoId = "info";
 
 /* The page types that may be in the swipe row (besides home): those without gestures of their own across the page --
-   a list's or the weather's sheets come before the next page (Engine::swipe). */
+   a list's or the weather's sheets come before the next page (Engine::swipe); the thermostat's ring takes its own
+   (a swipe there is none), the keypad's keys and buttons ignore a finger that moved (the display design). */
 bool swipe_type(const std::string &t) {
-  return t == "buttons" || t == "entities" || t == "weather" || t == "qr" || t == "system";
+  return t == "buttons" || t == "entities" || t == "weather" || t == "qr" || t == "system" || t == "thermostat" ||
+         t == "keypad";
 }
 
 class Validator {

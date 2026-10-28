@@ -787,7 +787,9 @@ def keypad_page(p: Project) -> None:
     go, puts the field back); the keys only tell the firmware that they were touched. A button sends the code with
     its event ("button<k>", the code as the value) and empties it. The bottom row is backspace, 0, C -- or with
     "phone" ("phone.val", set by the firmware) *, 0, #, backspace then on the code's places. The state and the
-    buttons (pills, the set for as many as there are) are drawn by the firmware where touch areas mark them."""
+    buttons (pills, the set for as many as there are) are drawn by the firmware where touch areas mark them. In the
+    swipe row a swipe may end on a key or a button: one let go after the finger moved as far as a swipe does
+    (SWIPE_MIN) types and sends nothing."""
     page = new_page(p, "keypad", touch=True)
     title(page)
     hotspot(page, "state_hs", layout.KEYPAD_STATE)   # where the firmware writes the state, its icon and words
@@ -801,6 +803,17 @@ def keypad_page(p: Project) -> None:
     new(page, VARIABLE, "places", val=0)
     new(page, VARIABLE, "longest", val=KEYPAD_LONGEST)
     new(page, VARIABLE, "phone", val=0)
+    new(page, VARIABLE, "moved", val=0)
+    # where the finger came down, for a key or a button let go (the swipe's own touch area keeps it up to date)
+    down = ["swipex=tch0", "swipey=tch1"]
+
+    def unmoved(code: list[str], moved: list[str]) -> list[str]:
+        """`code` for a finger let go about where it came down (swipe_detection's test), else `moved`."""
+        test = ["moved.val=0", "sys0=swipex-tch2", "sys1=swipey-tch3"]
+        for cond in (f"sys0>{SWIPE_MIN}", f"sys0<-{SWIPE_MIN}", f"sys1>{SWIPE_MIN}", f"sys1<-{SWIPE_MIN}"):
+            test += [f"if({cond})", "{", "  moved.val=1", "}"]
+        return test + ["if(moved.val==0)", "{"] + ["  " + l for l in code] + ["}else", "{"] + \
+            ["  " + l for l in moved] + ["}"]
     import own_icons
     full, empty = (chr(own_icons.code_points()[n]).encode().decode("latin-1") for n in (KEYPAD_TYPED, KEYPAD_EMPTY))
     places = ["strlen code.txt,sys0", "sys2=places.val", "if(sys2==0)", "{", "  sys2=sys0", "}", 'typed.txt=""',
@@ -836,15 +849,18 @@ def keypad_page(p: Project) -> None:
         else:
             press = [disc, draw(n, KEYPAD_DIGIT_FONT)]
             act = [f"ref {n}"] + add(label)
-        hotspot(page, f"{n}_hs", box, act + places + event("keypad", "key", "release"),
-                press + event("keypad", "key", "press"))
+        # moved: only the key as it was (the disc away)
+        undo = [f"picq {box[0]},{box[1]},{kw},{kh},bg_pic", f"ref {n}", "ref k10i"] if i == 9 else [f"ref {n}"]
+        hotspot(page, f"{n}_hs", box, unmoved(act + places + event("keypad", "key", "release"), undo),
+                down + press + event("keypad", "key", "press"))
     # the buttons: a touch area each, the set for as many as there are; the code goes with the event, then it is gone
     for count in range(1, 5):
         for k, box in enumerate(layout.keypad_buttons(count), start=1):
             payload = f'{{\\"page\\": \\"keypad\\", \\"component\\": \\"button{k}\\", \\"value\\": \\"'
             send = ["printh 92", 'prints "nspanelevent",0', "printh 00", f'prints "{payload}",0', "prints code.txt,0",
                     'prints "\\"}",0', "printh 00", "printh FF FF FF"]
-            hotspot(page, f"b{count}{k}_hs", box, send + ['code.txt=""'] + places, event("keypad", "button", "press"))
+            hotspot(page, f"b{count}{k}_hs", box, unmoved(send + ['code.txt=""'] + places, []),
+                    down + event("keypad", "button", "press"))
     close(page)
     # what the firmware shows: the button set there are, backspace on the code's places with "phone"; "*" for
     # backspace with it

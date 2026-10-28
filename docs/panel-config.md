@@ -42,7 +42,7 @@ written can be set as well, see [Formatting values](#formatting-values).
 | `version` | `1` | required; a document with another version is refused |
 | `display` | object | language and formats of the display texts, see below |
 | `home` | object | the home screen, see below |
-| `swipe` | array of page ids | the pages reached by swiping, in this order, round from the last to the first. The **first is the start page**: the panel starts there and goes back to it (close cross, `home_after`); it has no close cross unless it is home. Home is only in the row if named (`"home"`); without a row: home alone. Allowed: `buttons`, `entities`, `weather` and `qr` pages and `info`; a list's or the weather's sheets come before the next page. Other pages open from a tile or a shortcut |
+| `swipe` | array of page ids | the pages reached by swiping, in this order, round from the last to the first. The **first is the start page**: the panel starts there and goes back to it (close cross, `home_after`); it has no close cross unless it is home. Home is only in the row if named (`"home"`); without a row: home alone. Allowed: `buttons`, `entities`, `weather`, `qr`, `thermostat` and `keypad` pages and `info`; a list's or the weather's sheets come before the next page. On a thermostat a swipe on the ring sets the target instead; a thermostat and a keypad show no page dots. Other pages open from a tile or a shortcut |
 | `pages` | array of pages | every other page |
 
 ## Formatting values
@@ -682,8 +682,7 @@ A QR code on a white card, drawn by the panel itself, with a caption of up to tw
 The info page is built in, like the settings page: always there with the id
 `info`, never deleted; a page `{"id": "info", "type": "system", "title"}` in
 the configuration only gives it another title (default "Panel info" /
-"Panel-Info"). Reach it from a tile or a shortcut (the swipe row takes
-button pages only). Eight cards, refreshed every second while it is shown:
+"Panel-Info"). Reach it from a tile, a shortcut or the swipe row. Eight cards, refreshed every second while it is shown:
 an icon, a small label and the value each (a value too long for its line in
 two smaller lines): the firmware, the display design (or that it is
 outdated), the uptime, the free memory, the PSRAM, the WiFi network (its

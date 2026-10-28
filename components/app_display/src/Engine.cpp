@@ -1023,7 +1023,8 @@ void Engine::make_swipe_row() {
     // the same types as the configuration's check (panel/Schema.cpp swipe_type: another component)
     const PageType type = type_of(page_config(e->valuestring));
     if (std::string(e->valuestring) == "home" || type == PageType::Buttons || type == PageType::Entities ||
-        type == PageType::Weather || type == PageType::Qr || type == PageType::System)
+        type == PageType::Weather || type == PageType::Qr || type == PageType::System ||
+        type == PageType::Thermostat || type == PageType::Keypad)
       swipe_row_.push_back(e->valuestring);
   }
   if (swipe_row_.empty())

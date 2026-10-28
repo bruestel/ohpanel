@@ -974,8 +974,8 @@ pre.box{margin:0;padding:.6rem .7rem;max-height:18rem;overflow:auto;background:v
       <div class="card">
         <h2>Pages</h2>
         <p class="sub">Swiping goes through the swipe row in this order. Its first page (★) is the start page: the
-          panel starts there and goes back to it. Button pages, lists, the weather, QR codes and the info page can go
-          into the row; drag one by its handle to order it. Every other page opens from a tile or a shortcut.</p>
+          panel starts there and goes back to it; drag a page by its handle to order it. Lights, covers, media players
+          and favourites open from a tile or a shortcut, every other page can go into the row too.</p>
         <div class="pgarea">
           <h3>Swipe row <span class="sub">its first is the start page</span></h3>
           <div class="pages" id="pgRow"></div>
@@ -7864,7 +7864,7 @@ function pageRefs(cfg, id) {
 
 /* The page types that may be in the swipe row besides home (Engine::swipe_row, the configuration's check): those
    without gestures of their own across the page -- a list's or the weather's sheets come before the next page. */
-const SWIPE_TYPES = ['buttons', 'entities', 'weather', 'qr', 'system'];
+const SWIPE_TYPES = ['buttons', 'entities', 'weather', 'qr', 'system', 'thermostat', 'keypad'];
 function swipeable(p) { return !!p && (p.type === 'home' || SWIPE_TYPES.includes(p.type)); }
 /* Home in the page lists: a page like the others, in the swipe row or not. */
 const HOME_PAGE = {id: 'home', title: 'Home', type: 'home'};
@@ -7910,7 +7910,7 @@ function renderPages(cfg) {
     otherBox.appendChild(head);
     list.forEach(p => otherBox.appendChild(pgItem(p, cfg, 'other')));
   });
-  [[rowBox, 'Button pages, lists, the weather, QR codes and the info page join the row with the list button beside them.'],
+  [[rowBox, 'Pages join the row with the list button beside them.'],
    [otherBox, 'No other pages.']].forEach(([box, text]) => {
     const hint = document.createElement('div');
     hint.className = 'pghint';
