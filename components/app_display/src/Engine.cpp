@@ -426,7 +426,29 @@ void Engine::fill(int x, int y, int w, int h, int colour, bool over_note) {
     sink_.send(c);
 }
 
+/* A disc: the display's own (cirs) is a polygon, flat on top, at the bottom and on the diagonals -- from kRoundFrom
+   on it is drawn by rows instead (a run of rows as wide as each other a rectangle), the pixels within r + 0.5 of the
+   middle one: round to the pixel, as wide as cirs draws it. Smaller ones cirs draws round enough. */
+constexpr int kRoundFrom = 12;
+
 void Engine::disc(int x, int y, int r, int colour, bool over_note) {
+  if (r >= kRoundFrom) {
+    int run_y = 0, run_h = 0, run_k = -1;
+    for (int dy = -r; dy <= r; dy++) {
+      const int k = static_cast<int>(std::sqrt((r + 0.5) * (r + 0.5) - dy * dy));   // the row: x - k .. x + k
+      if (run_h && k == run_k) {
+        run_h++;
+        continue;
+      }
+      if (run_h)
+        fill(x - run_k, run_y, 2 * run_k + 1, run_h, colour, over_note);
+      run_y = y + dy;
+      run_h = 1;
+      run_k = k;
+    }
+    fill(x - run_k, run_y, 2 * run_k + 1, run_h, colour, over_note);
+    return;
+  }
   const std::string c = "cirs " + std::to_string(x) + "," + std::to_string(y) + "," + std::to_string(r) + "," +
                         std::to_string(colour);
   if (!over_note)
@@ -435,8 +457,31 @@ void Engine::disc(int x, int y, int r, int colour, bool over_note) {
     sink_.send(c);
 }
 
-/* Two bars and a disc in each corner. */
+/* Two bars and a disc in each corner; from kRoundFrom on by rows: the corners' (as disc draws them) and the middle. */
 void Engine::rounded(int x, int y, int w, int h, int r, int colour, bool over_note) {
+  if (r >= kRoundFrom) {
+    int run_y = y, run_h = 0, run_in = -1;
+    for (int dy = 0; dy < r; dy++) {   // the top rows, then the bottom ones mirrored
+      const int in = r - static_cast<int>(std::sqrt((r + 0.5) * (r + 0.5) - (r - dy) * (r - dy)));
+      if (run_h && in == run_in) {
+        run_h++;
+        continue;
+      }
+      if (run_h) {
+        fill(x + run_in, run_y, w - 2 * run_in, run_h, colour, over_note);
+        fill(x + run_in, y + h - (run_y - y) - run_h, w - 2 * run_in, run_h, colour, over_note);
+      }
+      run_y = y + dy;
+      run_h = 1;
+      run_in = in;
+    }
+    if (run_h) {
+      fill(x + run_in, run_y, w - 2 * run_in, run_h, colour, over_note);
+      fill(x + run_in, y + h - (run_y - y) - run_h, w - 2 * run_in, run_h, colour, over_note);
+    }
+    fill(x, y + r, w, h - 2 * r, colour, over_note);
+    return;
+  }
   fill(x + r, y, w - 2 * r, h, colour, over_note);
   fill(x, y + r, w, h - 2 * r, colour, over_note);
   for (const int cx : {x + r, x + w - 1 - r})

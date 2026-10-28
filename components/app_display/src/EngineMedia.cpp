@@ -166,7 +166,7 @@ void Engine::media_refresh(const cJSON *page) {
   num("fav_icon", "pco", theme_.accent);
 }
 
-/* Play/pause: a disc in the theme's accent, drawn by the display (cirs) in
+/* Play/pause: a disc in the theme's accent (disc: by rows, round) in
    the box of play_hs (the manifest's "boxes"), with the symbol on it in
    filled rectangles -- two bars while playing (pause), a triangle while not,
    nudged right to look centred. Exactly centred, whatever the fonts; drawn

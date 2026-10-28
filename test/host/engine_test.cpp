@@ -373,8 +373,9 @@ int main(int argc, char **argv) {
       CHECK(track.size() > 4 && track.compare(track.size() - 4, 4, "...\"") == 0);
       CHECK(rec.has("artist.txt=\"Kurz\""));
       CHECK(rec.has("vis track,1") && rec.has("vis play_hs,1") && rec.has("vis fav_pic,0"));
-      // play/pause: a disc in the accent drawn by the display, the triangle on it in rows (paused)
-      CHECK(rec.has_prefix("cirs 225,252,42,") && rec.has_prefix("fill "));
+      // play/pause: a disc in the accent drawn by rows (its widest: 13 rows across the middle), the triangle on it
+      // in rows (paused)
+      CHECK(rec.has_prefix("fill 183,246,85,13,") && !rec.has_prefix("cirs "));
     }
     e.on_message(event("media", "close", "release"));
     e.on_message(loaded("home"));
@@ -1240,7 +1241,7 @@ int main(int argc, char **argv) {
     e.on_state("officeSpeakerControl");
     CHECK(!rec.has_prefix("art_icon.txt="));              // the icon under the cover stays as it is
     // playing: the disc again, two bars on it, exactly in its middle
-    CHECK(rec.has_prefix("cirs 225,252,42,") && rec.has("fill 212,236,9,32,4291") && rec.has("fill 229,236,9,32,4291"));
+    CHECK(rec.has_prefix("fill 183,246,85,13,") && rec.has("fill 212,236,9,32,4291") && rec.has("fill 229,236,9,32,4291"));
     // a picture the panel cannot read (a PNG, say): nothing drawn, the icon stays, not asked for again
     rec.out.clear();
     set_state("officeSpeakerArt", "https://i.example/logo.png", "String");
@@ -1460,7 +1461,7 @@ int main(int argc, char **argv) {
     rec.out.clear();
     e.on_message(loaded("light"));
     CHECK(rec.has("vis wheel_pic,1") && rec.has("vis value,0"));
-    CHECK(rec.has_prefix("cir ") && rec.has_prefix("cirs "));   // the colour shown: a ring, and a disc
+    CHECK(rec.has_prefix("cir ") && !rec.has_prefix("cirs "));   // the colour shown: a ring, and a disc (by rows)
     CHECK(rec.has("vis power_pic,0"));                               // in the on / off tile's place
     // a touch at the wheel's right edge: red, full saturation, the brightness kept
     set_state("DeskLamp_Brightness", "80", "Percent", nullptr, 80, true);   // on
