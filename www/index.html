@@ -3862,14 +3862,22 @@ function drawPage(box, cfg, id) {
       box.appendChild(el);
       continue;
     }
+    let caps = o;   // the field a text stands in by its capitals (standOnCaps); none: centred
     if (want.badge) {   // a rounded box a pixel clear of its line's top and bottom (compose.py badge()): the line is
       // its text field's (an info line's "_text"), the badge's field may reach higher (the icon's, layout INFO_ICON_UP)
       const line = layout.objects.find(x => x.n === o.n.replace(/_badge(ico)?$/, '_text')) || o;
-      const box = document.createElement('span');
-      box.style.cssText = 'position:absolute;left:0;right:0;z-index:-1;border-radius:5px;top:' + (line.y + 1 - o.y)
-                        + 'px;height:' + (line.h - 2) + 'px;background:' + want.badge;
-      el.style.isolation = 'isolate';
-      el.appendChild(box);
+      if (want.icon) {   // the icon where the display puts it in the field, the box behind it on the line's rows
+        const box = document.createElement('span');
+        box.style.cssText = 'position:absolute;left:0;right:0;z-index:-1;border-radius:5px;top:' + (line.y + 1 - o.y)
+                          + 'px;height:' + (line.h - 2) + 'px;background:' + want.badge;
+        el.style.isolation = 'isolate';
+        el.appendChild(box);
+      } else {   // a text: the field on the box, the text in its middle -- as the display draws it; by its capitals
+        // (standOnCaps) the browser's smaller font sat high in the box
+        el.style.top = (line.y + 1) + 'px'; el.style.height = (line.h - 2) + 'px';
+        el.style.background = want.badge; el.style.borderRadius = '5px';
+        caps = null;
+      }
     }
     if (o.t === 1) {  // slider
       el.className = 'slider';
@@ -3984,7 +3992,8 @@ function drawPage(box, cfg, id) {
         roll.appendChild(span);
         node = roll;
       }
-      standOnCaps(el, node, o, font);
+      if (caps) standOnCaps(el, node, caps, font);
+      else { el.style.alignItems = 'center'; node.style.lineHeight = '1'; }
       el.appendChild(node);
     }
     box.appendChild(el);
