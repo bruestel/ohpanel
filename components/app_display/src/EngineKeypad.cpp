@@ -15,6 +15,8 @@ using namespace detail;
 
 namespace {
 constexpr int kIconFont = 7;               // the icon font at 24 px (ohpanel_hmi.py ICON_FONT)
+constexpr int kIconUp = 3;                  // it draws its icons low in its cell (ink 7..22, fonts.py icon_ink): this
+                                            // much higher, they sit centred like a text beside them
 constexpr int kLongest = 8;                // the code's places at most (ohpanel_hmi.py KEYPAD_LONGEST)
 constexpr int kRefused = 63721;            // #f87171: not accepted
 constexpr int64_t kSentMs = 2000;          // "sent" shows this long
@@ -132,7 +134,7 @@ void Engine::keypad_refresh(const cJSON *page) {
         const int tw = text_width(2, word);
         const int x = b.x + (b.w - (icon_w + gap + tw)) / 2;
         if (!icon.empty())
-          send("xstr " + std::to_string(x) + "," + std::to_string(b.y) + "," + std::to_string(icon_w) + "," +
+          send("xstr " + std::to_string(x) + "," + std::to_string(b.y - kIconUp) + "," + std::to_string(icon_w) + "," +
                std::to_string(b.h) + "," + std::to_string(kIconFont) + "," + std::to_string(colour) + ",0,1,1,3,\"" +
                nextion::quote(icon_glyph(icon.c_str())) + "\"");
         if (!word.empty())
@@ -201,7 +203,7 @@ void Engine::keypad_refresh(const cJSON *page) {
     disc(bx.x + bx.w - 1 - r, top + r, r, fill_colour);
     const int tw = text_width(font, label), x = bx.x + (bx.w - (icon_w + gap + tw)) / 2;
     if (!glyph.empty())
-      send("xstr " + std::to_string(x) + "," + std::to_string(top) + "," + std::to_string(icon_w) + "," +
+      send("xstr " + std::to_string(x) + "," + std::to_string(top - kIconUp) + "," + std::to_string(icon_w) + "," +
            std::to_string(2 * r + 1) + "," + std::to_string(kIconFont) + "," + std::to_string(ink) + ",0,1,1,3,\"" +
            nextion::quote(glyph) + "\"");
     send("xstr " + std::to_string(x + icon_w + gap) + "," + std::to_string(top) + "," + std::to_string(tw + 2) + "," +
