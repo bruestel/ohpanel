@@ -6452,15 +6452,15 @@ function pvMediaEditor(box, head, hint, page) {
     two(field('Title', titleInput(page, v => pvEdit((c, p) => { p.title = v; }))),
         field('Icon (while nothing plays)', iconField(page.icon, v => pvEdit((c, p) => { if (v) p.icon = v; else delete p.icon; })))),
     two(field('Player (play, pause, next, previous)', itemField((page.control || {}).item, v => ref('control', v), 'Player')),
-        field('Volume', itemField((page.volume || {}).item, v => ref('volume', v), 'Dimmer,Number'))),
-    two(field('Mute', itemField((page.mute || {}).item, v => ref('mute', v), 'Switch')),
-        field('Title playing', itemField((page.track || {}).item, v => ref('track', v), 'String'))),
-    two(field('Artist', itemField((page.artist || {}).item, v => ref('artist', v), 'String')),
-        field('Third line: album or source', itemField((page.album || {}).item, v => ref('album', v), 'String'))),
-    two(field('Cover (an item with its address)', itemField((page.art || {}).item, v => ref('art', v), 'String,Image')),
-        field('Favourites (the star)', favSel)),
-    two(field('Play item (gets a favourite\'s stream URI; Sonos: playuri)', itemField((page.play || {}).item, v => ref('play', v), 'String')),
-        field('What plays, as an address (Sonos: currenttrackuri)', itemField((page.uri || {}).item, v => ref('uri', v), 'String'))),
+        field('Volume (optional)', itemField((page.volume || {}).item, v => ref('volume', v), 'Dimmer,Number'))),
+    two(field('Mute (optional)', itemField((page.mute || {}).item, v => ref('mute', v), 'Switch')),
+        field('Title playing (optional)', itemField((page.track || {}).item, v => ref('track', v), 'String'))),
+    two(field('Artist (optional)', itemField((page.artist || {}).item, v => ref('artist', v), 'String')),
+        field('Third line: album or source (optional)', itemField((page.album || {}).item, v => ref('album', v), 'String'))),
+    two(field('Cover, an item with its address (optional)', itemField((page.art || {}).item, v => ref('art', v), 'String,Image')),
+        field('Favourites, the star (optional)', favSel)),
+    two(field('Play item, gets a favourite\'s stream URI (Sonos: playuri; needed with favourites)', itemField((page.play || {}).item, v => ref('play', v), 'String')),
+        field('What plays, as an address (optional; Sonos: currenttrackuri)', itemField((page.uri || {}).item, v => ref('uri', v), 'String'))),
     pvFlag('Send the volume while its slider moves (off: only when it is let go)', page.live !== false,
            on => pvEdit((c, p) => { if (on) delete p.live; else p.live = false; })),
     note('The cover: a String item holding the picture\'s address (Sonos: the currentalbumarturl channel), or the '
@@ -7891,7 +7891,7 @@ function pageMissing(p) {
     case 'keypad':
       if (!(p.buttons || []).length) return 'a button';
       return p.item || p.buttons.every(b => b && b.item) ? '' : 'the item the buttons send to';
-    case 'media': return has(p.control) ? '' : 'the player item';
+    case 'media': return !has(p.control) ? 'the player item' : p.favorites && !has(p.play) ? 'the play item (for the favourites)' : '';
     case 'media_favorites': return has(p.stations) ? '' : 'the stations item';
     case 'weather': return (p.days || [p]).every(d => has(d && d.icon)) ? '' : 'the condition item';
     case 'qr': return p.text ? '' : 'the text';
