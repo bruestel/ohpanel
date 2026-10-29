@@ -258,6 +258,9 @@
       "heating": {
         "item": "Thermostat_Kitchen_Heating"
       },
+      "switch": {
+        "item": "Thermostat_Kitchen_Power"
+      },
       "mode": {
         "item": "Thermostat_Kitchen_Mode",
         "value_style": [
@@ -277,8 +280,8 @@
           "value": "manual"
         },
         {
-          "label": "Off",
-          "value": "off"
+          "label": "Eco",
+          "value": "eco"
         }
       ],
       "style": "gradient"

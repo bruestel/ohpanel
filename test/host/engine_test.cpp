@@ -2146,7 +2146,7 @@ int main(int argc, char **argv) {
     // without "locked": off is only its pill -- the target, minus and plus stay
     cJSON *doc2 = cJSON_Parse(read("test/host/data/office.json").c_str());
     cJSON_AddItemToArray(cJSON_GetObjectItem(doc2, "pages"), cJSON_Parse(R"({"id": "thermo", "type": "thermostat",
-        "title": "Heat pump", "item": "Hp_Setpoint", "switch": {"item": "Hp_Power"}})"));
+        "title": "Heat pump", "item": "Hp_Setpoint", "switch": {"item": "Hp_Power", "label": "Boost", "icon": "fire"}})"));
     for (cJSON *pg = cJSON_GetObjectItem(doc2, "pages")->child; pg; pg = pg->next)
       if (std::string(cJSON_GetStringValue(cJSON_GetObjectItem(pg, "id"))) == "lights")
         cJSON_ReplaceItemInArray(cJSON_GetObjectItem(pg, "buttons"), 0,
@@ -2161,7 +2161,7 @@ int main(int argc, char **argv) {
     e.on_message(event("buttons", "tile1", "release"));
     rec.out.clear();
     e.on_message(loaded("thermostat"));
-    CHECK(drawn("Aus") && rec.has_prefix("target.txt=\"Ziel") && !rec.has("vis minus,0"));
+    CHECK(drawn("Boost") && !drawn("Aus") && rec.has_prefix("target.txt=\"Ziel") && !rec.has("vis minus,0"));   // its label
     const size_t sent2 = commands.size();
     e.on_message(event("thermostat", "plus", "release"));
     CHECK(commands.size() == sent2 + 1 && commands.back().first == "Hp_Setpoint");

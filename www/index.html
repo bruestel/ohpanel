@@ -6330,7 +6330,7 @@ function fillThermostat(page) {
       drawPill(ctx, b, label, !off && mode === value);
     });
     const pb = sw && sw.item && layoutBox('thermostat', 'power_hs');
-    if (pb) drawPill(ctx, pb, lit ? t.on : t.off, lit, 'power');
+    if (pb) drawPill(ctx, pb, sw.label || (lit ? t.on : t.off), lit, sw.icon || 'power');
   }}};
   return f;
 }
@@ -6705,10 +6705,16 @@ function pvThermostatEditor(box, head, hint, page) {
         field('Target temperature', itemField(page.item, v => pvEdit((c, p) => { p.item = v; }), 'Number'))),
     two(ref('current', 'Number', 'Temperature now (optional)'), ref('mode', 'String,Number', 'Mode (optional)')),
     two(ref('heating', 'Switch,Contact,Number', 'Heats (optional)'), ref('cooling', 'Switch,Contact,Number', 'Cools (optional)')),
-    two(ref('switch', 'Switch', 'On / off (optional)'),
+    two(ref('switch', 'Switch', 'Switch (optional): a pill under the ring, e.g. on / off'),
         page.switch && page.switch.item ? pvFlag('Off keeps the target (no minus / plus, the ring grey)', !!page.switch.locked,
           on => pvEdit((c, p) => { if (!p.switch) return; if (on) p.switch.locked = true; else delete p.switch.locked; }))
         : document.createElement('span')),
+    ...(page.switch && page.switch.item ? [two(
+      field('Its label (default: ' + disp.texts.on + ' / ' + disp.texts.off + ')',
+            textInput(page.switch.label, v => pvEdit((c, p) => { if (!p.switch) return; if (v) p.switch.label = v; else delete p.switch.label; }),
+                      {maxLength: 16, placeholder: disp.texts.on + ' / ' + disp.texts.off})),
+      field('Its icon', iconField(page.switch.icon || 'power',
+            v => pvEdit((c, p) => { if (!p.switch) return; if (v && v !== 'power') p.switch.icon = v; else delete p.switch.icon; }))))] : []),
     note('"Heats" and "cools": an item that is ON (OPEN, above 0) while it does. It shows under the target.'),
     pvRow(field('Lowest', num('min', 5)), field('Highest', num('max', 30)), field('Step', num('step', 0.5))),
     note('The target\'s range and step: empty takes the item\'s in openHAB (its state description), else 5 to 30 by 0.5.'),

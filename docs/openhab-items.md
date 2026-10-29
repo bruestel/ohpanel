@@ -56,7 +56,8 @@ Color              Kitchen_Counter_Color      "Counter light colour"     { chann
 Number:Temperature Thermostat_Kitchen_Setpoint "Kitchen target [%.1f %unit%]" { channel="<thermostat>:setpoint",
                                                   stateDescription=" " [min=5, max=30, step=0.5] }
 Switch             Thermostat_Kitchen_Heating  "Kitchen heating"         { channel="<thermostat>:heating" }
-String             Thermostat_Kitchen_Mode     "Kitchen heating mode"    { channel="<thermostat>:mode" }   // auto, manual, off
+String             Thermostat_Kitchen_Mode     "Kitchen heating mode"    { channel="<thermostat>:mode" }   // auto, manual, eco
+Switch             Thermostat_Kitchen_Power    "Kitchen heating on / off" { channel="<thermostat>:power" }   // "switch"
 
 // --- Alarm (type "keypad") --------------------------------------------------------------------------------------
 // the panel sends "ARM_AWAY 1234" and the like to Alarm_Command; a rule (or the alarm system's binding) checks the

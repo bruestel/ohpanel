@@ -177,6 +177,11 @@ int main() {
                "pages[0].length");
   expect_valid("thermostat with on / off",
                doc(R"("pages":[{"id":"t","type":"thermostat","title":"x","item":"S","switch":{"item":"P","locked":true}}])"));
+  expect_valid("thermostat switch with its label and icon",
+               doc(R"("pages":[{"id":"t","type":"thermostat","title":"x","item":"S","switch":{"item":"B","label":"Boost","icon":"fire"}}])"));
+  expect_issue("thermostat switch label too long",
+               doc(R"("pages":[{"id":"t","type":"thermostat","title":"x","item":"S","switch":{"item":"B","label":"a label far too long"}}])"),
+               "pages[0].switch.label");
   expect_issue("thermostat switch locked not a boolean",
                doc(R"("pages":[{"id":"t","type":"thermostat","title":"x","item":"S","switch":{"item":"P","locked":1}}])"),
                "pages[0].switch.locked");

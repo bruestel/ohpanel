@@ -442,7 +442,7 @@ A room's heating (or cooling): its target temperature set on a ring.
 | `current` | `{item}` | the temperature now, shown large in the middle |
 | `heating` | `{item}` | ON (OPEN, above 0) while it heats: "heating" under the target, in orange |
 | `cooling` | `{item}` | ... while it cools: "cooling", in blue |
-| `switch` | `{item, locked?}` | a Switch item of its own, e.g. a heat pump's on / off: a pill in the ring's opening switches it (ON / OFF), lit while on. With `"locked": true` off keeps the target: "off" instead of it, the ring grey, no minus and plus, no mode lit (the modes can still be chosen) |
+| `switch` | `{item, label?, icon?, locked?}` | a Switch item of its own, e.g. a heat pump's on / off or a boost: a pill in the ring's opening switches it (ON / OFF), lit while on. `label` on it (default: on / off as it is), `icon` before it (default `power`). With `"locked": true` off keeps the target: "off" instead of it, the ring grey, no minus and plus, no mode lit (the modes can still be chosen) |
 | `mode` | `{item, value_style?}` | its mode (a String, say), chosen with the pills under the ring; `value_style`: rules on its state with `"locked": true`: the target is not to be set in that mode (no minus and plus, the ring not dragged), e.g. `[{"equals": "schedule", "locked": true}]` |
 | `modes` | up to 4 `{"label", "value"}` | the pills: what each is called and what it sends to `mode`; without them the mode item's options in openHAB |
 | `min`, `max`, `step` | numbers | the target's range and step; by default the item's in openHAB (its state description), else 5, 30, 0.5 |

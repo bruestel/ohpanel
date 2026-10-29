@@ -236,15 +236,16 @@ void Engine::thermo_refresh(const cJSON *page) {
     vis(hs, !locked);
     num(n, "pco", kWhite);   // also after a touch coloured it (the display's own)
   }
-  // on / off: a pill with the power icon, in the accent while its item is on
+  // the switch: a pill, its icon ("power") and label (on / off), in the accent while its item is on
   if (const cJSON *sw = member(page, "switch"); !str(sw, "item").empty() && pg != boxes_.end() &&
                                                  pg->second.count("power_hs")) {
     const bool lit = !has_state(sw) || state_of(sw).undefined() || on(sw);   // not known yet: as on
     const int colour = lit ? theme_.accent : kDarkGrey, ink = lit ? kWhite : kLightGrey;
-    const std::string label = lit ? t.on : t.off, key = std::to_string(colour) + "|" + label;
+    const std::string label = str(sw, "label", lit ? t.on : t.off), icon = str(sw, "icon", "power");
+    const std::string key = std::to_string(colour) + "|" + label + "|" + icon;
     if (drawn_["power"] != key) {
       drawn_["power"] = key;
-      pill(pg->second.at("power_hs"), colour, ink, label, icon_glyph("power"));
+      pill(pg->second.at("power_hs"), colour, ink, label, icon_glyph(icon.c_str()));
     }
   }
   // the modes: a pill each, its label on it; the one it is in (or just tapped) in the accent -- none while off

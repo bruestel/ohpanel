@@ -286,6 +286,11 @@
       "label": "Kitchen heating",
       "state": "ON"
     },
+    "Thermostat_Kitchen_Power": {
+      "itype": "Switch",
+      "label": "Kitchen heating on / off",
+      "state": "ON"
+    },
     "Thermostat_Kitchen_Mode": {
       "itype": "String",
       "label": "Kitchen heating mode",
@@ -494,8 +499,8 @@
         "label": "Manual"
       },
       {
-        "value": "off",
-        "label": "Off"
+        "value": "eco",
+        "label": "Eco"
       }
     ]
   }
