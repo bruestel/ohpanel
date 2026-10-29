@@ -1,5 +1,5 @@
 /*
-   The thermostat page (Engine::draw_thermostat): the ring, the target, minus and plus, the modes.
+   The thermostat page (Engine::draw_thermostat): the ring, the target, minus and plus, on / off, the modes.
 */
 
 #include "appdisplay/Engine.h"
@@ -134,8 +134,14 @@ std::string Engine::thermo_key(const cJSON *page) const {
    -- no minus and plus, the ring not to be dragged. */
 bool Engine::thermo_locked(const cJSON *page) const {
   const cJSON *mode = member(page, "mode");
-  return member(mode, "value_style") && has_state(mode) &&
-         rule_style(member(mode, "value_style"), state_of(mode), now_).locked == 1;
+  return thermo_off(page) || (member(mode, "value_style") && has_state(mode) &&
+                              rule_style(member(mode, "value_style"), state_of(mode), now_).locked == 1);
+}
+
+/* Its "switch" item says it is off (not while that is not known): the target not set, the ring grey, no modes lit. */
+bool Engine::thermo_off(const cJSON *page) const {
+  const cJSON *sw = member(page, "switch");
+  return !str(sw, "item").empty() && has_state(sw) && !state_of(sw).undefined() && !on(sw);
 }
 
 void Engine::draw_thermostat(const cJSON *page) {
@@ -153,12 +159,13 @@ void Engine::draw_thermostat(const cJSON *page) {
   }
   for (const char *part : {"now", "target", "ring_hs"})
     vis(part, true);
+  vis("power_hs", !str(member(page, "switch"), "item").empty());   // on / off: its pill (thermo_refresh)
   // the modes' touch areas: the set for as many as there are (the pills: thermo_refresh)
   const size_t n = thermo_modes(page).size();
   for (size_t k = 1; k <= n; k++)
     vis("m" + std::to_string(n) + std::to_string(k) + "_hs", true);
   bind(page, [this, page] { thermo_refresh(page); });
-  for (const char *ref : {"current", "heating", "cooling", "mode"})
+  for (const char *ref : {"current", "heating", "cooling", "mode", "switch"})
     if (const std::string item = str(member(page, ref), "item"); !item.empty())
       bindings_.push_back({item, [this, page] { thermo_refresh(page); }});
 }
@@ -178,14 +185,16 @@ void Engine::thermo_refresh(const cJSON *page) {
                    ? " " + format_number(now.numeric, 1, false, settings_.decimal) + "°" : t.undefined);
   else
     txt("now", "");
+  // off: "off" for the target, the ring grey (as without a target)
+  const bool off = thermo_off(page);
   const double target = thermo_target(page);
-  txt("target", t.thermostat_target + " " + (std::isnan(target) ? t.undefined : thermo_text(page, target)));
-  thermo_ring(page, std::isnan(target) ? -1 : std::clamp((target - r.min) / (r.max - r.min), 0.0, 1.0));
+  txt("target", off ? t.off : t.thermostat_target + " " + (std::isnan(target) ? t.undefined : thermo_text(page, target)));
+  thermo_ring(page, off || std::isnan(target) ? -1 : std::clamp((target - r.min) / (r.max - r.min), 0.0, 1.0));
   const auto pg = boxes_.find("thermostat");
   // heating, cooling: either, its icon and its word in its colour, centred together -- drawn (a field's box would
   // reach into the ring), the background back first
-  const bool heating = !str(member(page, "heating"), "item").empty() && on(member(page, "heating"));
-  const bool cooling = !heating && !str(member(page, "cooling"), "item").empty() && on(member(page, "cooling"));
+  const bool heating = !off && !str(member(page, "heating"), "item").empty() && on(member(page, "heating"));
+  const bool cooling = !off && !heating && !str(member(page, "cooling"), "item").empty() && on(member(page, "cooling"));
   if (pg != boxes_.end() && pg->second.count("state_hs")) {
     const Box &b = pg->second.at("state_hs");
     const std::string word = heating ? t.heating : cooling ? t.cooling : "";
@@ -226,14 +235,24 @@ void Engine::thermo_refresh(const cJSON *page) {
     vis(hs, !locked);
     num(n, "pco", kWhite);   // also after a touch coloured it (the display's own)
   }
-  // the modes: a pill each, its label on it; the one it is in (or just tapped) in the accent
+  // on / off: a pill with the power icon, in the accent while on
+  if (const cJSON *sw = member(page, "switch"); !str(sw, "item").empty() && pg != boxes_.end() &&
+                                                 pg->second.count("power_hs")) {
+    const int colour = off ? kDarkGrey : theme_.accent, ink = off ? kLightGrey : kWhite;
+    const std::string label = off ? t.off : t.on, key = std::to_string(colour) + "|" + label;
+    if (drawn_["power"] != key) {
+      drawn_["power"] = key;
+      pill(pg->second.at("power_hs"), colour, ink, label, icon_glyph("power"));
+    }
+  }
+  // the modes: a pill each, its label on it; the one it is in (or just tapped) in the accent -- none while off
   const auto modes = thermo_modes(page);
   const std::string mode = has_state(member(page, "mode")) ? state_of(member(page, "mode")).state : "";
   for (size_t k = 0; pg != boxes_.end() && k < modes.size(); k++) {
     const std::string n = "m" + std::to_string(modes.size()) + std::to_string(k + 1);
     if (!pg->second.count(n + "_hs"))
       continue;
-    const bool at = (mode == modes[k].second && !mode_tapped_.set) ||
+    const bool at = (!off && mode == modes[k].second && !mode_tapped_.set) ||
                     (mode_tapped_.live(now_ms_) && mode_tapped_.value == static_cast<int>(k));
     const int colour = at ? theme_.accent : kDarkGrey, ink = at ? kWhite : kLightGrey;
     const Box &bx = pg->second.at(n + "_hs");
@@ -327,6 +346,13 @@ void Engine::thermo_event(const cJSON *page, const std::string &component) {
       thermo_send(page, base + (component == "plus" ? r.step : -r.step));
     else
       thermo_refresh(page);
+    return;
+  }
+  if (component == "power") {   // on / off: the other one to its item
+    const cJSON *sw = member(page, "switch");
+    if (cb_.command && !str(sw, "item").empty())
+      cb_.command(str(sw, "item"), toggle_command(sw));
+    thermo_refresh(page);
     return;
   }
   if (component.rfind("mode", 0) == 0 && component.size() == 5) {

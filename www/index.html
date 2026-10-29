@@ -6203,11 +6203,21 @@ function roundedRect(ctx, x, y, w, h, r, c) {
 }
 /* A pill the firmware draws (a cover's preset, a thermostat's mode; Engine::pill): round ends, its label on it --
    in the accent while `on`. */
-function drawPill(ctx, b, label, on) {
+function drawPill(ctx, b, label, on, icon) {
   roundedRect(ctx, ...b, b[3] / 2, on ? THEME.accent : PALETTE['dark-grey']);
-  ctx.fillStyle = on ? '#ffffff' : PALETTE['light-grey']; ctx.font = '17px Ubuntu, system-ui, sans-serif';
-  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  ctx.fillText(label, b[0] + b[2] / 2, b[1] + b[3] / 2 + 1, b[2] - 12);
+  const ink = on ? '#ffffff' : PALETTE['light-grey'];
+  ctx.fillStyle = ink; ctx.font = '17px Ubuntu, system-ui, sans-serif';
+  ctx.textBaseline = 'middle';
+  if (!icon) {
+    ctx.textAlign = 'center';
+    ctx.fillText(label, b[0] + b[2] / 2, b[1] + b[3] / 2 + 1, b[2] - 12);
+    return;
+  }
+  // an icon before the label, centred together (Engine::pill with a glyph)
+  const ic = iconCanvas(icon, ink, 20), tw = Math.min(ctx.measureText(label).width, b[2] - 48), x = b[0] + (b[2] - 26 - tw) / 2;
+  if (ic) ctx.drawImage(ic, x, b[1] + (b[3] - ic.height) / 2);
+  ctx.textAlign = 'left';
+  ctx.fillText(label, x + 26, b[1] + b[3] / 2 + 1, b[2] - 48);
 }
 const layoutBox = (pg, n) => { const o = ((LAYOUT.pages[pg] || {}).objects || []).find(x => x.n === n); return o ? [o.x, o.y, o.w, o.h] : null; };
 
@@ -6272,9 +6282,13 @@ function fillThermostat(page) {
   const decimals = Math.abs(r.step - Math.round(r.step)) < 1e-6 ? 0 : Math.abs(r.step * 10 - Math.round(r.step * 10)) < 1e-6 ? 1 : 2;
   const unit = set ? unitOf(set) : '';
   f.target = {text: t.thermostat_target + ' ' + (target === null ? t.undefined : fmtNumber(target, decimals) + (unit ? ' ' + unit : '°'))};
-  const heating = isOn(page.heating), cooling = !heating && isOn(page.cooling);
-  // the mode's rules may lock the target (Engine::thermo_locked): no minus and plus then
-  const locked = !!(page.mode && ruleStyle(page.mode.value_style, page.mode).locked);
+  // on / off ("switch", Engine::thermo_off): off, "off" for the target, the ring grey, no modes lit
+  const sw = page.switch, swSt = sw && sw.item ? stateOf(sw) : null;
+  const off = !!(swSt && swSt.type !== 'UnDef' && !isOn(sw));
+  if (off) f.target = {text: t.off};
+  const heating = !off && isOn(page.heating), cooling = !off && !heating && isOn(page.cooling);
+  // the mode's rules may lock the target (Engine::thermo_locked), and off: no minus and plus then
+  const locked = off || !!(page.mode && ruleStyle(page.mode.value_style, page.mode).locked);
   f.minus = locked ? {hide: true} : {icon: 'minus', color: '#ffffff', bg: MEDIA_PILL};
   f.plus = locked ? {hide: true} : {icon: 'plus', color: '#ffffff', bg: MEDIA_PILL};
   const modes = thermoModes(page), mode = (stateOf(page.mode) || {}).state;
@@ -6287,7 +6301,7 @@ function fillThermostat(page) {
     if (ring) {   // Engine::thermo_ring: beads 3 px apart over three quarters, open below; the knob where the target is
       const cx = ring[0] + ring[2] / 2, cy = ring[1] + ring[3] / 2, rad = ring[2] / 2 - 18;
       const n = Math.max(2, Math.round(1.5 * Math.PI * rad / 3) + 1);
-      const share = target === null ? -1 : Math.max(0, Math.min(1, (target - r.min) / (r.max - r.min)));
+      const share = off || target === null ? -1 : Math.max(0, Math.min(1, (target - r.min) / (r.max - r.min)));
       const knob = share < 0 ? -1 : Math.round(share * (n - 1));
       const at = i => { const a = 0.75 * Math.PI + 1.5 * Math.PI * i / (n - 1); return [cx + rad * Math.cos(a), cy + rad * Math.sin(a)]; };
       for (let i = 0; i < n; i++) {
@@ -6312,8 +6326,10 @@ function fillThermostat(page) {
     modes.forEach(([label, value], k) => {   // the pills of as many as there are
       const b = layoutBox('thermostat', 'm' + modes.length + (k + 1) + '_hs');
       if (!b) return;
-      drawPill(ctx, b, label, mode === value);
+      drawPill(ctx, b, label, !off && mode === value);
     });
+    const pb = sw && sw.item && layoutBox('thermostat', 'power_hs');
+    if (pb) drawPill(ctx, pb, off ? t.off : t.on, !off, 'power');
   }}};
   return f;
 }
@@ -6670,7 +6686,7 @@ function pvCoverEditor(box, head, hint, page) {
 function pvThermostatEditor(box, head, hint, page) {
   head.textContent = page.title || page.id;
   hint.textContent = 'A thermostat: the temperature now large inside a ring that shows the target (drag on it, or '
-                   + 'minus / plus), whether it heats or cools, its modes under it. Changes show at once; Save stores them.';
+                   + 'minus / plus), whether it heats or cools, on / off, its modes under it. Changes show at once; Save stores them.';
   const o = page.item ? OPTS[page.item] : null;
   if (page.item && !(o && o.known) && (!o || (!o.busy && Date.now() - o.at > 10000)))
     loadOptions(page.item, false, () => { PV.edKey = null; renderPreview(); });   // its range in openHAB: the placeholders
@@ -6688,6 +6704,7 @@ function pvThermostatEditor(box, head, hint, page) {
         field('Target temperature', itemField(page.item, v => pvEdit((c, p) => { p.item = v; }), 'Number'))),
     two(ref('current', 'Number', 'Temperature now (optional)'), ref('mode', 'String,Number', 'Mode (optional)')),
     two(ref('heating', 'Switch,Contact,Number', 'Heats (optional)'), ref('cooling', 'Switch,Contact,Number', 'Cools (optional)')),
+    two(ref('switch', 'Switch', 'On / off (optional)'), document.createElement('span')),
     note('"Heats" and "cools": an item that is ON (OPEN, above 0) while it does. It shows under the target.'),
     pvRow(field('Lowest', num('min', 5)), field('Highest', num('max', 30)), field('Step', num('step', 0.5))),
     note('The target\'s range and step: empty takes the item\'s in openHAB (its state description), else 5 to 30 by 0.5.'),

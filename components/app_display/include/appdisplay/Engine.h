@@ -367,7 +367,8 @@ class Engine {
   void disc(int x, int y, int r, int colour, bool over_note = false);
   void rounded(int x, int y, int w, int h, int r, int colour, bool over_note = false);   // corners of radius r
   void rounded(const Box &b, int r, int colour) { rounded(b.x, b.y, b.w, b.h, r, colour); }
-  void pill(const Box &b, int colour, int ink, const std::string &label);   // round ends, its label on it (font 2)
+  // round ends, its label on it (font 2), an icon before it
+  void pill(const Box &b, int colour, int ink, const std::string &label, const std::string &glyph = "");
   void restore(int x, int y, int w, int h);   // the page's background back (bg_pic)
   void close_note();
   std::vector<std::string> wrap(int font, const std::string &text, int width) const;
@@ -536,6 +537,7 @@ class Engine {
   double thermo_target(const cJSON *page) const;   // as shown: the finger's, one just sent, else the item's (NaN)
   std::string thermo_text(const cJSON *page, double v) const;   // a target as written, with its unit
   bool thermo_locked(const cJSON *page) const;   // the mode's rules keep the target (no minus / plus, no dragging)
+  bool thermo_off(const cJSON *page) const;      // its "switch" says off: the target not set, the ring grey
   void draw_thermostat(const cJSON *page);
   void thermo_refresh(const cJSON *page);
   void thermo_ring(const cJSON *page, double share);   // the beads filled as far as share (0..1; < 0: unknown)

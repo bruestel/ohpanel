@@ -2101,6 +2101,50 @@ int main(int argc, char **argv) {
     e.set_config(read("test/host/data/office.json"));
   }
 
+  {  // a thermostat's on / off ("switch"): a pill; off, "off" for the target, no minus and plus, the ring not dragged
+    cJSON *doc = cJSON_Parse(read("test/host/data/office.json").c_str());
+    cJSON_AddItemToArray(cJSON_GetObjectItem(doc, "pages"), cJSON_Parse(R"({"id": "thermo", "type": "thermostat",
+        "title": "Heat pump", "item": "Hp_Setpoint", "heating": {"item": "Hp_Heating"}, "switch": {"item": "Hp_Power"}})"));
+    cJSON *lights = nullptr;
+    for (cJSON *pg = cJSON_GetObjectItem(doc, "pages")->child; pg; pg = pg->next)
+      if (std::string(cJSON_GetStringValue(cJSON_GetObjectItem(pg, "id"))) == "lights")
+        lights = pg;
+    cJSON_ReplaceItemInArray(cJSON_GetObjectItem(lights, "buttons"), 0,
+                             cJSON_Parse(R"({"label": "Heat", "icon": "thermostat", "open": "thermo"})"));
+    char *text = cJSON_PrintUnformatted(doc);
+    e.set_config(text);
+    cJSON_free(text);
+    cJSON_Delete(doc);
+    set_state("Hp_Setpoint", "21", "Decimal", nullptr, 21, true);
+    set_state("Hp_Heating", "ON", "OnOff");
+    set_state("Hp_Power", "ON", "OnOff");
+    e.on_message(loaded("home"));
+    e.on_message(event("home", "swipe", "left"));
+    e.on_message(loaded("buttons"));
+    e.on_message(event("buttons", "tile1", "release"));
+    rec.out.clear();
+    e.on_message(loaded("thermostat"));
+    const auto drawn = [&](const std::string &word) {
+      return std::any_of(rec.out.begin(), rec.out.end(), [&](const std::string &c) {
+        return c.rfind("xstr ", 0) == 0 && c.find("\"" + word + "\"") != std::string::npos; });
+    };
+    CHECK(rec.has("vis power_hs,1") && drawn("An") && drawn("heizt"));   // its pill, on
+    e.on_message(event("thermostat", "power", "release"));
+    CHECK(commands.back() == std::make_pair(std::string("Hp_Power"), std::string("OFF")));
+    set_state("Hp_Power", "OFF", "OnOff");
+    rec.out.clear();
+    e.on_state("Hp_Power");
+    CHECK(drawn("Aus") && rec.has("target.txt=\"Aus\"") && rec.has("vis minus,0") && !drawn("heizt"));
+    const size_t before = commands.size();
+    e.on_message(event("thermostat", "plus", "release"));
+    e.on_message(value("tdru", 225 * 1000 + 48));
+    CHECK(commands.size() == before);                              // the target not set while off
+    e.on_message(event("thermostat", "power", "release"));
+    CHECK(commands.back() == std::make_pair(std::string("Hp_Power"), std::string("ON")));
+    e.on_message(event("thermostat", "close", "release"));
+    e.set_config(read("test/host/data/office.json"));
+  }
+
   {  // the keypad page: the state over the code, the buttons; a button sends the code typed in its command, one
      // wanting a code says so without, a state that does not follow is "not accepted", a result item's new state shows
     cJSON *doc = cJSON_Parse(read("test/host/data/office.json").c_str());

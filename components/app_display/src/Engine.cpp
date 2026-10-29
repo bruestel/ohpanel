@@ -491,13 +491,24 @@ void Engine::rounded(int x, int y, int w, int h, int r, int colour, bool over_no
 
 /* A pill: its ends discs of radius r (2r + 1 px across), the middle as high -- else the ends stand out --; the label
    drawn on it (a field's corners would stand out of it). */
-void Engine::pill(const Box &b, int colour, int ink, const std::string &label) {
+void Engine::pill(const Box &b, int colour, int ink, const std::string &label, const std::string &glyph) {
   const int r = (b.h - 1) / 2, top = b.y + (b.h - (2 * r + 1)) / 2;
   fill(b.x + r, top, b.w - 2 * r, 2 * r + 1, colour);
   disc(b.x + r, top + r, r, colour);
   disc(b.x + b.w - 1 - r, top + r, r, colour);
-  send("xstr " + std::to_string(b.x + 6) + "," + std::to_string(top) + "," + std::to_string(b.w - 12) + "," +
-       std::to_string(2 * r + 1) + ",2," + std::to_string(ink) + ",0,1,1,3,\"" + nextion::quote(label) + "\"");
+  if (glyph.empty()) {
+    send("xstr " + std::to_string(b.x + 6) + "," + std::to_string(top) + "," + std::to_string(b.w - 12) + "," +
+         std::to_string(2 * r + 1) + ",2," + std::to_string(ink) + ",0,1,1,3,\"" + nextion::quote(label) + "\"");
+    return;
+  }
+  // the icon (24 px font, 3 px higher: it draws its icons low in its cell) and the label, centred together
+  constexpr int kIconW = 24, kGap = 6, kIconUp = 3;
+  const std::string word = shorten(2, label, b.w - 12 - kIconW - kGap, false);
+  const int tw = text_width(2, word), x = b.x + (b.w - (kIconW + kGap + tw)) / 2;
+  send("xstr " + std::to_string(x) + "," + std::to_string(top - kIconUp) + "," + std::to_string(kIconW) + "," +
+       std::to_string(2 * r + 1) + ",7," + std::to_string(ink) + ",0,1,1,3,\"" + nextion::quote(glyph) + "\"");
+  send("xstr " + std::to_string(x + kIconW + kGap) + "," + std::to_string(top) + "," + std::to_string(tw + 2) + "," +
+       std::to_string(2 * r + 1) + ",2," + std::to_string(ink) + ",0,0,1,3,\"" + nextion::quote(word) + "\"");
 }
 
 void Engine::restore(int x, int y, int w, int h) {

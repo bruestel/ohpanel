@@ -377,6 +377,7 @@ THERMO_STATE = (THERMO_CENTRE[0] - 75, THERMO_CENTRE[1] + 46, 150, 24)    # draw
 THERMO_BUTTON_R = 24                         # minus and plus: discs, their middles beside the ring
 THERMO_BUTTONS = [(48, THERMO_CENTRE[1]), (VISIBLE_W - 48, THERMO_CENTRE[1])]
 THERMO_MODES_Y, THERMO_MODES_H, THERMO_MODES_GAP = 280, 32, 10
+THERMO_POWER = (THERMO_CENTRE[0] - 48, 238, 96, 30)   # on / off ("switch"): a pill in the ring's opening
 THERMO_MODE_W = {1: 120, 2: 110, 3: 96, 4: 90}   # a pill's width by how many there are
 
 

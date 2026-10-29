@@ -858,7 +858,7 @@ class Validator {
       }
     } else if (t == "thermostat") {
       allowed(pg, p, {"id", "type", "title", "icon", "item", "current", "heating", "cooling", "mode", "modes", "min",
-                      "max", "step", "style", "curve"});
+                      "max", "step", "style", "curve", "switch"});
       // the gradient along the ring: the share's power (below 1 red the sooner)
       if (const cJSON *c = cJSON_GetObjectItem(pg, "curve")) {
         const double v = cJSON_IsNumber(c) ? c->valuedouble : -1;
@@ -874,6 +874,7 @@ class Validator {
       item_ref(pg, "current", p);   // the temperature now
       item_ref(pg, "heating", p);   // ON / OPEN / above 0 while it heats
       item_ref(pg, "cooling", p);   // ... cools
+      item_ref(pg, "switch", p);    // on / off (a pill in the ring's opening): off, the target is not set
       // its mode, chosen from "modes" (else the item's options in openHAB); its rules: in which the target is locked
       if (const cJSON *m = cJSON_GetObjectItem(pg, "mode"); cJSON_IsObject(m)) {
         allowed(m, member(p, "mode"), {"item", "value_style"});

@@ -746,8 +746,8 @@ def thermostat_page(p: Project) -> None:
     """The thermostat page (boards/nspanel/nextion/layout.py THERMO_*; Engine::draw_thermostat): the ring the
     firmware draws -- a touch on it, and the finger moving, report where ("tdrw": x * 1000 + y, while it moves too)
     and where it was let go ("tdru") --; inside it the temperature now, the target and whether it heats or cools;
-    minus and plus beside it (the firmware draws their discs, an icon field sits on each, a touch area on top); the
-    modes as pills under it -- a touch area for each of 1 to 4 pills, the firmware shows the set there are and draws
+    minus and plus beside it (the firmware draws their discs, an icon field sits on each, a touch area on top); on /
+    off as a pill in the ring's opening; the modes as pills under it -- a touch area for each of 1 to 4 pills, the firmware shows the set there are and draws
     the pills under them."""
     page = new_page(p, "thermostat", touch=True)
     title(page)
@@ -768,6 +768,8 @@ def thermostat_page(p: Project) -> None:
     for n in range(1, 5):   # over the ring's touch area (made later: on top)
         for k, box in enumerate(layout.thermo_modes(n), start=1):
             hotspot(page, f"m{n}{k}_hs", box, event("thermostat", f"mode{k}", "release"))
+    # on / off ("switch"): the firmware draws the pill under it and shows it with a switch item
+    hotspot(page, "power_hs", layout.THERMO_POWER, event("thermostat", "power", "release"))
     close(page)
     # everything hidden while the page loads: the firmware shows what there is; the title and the close cross at once
     on_load(page, loaded(page) + ["vis 255,0", "vis title,1", "vis close_hs,1", "vis close,1"])
@@ -1395,7 +1397,7 @@ def drawn_boxes(p: Project) -> dict:
     up to 56 px, which fit), the cover over the art box (Engine::draw_cover),
     the play disc (Engine::draw_play), the colour wheel's ring and the colour
     chosen (Engine::draw_wheel_mark), the QR codes on their card
-    (Engine::draw_code)."""
+    (Engine::draw_code), the thermostat's and the keypad's pills."""
     box = lambda page, n: [p.page(page).obj(n).get(k) for k in ("x", "y", "w", "h")]
     favorites = {}
     for i, (x, y) in enumerate(layout.button_tiles(), start=1):
@@ -1410,7 +1412,7 @@ def drawn_boxes(p: Project) -> dict:
                        for part in ("_mini", "_hs", "_up_hs", "_stop_hs", "_down_hs")} |
                       {f"preset{k}_hs": box("covers", f"preset{k}_hs") for k in range(1, 4)},
             "boot": {"qr_area": box("boot", "qr_area")},
-            "thermostat": {n: box("thermostat", n) for n in ["ring_hs", "minus_hs", "plus_hs", "state_hs"] +
+            "thermostat": {n: box("thermostat", n) for n in ["ring_hs", "minus_hs", "plus_hs", "state_hs", "power_hs"] +
                            [f"m{n}{k}_hs" for n in range(1, 5) for k in range(1, n + 1)]},
             "keypad": {n: box("keypad", n) for n in ["state_hs"] +
                        [f"b{n}{k}_hs" for n in range(1, 5) for k in range(1, n + 1)]}}
