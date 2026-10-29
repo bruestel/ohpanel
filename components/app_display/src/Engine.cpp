@@ -1511,12 +1511,12 @@ void Engine::act(const std::string &page, const std::string &component, const st
 
 /* A shortcut with an item follows its link only while the item is on --
    hidden while it is off (the usual), it is no target to touch by chance;
-   one without an item always. */
+   one without an item always, as one with "open_when_off". */
 void Engine::act_shortcut(int index) {
   const cJSON *s = slot(member(config_, "home"), "shortcuts", index);
   if (!s || !member(s, "open"))
     return;
-  if (member(s, "item") && !on(s))
+  if (member(s, "item") && !on(s) && !flag(s, "open_when_off"))
     return;
   open(str(s, "open"));
 }

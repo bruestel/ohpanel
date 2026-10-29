@@ -254,6 +254,12 @@ int main() {
                    "\"stations\":{}}]"),
                "pages[0].stations");
   expect_valid("settings page opened", doc("\"home\":{\"shortcuts\":[{\"icon\":\"cog\",\"open\":\"settings\"}]}"));
+  expect_valid("a shortcut opening while off too",
+               doc("\"home\":{\"shortcuts\":[{\"item\":\"S\",\"icon\":\"cog\",\"open\":\"settings\",\"open_when_off\":true}]}"));
+  expect_issue("open_when_off not a boolean",
+               doc("\"home\":{\"shortcuts\":[{\"icon\":\"cog\",\"open_when_off\":1}]}"), "home.shortcuts[0].open_when_off");
+  expect_issue("open_when_off on a status icon",
+               doc("\"home\":{\"status_icons\":[{\"icon\":\"cog\",\"open_when_off\":true}]}"), "home.status_icons[0].open_when_off");
   // besides button pages: lists, the weather, QR codes and the info page; the first is the start page, home too only
   // when named
   expect_valid("info page in the swipe row, the start page", doc("\"swipe\":[\"info\"]"));

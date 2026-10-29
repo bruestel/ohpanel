@@ -5683,6 +5683,7 @@ function pvEditor() {
                                                    v => set('blink', v === '' ? '' : +v))));
     style.hidden = several(e.icon);
     const onStates = onField(e.on, e.item, v => set('on', v));
+    let itemSet = () => {};
     const rows = [
       pvRow(field('Icon (several: shown in turn)', iconsField(e.icon, v => {
         set('icon', v);
@@ -5696,13 +5697,29 @@ function pvEditor() {
       pvRow(field('Color', colorField(e.color, v => set('color', v), 'theme', THEME.text))),
       pvRow(field('Shown', selectInput([['', 'automatic (' + (e.item ? 'while on' : 'always') + ')'], ['always', 'always'],
                                         ['when_on', 'while the item is on']], e.show, v => set('show', v)))),
-      pvRow(field('Item', itemField(e.item, v => { set('item', v); onStates.setItem(v); }))),
+      pvRow(field('Item', itemField(e.item, v => { set('item', v); onStates.setItem(v); itemSet(v); }))),
       pvRow(field('On when', onStates)),
       pvRow(field('Depending on the state (rules, the first that matches counts)',
                   rulesField(e.value_style, v => set('value_style', v), true))),
     ];
-    if (slot.kind === 'shortcut')
-      rows.push(pvRow(field('Tapping it opens', selectInput(pvPageOptions(), e.open, v => set('open', v)))));
+    if (slot.kind === 'shortcut') {
+      // with an item it opens only while the item is on, unless asked to while off too (Engine::act_shortcut)
+      const off = document.createElement('label');
+      off.className = 'check';
+      const cb = document.createElement('input');
+      cb.type = 'checkbox'; cb.setAttribute('role', 'switch'); cb.checked = !!e.open_when_off;
+      cb.addEventListener('change', () => set('open_when_off', cb.checked, false));
+      off.append(cb, 'Opens it while the item is off too');
+      const offRow = pvRow(off);
+      offRow.hidden = !e.item || !e.open;
+      let item = e.item, target = e.open;
+      itemSet = v => { item = v; offRow.hidden = !item || !target; };
+      rows.push(pvRow(field('Tapping it opens', selectInput(pvPageOptions(), e.open, v => {
+        set('open', v);
+        target = v;
+        offRow.hidden = !item || !target;
+      }))), offRow);
+    }
     box.append(...rows, pvSlotButtons(slot, slot.kind === 'status' ? 10 : 7));
   } else if (slot && slot.kind === 'relay') {
     const e = slot.entry || {}, set = (k, v, d) => pvSlotSet(slot, k, v, d);
@@ -8217,8 +8234,8 @@ function pvAction(component) {
     if (component === 'weather' && home.weather_page && home.weather_icon) return () => pvOpen(home.weather_page);
     const s = n && (home.shortcuts || [])[n[1] - 1];
     if (!s || !s.open) return null;
-    // with an item only while it is on (Engine::act_shortcut)
-    if (s.item && !isOn(s))
+    // with an item only while it is on, unless open_when_off (Engine::act_shortcut)
+    if (s.item && !isOn(s) && !s.open_when_off)
       return () => setMsg($('vMsg'), 'This shortcut opens its page only while ' + s.item + ' is on.', 'ok');
     return () => pvOpen(s.open);
   }

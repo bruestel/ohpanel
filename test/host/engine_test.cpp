@@ -361,6 +361,22 @@ int main(int argc, char **argv) {
     e.on_state("officeSpeakerState");
     e.on_message(event("home", "shortcut1", "release"));
     CHECK(e.current() == "speaker");
+    {  // with "open_when_off" it opens while the item is off too
+      e.on_message(loaded("home"));
+      set_state("officeSpeakerState", "OFF", "OnOff");
+      e.on_state("officeSpeakerState");
+      cJSON *doc = cJSON_Parse(read("test/host/data/office.json").c_str());
+      cJSON *sc = cJSON_GetArrayItem(cJSON_GetObjectItem(cJSON_GetObjectItem(doc, "home"), "shortcuts"), 0);
+      cJSON_AddTrueToObject(sc, "open_when_off");
+      char *text = cJSON_PrintUnformatted(doc);
+      e.set_config(text);
+      cJSON_free(text);
+      cJSON_Delete(doc);
+      e.on_message(loaded("home"));
+      e.on_message(event("home", "shortcut1", "release"));
+      CHECK(e.current() == "speaker");
+      e.set_config(read("test/host/data/office.json"));
+    }
     // any text too wide for its field is cut (the manifest's "fit", Engine::txt), not only home's
     set_state("officeSpeakerCurrentTitle",
               "Ein sehr langer Titel, der nie und nimmer in die Zeile passt, auch nicht klein", "String");

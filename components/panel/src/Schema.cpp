@@ -657,7 +657,8 @@ class Validator {
 
   void indicator(const cJSON *e, const std::string &p, bool may_open) {
     if (may_open)
-      allowed(e, p, {"item", "icon", "interval", "color", "show", "on", "open", "blink", "value_style"});
+      allowed(e, p, {"item", "icon", "interval", "color", "show", "on", "open", "open_when_off", "blink",
+                     "value_style"});
     else
       allowed(e, p, {"item", "icon", "interval", "color", "show", "on", "blink", "value_style"});
     rules(e, p);
@@ -674,6 +675,7 @@ class Validator {
     color(e, p);
     one_of(e, "show", p, {"always", "when_on"});
     open(e, p);
+    boolean(e, "open_when_off", p);   // a shortcut's page opens while its item is off too
   }
 
   void home(const cJSON *h, const std::string &path) {

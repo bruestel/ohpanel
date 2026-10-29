@@ -152,7 +152,7 @@ weather, status icons and info lines do not show; the hardware buttons still swi
 | `weather_icon` | `{item, codes}` | an item holding a weather condition code; `codes` names the code set of the openHAB channel the item is linked to (`boards/nspanel/nextion/weather-icons.json`): `openweathermap` (default; OpenWeatherMap and Open-Meteo `icon-id`: `01d`, `10n`, ...), `openweathermap-condition` (OpenWeatherMap `condition-id`, 200 ... 804), `weathercompany` (`iconCode` 0 ... 47), `meteoblue` (`condition`, pictocode 1 ... 17), `smhi` (`symbol_code`), `fmi` (FMI `weather-id`), `wmo` (Open-Meteo `weather-code`), `darksky` (Pirate Weather `icon-id`, Visual Crossing `icon`). The icons are [Meteocons](https://github.com/basmilius/weather-icons) (fill). |
 | `weather_page` | page id | opened by tapping the weather icon |
 | `status_icons` | up to 10 indicators | the small icons in the top row |
-| `shortcuts` | up to 7 indicators | the large icons; each may `open` a page |
+| `shortcuts` | up to 7 indicators | the large icons; each may `open` a page (`open_when_off`: while its item is off too) |
 | `info` | up to 2 lines | two text lines below the value rows, see below |
 
 A **relay** is `{"label", "item"?, "relay"?}` and describes one of the two
@@ -199,7 +199,7 @@ or a number above 0, or, with `on`, when it is the state given there or one
 of a list (`"on": "PLAYING"` for a player's String item, `["PLAYING",
 "BUFFERING"]`), which then replace the usual ones. The editor offers both, the
 states as chips, and shows how the item's state counts right now. A shortcut with an item opens its page only while the item is
-on.
+on; with `"open_when_off": true` while it is off too (default `false`).
 
 ## Pages
 
