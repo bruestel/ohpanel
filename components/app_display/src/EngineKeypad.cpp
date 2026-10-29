@@ -26,7 +26,8 @@ constexpr int64_t kForgetMs = 20000;       // a code typed goes after this long 
 
 /* The page's buttons that show in the state now ("buttons": label, icon, item -- else the page's --, command --
    "{code}" the code typed --, code -- false: without one too --, when -- the state it is lit in --, show_when -- the
-   states it shows in, one or a list; else always); 4 at most. */
+   states it shows in, one or a list; else always -- or action "toggle": its own item switched, lit while on); 4 at
+   most. */
 std::vector<Engine::KeypadButton> Engine::keypad_buttons(const cJSON *page) const {
   std::vector<KeypadButton> out;
   const cJSON *state = member(page, "state");
@@ -47,6 +48,10 @@ std::vector<Engine::KeypadButton> Engine::keypad_buttons(const cJSON *page) cons
     b.command = str(e, "command", "{code}");
     b.when = str(e, "when");
     b.code = flag(e, "code", true);
+    if (str(e, "action") == "toggle") {
+      b.toggle = e;
+      b.code = false;
+    }
     out.push_back(b);
   }
   return out;
@@ -82,6 +87,11 @@ void Engine::draw_keypad(const cJSON *page) {
   for (const char *ref : {"state", "result"})
     if (const std::string item = str(member(page, ref), "item"); !item.empty())
       bindings_.push_back({item, [this, page] { keypad_refresh(page); }});
+  // a toggle button: lit by its own item
+  const cJSON *list = member(page, "buttons");
+  for (const cJSON *e = cJSON_IsArray(list) ? list->child : nullptr; e; e = e->next)
+    if (str(e, "action") == "toggle" && !str(e, "item").empty())
+      bindings_.push_back({str(e, "item"), [this, page] { keypad_refresh(page); }});
 }
 
 void Engine::keypad_clear(const cJSON *page) {
@@ -165,8 +175,9 @@ void Engine::keypad_refresh(const cJSON *page) {
     if (!pg->second.count(n + "_hs"))
       continue;
     const KeypadButton &btn = buttons[k];
-    const bool lit = keypad_tapped_.live(now_ms_) ? keypad_tapped_.value == static_cast<int>(k)
-                                                  : !btn.when.empty() && now == btn.when;
+    const bool lit = btn.toggle                    ? on(btn.toggle)
+                     : keypad_tapped_.live(now_ms_) ? keypad_tapped_.value == static_cast<int>(k)
+                                                    : !btn.when.empty() && now == btn.when;
     const int fill_colour = lit ? theme_.accent : kDarkGrey, ink = lit ? kWhite : kLightGrey;
     const Box &bx = pg->second.at(n + "_hs");
     // the label in font 2 (font 1 on the small pills), else smaller; the icon left out where it would not fit
@@ -226,6 +237,11 @@ void Engine::keypad_event(const cJSON *page, const std::string &component, const
     return;
   keypad_key_ms_ = 0;   // the display has emptied it
   const KeypadButton &b = buttons[k];
+  if (b.toggle) {   // its own item switched, no code: lit by the item's state (keypad_refresh)
+    if (cb_.command && !b.item.empty())
+      cb_.command(b.item, toggle_command(b.toggle));
+    return;
+  }
   if (b.code && value.empty()) {
     keypad_message(t.keypad_enter, theme_.text, kMessageMs);
     return;

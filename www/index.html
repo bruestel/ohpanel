@@ -6355,7 +6355,7 @@ function fillKeypad(page) {
     buttons.forEach((b, k) => {
       const bx = layoutBox('keypad', 'b' + buttons.length + (k + 1) + '_hs');
       if (!bx) return;
-      const lit = !!b.when && now === b.when;
+      const lit = b.action === 'toggle' ? !!b.item && isOn(b) : !!b.when && now === b.when;
       roundedRect(ctx, ...bx, bx[3] / 2, lit ? THEME.accent : PALETTE['dark-grey']);
       centred(ctx, bx, b.icon, b.label || '', lit ? '#ffffff' : PALETTE['light-grey'], bx[3] >= 44 ? 20 : 17);
     });
@@ -6784,17 +6784,39 @@ function pvKeypadEditor(box, head, hint, page) {
     box.append(pvRow(field('Button ' + (k + 1), textInput(b ? b.label : '', v => set('label', v), {maxLength: 16, placeholder: k ? '' : 'e.g. Away'})),
                      field('Icon', iconField(b ? b.icon || '' : '', v => set('icon', v)))));
     if (!b) continue;
+    // what it does: sends the code (or a command), or toggles an item of its own (Engine::keypad_event)
+    const toggle = b.action === 'toggle';
+    const action = field('Action', selectInput([['', 'send the code (or a command)'], ['toggle', 'toggle its own item, lit while on']],
+                                               toggle ? 'toggle' : '', v => {
+      pvEdit((c, p) => {
+        const e = (p.buttons || [])[k];
+        if (!e) return;
+        if (v === 'toggle') { e.action = 'toggle'; delete e.command; delete e.code; delete e.when; }
+        else { delete e.action; delete e.on; }
+      });
+      PV.edKey = null;   // the button's fields for the other action
+      pvEditor();
+    }));
+    const showWhen = field('Shows only while the state is', textInput(b.show_when === undefined ? '' : [].concat(b.show_when).join(', '),
+      v => { const l = v.split(',').map(x => x.trim()).filter(Boolean); set('show_when', !l.length ? '' : l.length === 1 ? l[0] : l); },
+      {maxLength: 120, spellcheck: false, placeholder: st.item ? 'e.g. ARMED_AWAY, ARMED_HOME' : 'needs a state'}));
+    if (toggle) {
+      const onStates = onField(b.on, b.item, v => set('on', v));
+      box.append(pvRow(action, field('Its item', itemField(b.item || '', v => { set('item', v); onStates.setItem(v); },
+                                                           'Switch,Dimmer,Color'))),
+                 pvRow(field('On when', onStates)), pvRow(showWhen));
+      continue;
+    }
     box.append(
+      pvRow(action),
       pvRow(field('Sends', textInput(b.command, v => set('command', v), {maxLength: 64, spellcheck: false, placeholder: '{code}'})),
             field('Lit while the state is', textInput(b.when, v => set('when', v), {maxLength: 32, spellcheck: false, placeholder: 'e.g. ARMED_AWAY'}))),
-      pvRow(field('To its own item (optional)', itemField(b.item || '', v => set('item', v), 'String,Switch')),
-            field('Shows only while the state is', textInput(b.show_when === undefined ? '' : [].concat(b.show_when).join(', '),
-              v => { const l = v.split(',').map(x => x.trim()).filter(Boolean); set('show_when', !l.length ? '' : l.length === 1 ? l[0] : l); },
-              {maxLength: 120, spellcheck: false, placeholder: st.item ? 'e.g. ARMED_AWAY, ARMED_HOME' : 'needs a state'}))),
+      pvRow(field('To its own item (optional)', itemField(b.item || '', v => set('item', v), 'String,Switch')), showWhen),
       pvFlag('Works without a code too', b.code === false, on => set('code', on ? false : undefined)));
   }
   box.append(note('"Sends": {code} is the code typed, e.g. "ARM_AWAY {code}"; empty sends only the code. Without '
-                  + '"Works without a code", the panel asks for one. "Shows only while": states, separated by commas, '
+                  + '"Works without a code", the panel asks for one. "Toggle its own item": ON or OFF to that item, no '
+                  + 'code, lit while it is on, e.g. a light. "Shows only while": states, separated by commas, '
                   + 'e.g. only "Off" while armed; empty: always.'));
 }
 
@@ -7890,6 +7912,7 @@ function pageMissing(p) {
     case 'thermostat': return p.item ? '' : 'the target temperature item';
     case 'keypad':
       if (!(p.buttons || []).length) return 'a button';
+      if (p.buttons.some(b => b && b.action === 'toggle' && !b.item)) return 'the item a toggle button switches';
       return p.item || p.buttons.every(b => b && b.item) ? '' : 'the item the buttons send to';
     case 'media': return !has(p.control) ? 'the player item' : p.favorites && !has(p.play) ? 'the play item (for the favourites)' : '';
     case 'media_favorites': return has(p.stations) ? '' : 'the stations item';

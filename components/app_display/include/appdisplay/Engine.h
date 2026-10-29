@@ -555,7 +555,8 @@ class Engine {
   // the keypad page (page type "keypad"): the code is typed on the display, which sends it with a button's event
   struct KeypadButton {
     std::string label, icon, item, command, when;
-    bool code = true;   // only with a code typed
+    bool code = true;               // only with a code typed
+    const cJSON *toggle = nullptr;  // "action": "toggle": its entry (item, "on") -- switched, lit while on
   };
   std::vector<KeypadButton> keypad_buttons(const cJSON *page) const;   // those that show in the state now, 4 at most
   void draw_keypad(const cJSON *page);

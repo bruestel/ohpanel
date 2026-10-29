@@ -480,11 +480,12 @@ A code typed on the panel and sent with a button: an alarm system's modes, a doo
 | `keys` | `digits` (default), `phone` | the bottom row: backspace, 0, C (clears); or `*`, 0, `#` with backspace at the end of the code's places |
 | `result` | `{item}` | "Reply from openHAB": a String item a rule writes a text to, e.g. "Wrong code". If it changes within 10 s after sending, its text shows for a few seconds instead of waiting for the state. Never interpreted |
 
-A **button** is `{"label", "icon"?, "item"?, "command"?, "code"?, "when"?, "show_when"?}`:
+A **button** is `{"label", "icon"?, "action"?, "item"?, "command"?, "code"?, "when"?, "show_when"?}`:
 
 | Key | |
 |---|---|
 | `label`, `icon` | on the button (the icon before the label) |
+| `action` | `"send"` (default): sends the code, see below; `"toggle"`: switches its own `item` (ON / OFF), no code, lit while the item is on (`on`: the states that count as on, as for a status icon). Without `command`, `code` and `when` |
 | `item` | where it sends to (default: the page's `item`) |
 | `command` | what it sends; `{code}` is the code typed (default `"{code}"`: the code alone) |
 | `code` | `false`: works without a code too (else the panel asks for one) |
@@ -510,6 +511,12 @@ logger).
              {"label": "Home", "icon": "shield-home", "command": "ARM_HOME {code}", "show_when": "DISARMED"},
              {"label": "Off", "icon": "shield-off", "command": "DISARM {code}",
               "show_when": ["ARMED_AWAY", "ARMED_HOME", "ALARM"]}]}
+```
+
+A toggle button beside the modes, e.g. the hall light (`"action": "toggle"`):
+
+```json
+{"label": "Light", "icon": "lightbulb", "action": "toggle", "item": "Hall_Light"}
 ```
 
 A door: one button, the code alone to a String item a rule checks.

@@ -2217,6 +2217,49 @@ int main(int argc, char **argv) {
     e.set_config(read("test/host/data/office.json"));
   }
 
+  {  // a keypad toggle button: its own item switched without a code (ON / OFF by its state), lit while that is on
+    cJSON *doc = cJSON_Parse(read("test/host/data/office.json").c_str());
+    cJSON_AddItemToArray(cJSON_GetObjectItem(doc, "pages"), cJSON_Parse(R"({"id": "alarm", "type": "keypad",
+        "title": "Alarm", "item": "Alarm_Command",
+        "buttons": [{"label": "Away", "command": "ARM_AWAY {code}"},
+                    {"label": "Light", "icon": "lightbulb", "action": "toggle", "item": "Hall_Light"}]})"));
+    cJSON *lights = nullptr;
+    for (cJSON *pg = cJSON_GetObjectItem(doc, "pages")->child; pg; pg = pg->next)
+      if (std::string(cJSON_GetStringValue(cJSON_GetObjectItem(pg, "id"))) == "lights")
+        lights = pg;
+    cJSON_ReplaceItemInArray(cJSON_GetObjectItem(lights, "buttons"), 0,
+                             cJSON_Parse(R"({"label": "Alarm", "icon": "shield", "open": "alarm"})"));
+    char *text = cJSON_PrintUnformatted(doc);
+    e.set_config(text);
+    cJSON_free(text);
+    cJSON_Delete(doc);
+    set_state("Hall_Light", "OFF", "OnOff");
+    e.idle(50000000);
+    e.on_message(loaded("home"));
+    e.on_message(event("home", "swipe", "left"));
+    e.on_message(loaded("buttons"));
+    e.on_message(event("buttons", "tile1", "release"));
+    rec.out.clear();
+    e.on_message(loaded("keypad"));
+    const auto lit = [&](const std::string &word) {   // its label drawn white: on the accent
+      return std::any_of(rec.out.begin(), rec.out.end(), [&](const std::string &c) {
+        return c.rfind("xstr ", 0) == 0 && c.find("\"" + word + "\"") != std::string::npos && c.find(",65535,") != std::string::npos; });
+    };
+    CHECK(!lit("Light"));
+    const size_t sent = commands.size();
+    e.on_message(event("keypad", "button2", ""));                 // no code needed
+    CHECK(commands.size() == sent + 1 && commands.back() == std::make_pair(std::string("Hall_Light"), std::string("ON")));
+    CHECK(!rec.has("message.txt=\"Code eingeben\""));
+    set_state("Hall_Light", "ON", "OnOff");
+    rec.out.clear();
+    e.on_state("Hall_Light");
+    CHECK(lit("Light"));                                          // lit by its item
+    e.on_message(event("keypad", "button2", "12"));               // a code typed: not sent, the item switched
+    CHECK(commands.back() == std::make_pair(std::string("Hall_Light"), std::string("OFF")));
+    e.on_message(event("keypad", "close", "release"));
+    e.set_config(read("test/host/data/office.json"));
+  }
+
   {  // a swipe row without home: its first page is the start page (no close cross there, "back" goes to it); a list's
      // sheets come before the next page, and swiping back lands on the list's last sheet
     cJSON *doc = cJSON_Parse(read("test/host/data/office.json").c_str());

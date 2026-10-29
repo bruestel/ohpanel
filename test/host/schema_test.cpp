@@ -156,6 +156,22 @@ int main() {
   expect_issue("keypad button without an item",
                doc(R"("pages":[{"id":"a","type":"keypad","title":"x","buttons":[{"label":"Open"}]}])"),
                "pages[0].buttons[0].item");
+  expect_valid("keypad toggle button",
+               doc(R"("pages":[{"id":"a","type":"keypad","title":"x","item":"C","buttons":[{"label":"Arm","command":"ARM {code}"},
+                   {"label":"Light","icon":"lightbulb","action":"toggle","item":"Light","on":"ON"}]}])"));
+  expect_issue("keypad toggle without its item",
+               doc(R"("pages":[{"id":"a","type":"keypad","title":"x","item":"C","buttons":[{"label":"L","action":"toggle"}]}])"),
+               "pages[0].buttons[0].item");
+  expect_issue("keypad toggle with a command",
+               doc(R"("pages":[{"id":"a","type":"keypad","title":"x","buttons":[{"label":"L","action":"toggle","item":"L",
+                   "command":"ON"}]}])"),
+               "pages[0].buttons[0].command");
+  expect_issue("keypad on without toggle",
+               doc(R"("pages":[{"id":"a","type":"keypad","title":"x","item":"C","buttons":[{"label":"L","on":"ON"}]}])"),
+               "pages[0].buttons[0].on");
+  expect_issue("keypad action unknown",
+               doc(R"("pages":[{"id":"a","type":"keypad","title":"x","item":"C","buttons":[{"label":"L","action":"open"}]}])"),
+               "pages[0].buttons[0].action");
   expect_issue("keypad length", doc(R"("pages":[{"id":"a","type":"keypad","title":"x","item":"C","length":9,
                    "buttons":[{"label":"Open"}]}])"),
                "pages[0].length");

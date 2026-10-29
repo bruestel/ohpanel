@@ -948,13 +948,27 @@ class Validator {
           const std::string ep = bp + "[" + std::to_string(k) + "]";
           if (!object(e, ep))
             continue;
-          allowed(e, ep, {"label", "icon", "item", "command", "code", "when", "show_when"});
+          allowed(e, ep, {"label", "icon", "action", "item", "on", "command", "code", "when", "show_when"});
           string(e, "label", ep, true, 16);
           icon(e, ep);
+          // "toggle": switches its own item (ON / OFF), lit while that is on -- no code, no command
+          one_of(e, "action", ep, {"send", "toggle"});
+          const cJSON *action = cJSON_GetObjectItem(e, "action");
+          const bool toggle = cJSON_IsString(action) && std::strcmp(action->valuestring, "toggle") == 0;
           if (const cJSON *item = cJSON_GetObjectItem(e, "item"))
             item_name(item, member(ep, "item"));
+          else if (toggle)
+            fail(member(ep, "item"), "is required (the item it toggles)");
           else if (!cJSON_GetObjectItem(pg, "item"))
             fail(member(ep, "item"), "is required (or the page's \"item\")");
+          if (toggle) {
+            for (const char *k : {"command", "code", "when"})
+              if (cJSON_GetObjectItem(e, k))
+                fail(member(ep, k), "goes with sending a code, not with \"toggle\"");
+            on_states(e, ep);   // the states it counts as on, as an indicator's
+          } else if (cJSON_GetObjectItem(e, "on")) {
+            fail(member(ep, "on"), "goes with \"toggle\"");
+          }
           string(e, "command", ep, false, 64);   // {code}: the code typed (default: the code alone)
           boolean(e, "code", ep);   // false: works without a code too
           string(e, "when", ep, false, 32);   // the state it is lit in
