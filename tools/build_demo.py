@@ -6,7 +6,8 @@ can serve, the API answered in the browser by demo/mock.js from invented data.
     tools/build_demo.py [out]        # default: build/demo
 
 Writes out/index.html (www/index.html with the mock loaded before its script), the mock and its
-data (demo/), the preview's layout (www/layout-eu.json: the demo is an NSPanel EU) and the icon set (the firmware's, which the
+data (demo/), the preview's layouts (www/layout-eu.json, www/layout-us.json: the demo is an NSPanel EU, with
+?variant=us the US) and the icon set (the firmware's, which the
 interface fetches as /api/v1/assets), and the QR codes of the demo's qr pages, made with the
 firmware's library (components/qrcodegen) as POST /api/v1/qr makes them: the mock has no encoder.
 """
@@ -74,7 +75,7 @@ def main():
     (out / "index.html").write_text(page, encoding="utf-8")
     for src, name in [(ROOT / "demo" / "mock.js", "mock.js"), (ROOT / "demo" / "config.json", "config.json"),
                       (ROOT / "demo" / "items.json", "items.json"), (ROOT / "demo" / "api.json", "api.json"),
-                      (ROOT / "www" / "layout-eu.json", "layout.json"),
+                      (ROOT / "www" / "layout-eu.json", "layout-eu.json"), (ROOT / "www" / "layout-us.json", "layout-us.json"),
                       (ROOT / "components" / "app_display" / "src" / "icon_set.bin", "icon_set.bin")]:
         shutil.copyfile(src, out / name)
     config = json.loads((ROOT / "demo" / "config.json").read_text(encoding="utf-8"))

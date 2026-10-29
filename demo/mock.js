@@ -11,6 +11,8 @@
   const ok = () => json({ok: true});
   const notInDemo = () => json({error: 'Not in the demo: this needs a panel.'}, 400);
   const started = Date.now();
+  // the panel variant shown: the NSPanel EU, or with ?variant=us the US (its layout, what the panel says it is)
+  const variant = new URLSearchParams(location.search).get('variant') === 'us' ? 'us' : 'eu';
 
   // the data, loaded once
   let data = null;
@@ -104,6 +106,8 @@
     const i = JSON.parse(JSON.stringify(d.api.info));
     i.uptime_s = d.api.info.uptime_s + Math.floor((Date.now() - started) / 1000);
     i.time.epoch_ms = Date.now();
+    i.variant = variant;
+    i.board = 'nspanel-' + variant;
     return i;
   }
 
@@ -111,7 +115,7 @@
     const d = await load();
     if (method === 'GET') {
       switch (path) {
-        case 'layout': return realFetch(asset('layout.json'));
+        case 'layout': return realFetch(asset('layout-' + variant + '.json'));
         case 'assets': return realFetch(asset('icon_set.bin'));
         case 'panel': return json(d.config);
         case 'info': return json(info(d));
@@ -190,8 +194,12 @@
     st.textContent = '.sidesec{display:none!important}';
     document.head.appendChild(st);
     const bar = document.createElement('div');
-    bar.innerHTML = 'OHpanel demo: invented data, no panel. Changes stay in this tab. ' +
-      '<a href="../licences/THIRD-PARTY-NOTICES.md" style="color:#fff">Licences</a>';
+    // the other variant: the same page and configuration, its layout
+    const pick = v => v === variant ? '<b style="text-decoration:underline">' + v.toUpperCase() + '</b>'
+      : '<a href="?variant=' + v + '" data-variant style="color:#fff">' + v.toUpperCase() + '</a>';
+    bar.innerHTML = 'OHpanel demo: invented data, no panel. Changes stay in this tab. NSPanel ' + pick('eu') + ' · ' +
+      pick('us') + ' · <a href="../licences/THIRD-PARTY-NOTICES.md" style="color:#fff">Licences</a>';
+    bar.querySelectorAll('a[data-variant]').forEach(a => a.addEventListener('click', () => { a.href += location.hash; }));
     bar.style.cssText = 'position:fixed;left:50%;bottom:12px;transform:translateX(-50%);z-index:9999;padding:6px 14px;' +
       'border-radius:999px;background:#e64a19;color:#fff;font:600 13px system-ui,sans-serif;box-shadow:0 2px 8px rgba(0,0,0,.3)';
     document.body.appendChild(bar);
