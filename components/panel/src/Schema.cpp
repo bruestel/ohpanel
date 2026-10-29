@@ -874,7 +874,12 @@ class Validator {
       item_ref(pg, "current", p);   // the temperature now
       item_ref(pg, "heating", p);   // ON / OPEN / above 0 while it heats
       item_ref(pg, "cooling", p);   // ... cools
-      item_ref(pg, "switch", p);    // on / off (a pill in the ring's opening): off, the target is not set
+      // a Switch item of its own as a pill in the ring's opening (on / off, say); "locked": off keeps the target
+      if (const cJSON *sw = cJSON_GetObjectItem(pg, "switch"); sw && object(sw, member(p, "switch"))) {
+        allowed(sw, member(p, "switch"), {"item", "locked"});
+        item_name(cJSON_GetObjectItem(sw, "item"), member(member(p, "switch"), "item"));
+        boolean(sw, "locked", member(p, "switch"));
+      }
       // its mode, chosen from "modes" (else the item's options in openHAB); its rules: in which the target is locked
       if (const cJSON *m = cJSON_GetObjectItem(pg, "mode"); cJSON_IsObject(m)) {
         allowed(m, member(p, "mode"), {"item", "value_style"});

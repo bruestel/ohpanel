@@ -2104,7 +2104,8 @@ int main(int argc, char **argv) {
   {  // a thermostat's on / off ("switch"): a pill; off, "off" for the target, no minus and plus, the ring not dragged
     cJSON *doc = cJSON_Parse(read("test/host/data/office.json").c_str());
     cJSON_AddItemToArray(cJSON_GetObjectItem(doc, "pages"), cJSON_Parse(R"({"id": "thermo", "type": "thermostat",
-        "title": "Heat pump", "item": "Hp_Setpoint", "heating": {"item": "Hp_Heating"}, "switch": {"item": "Hp_Power"}})"));
+        "title": "Heat pump", "item": "Hp_Setpoint", "heating": {"item": "Hp_Heating"},
+        "switch": {"item": "Hp_Power", "locked": true}})"));
     cJSON *lights = nullptr;
     for (cJSON *pg = cJSON_GetObjectItem(doc, "pages")->child; pg; pg = pg->next)
       if (std::string(cJSON_GetStringValue(cJSON_GetObjectItem(pg, "id"))) == "lights")
@@ -2141,6 +2142,29 @@ int main(int argc, char **argv) {
     CHECK(commands.size() == before);                              // the target not set while off
     e.on_message(event("thermostat", "power", "release"));
     CHECK(commands.back() == std::make_pair(std::string("Hp_Power"), std::string("ON")));
+    e.on_message(event("thermostat", "close", "release"));
+    // without "locked": off is only its pill -- the target, minus and plus stay
+    cJSON *doc2 = cJSON_Parse(read("test/host/data/office.json").c_str());
+    cJSON_AddItemToArray(cJSON_GetObjectItem(doc2, "pages"), cJSON_Parse(R"({"id": "thermo", "type": "thermostat",
+        "title": "Heat pump", "item": "Hp_Setpoint", "switch": {"item": "Hp_Power"}})"));
+    for (cJSON *pg = cJSON_GetObjectItem(doc2, "pages")->child; pg; pg = pg->next)
+      if (std::string(cJSON_GetStringValue(cJSON_GetObjectItem(pg, "id"))) == "lights")
+        cJSON_ReplaceItemInArray(cJSON_GetObjectItem(pg, "buttons"), 0,
+                                 cJSON_Parse(R"({"label": "Heat", "icon": "thermostat", "open": "thermo"})"));
+    text = cJSON_PrintUnformatted(doc2);
+    e.set_config(text);
+    cJSON_free(text);
+    cJSON_Delete(doc2);
+    e.on_message(loaded("home"));
+    e.on_message(event("home", "swipe", "left"));
+    e.on_message(loaded("buttons"));
+    e.on_message(event("buttons", "tile1", "release"));
+    rec.out.clear();
+    e.on_message(loaded("thermostat"));
+    CHECK(drawn("Aus") && rec.has_prefix("target.txt=\"Ziel") && !rec.has("vis minus,0"));
+    const size_t sent2 = commands.size();
+    e.on_message(event("thermostat", "plus", "release"));
+    CHECK(commands.size() == sent2 + 1 && commands.back().first == "Hp_Setpoint");
     e.on_message(event("thermostat", "close", "release"));
     e.set_config(read("test/host/data/office.json"));
   }

@@ -138,10 +138,11 @@ bool Engine::thermo_locked(const cJSON *page) const {
                               rule_style(member(mode, "value_style"), state_of(mode), now_).locked == 1);
 }
 
-/* Its "switch" item says it is off (not while that is not known): the target not set, the ring grey, no modes lit. */
+/* Its "switch" item is off (not while that is not known) and "locked": the target not set, the ring grey, no modes
+   lit. Without "locked" the switch is only its pill. */
 bool Engine::thermo_off(const cJSON *page) const {
   const cJSON *sw = member(page, "switch");
-  return !str(sw, "item").empty() && has_state(sw) && !state_of(sw).undefined() && !on(sw);
+  return flag(sw, "locked") && !str(sw, "item").empty() && has_state(sw) && !state_of(sw).undefined() && !on(sw);
 }
 
 void Engine::draw_thermostat(const cJSON *page) {
@@ -235,11 +236,12 @@ void Engine::thermo_refresh(const cJSON *page) {
     vis(hs, !locked);
     num(n, "pco", kWhite);   // also after a touch coloured it (the display's own)
   }
-  // on / off: a pill with the power icon, in the accent while on
+  // on / off: a pill with the power icon, in the accent while its item is on
   if (const cJSON *sw = member(page, "switch"); !str(sw, "item").empty() && pg != boxes_.end() &&
                                                  pg->second.count("power_hs")) {
-    const int colour = off ? kDarkGrey : theme_.accent, ink = off ? kLightGrey : kWhite;
-    const std::string label = off ? t.off : t.on, key = std::to_string(colour) + "|" + label;
+    const bool lit = !has_state(sw) || state_of(sw).undefined() || on(sw);   // not known yet: as on
+    const int colour = lit ? theme_.accent : kDarkGrey, ink = lit ? kWhite : kLightGrey;
+    const std::string label = lit ? t.on : t.off, key = std::to_string(colour) + "|" + label;
     if (drawn_["power"] != key) {
       drawn_["power"] = key;
       pill(pg->second.at("power_hs"), colour, ink, label, icon_glyph("power"));

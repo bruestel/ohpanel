@@ -537,7 +537,7 @@ class Engine {
   double thermo_target(const cJSON *page) const;   // as shown: the finger's, one just sent, else the item's (NaN)
   std::string thermo_text(const cJSON *page, double v) const;   // a target as written, with its unit
   bool thermo_locked(const cJSON *page) const;   // the mode's rules keep the target (no minus / plus, no dragging)
-  bool thermo_off(const cJSON *page) const;      // its "switch" says off: the target not set, the ring grey
+  bool thermo_off(const cJSON *page) const;      // its "switch" is off and "locked": the target not set, the ring grey
   void draw_thermostat(const cJSON *page);
   void thermo_refresh(const cJSON *page);
   void thermo_ring(const cJSON *page, double share);   // the beads filled as far as share (0..1; < 0: unknown)

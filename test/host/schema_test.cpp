@@ -176,7 +176,10 @@ int main() {
                    "buttons":[{"label":"Open"}]}])"),
                "pages[0].length");
   expect_valid("thermostat with on / off",
-               doc(R"("pages":[{"id":"t","type":"thermostat","title":"x","item":"S","switch":{"item":"P"}}])"));
+               doc(R"("pages":[{"id":"t","type":"thermostat","title":"x","item":"S","switch":{"item":"P","locked":true}}])"));
+  expect_issue("thermostat switch locked not a boolean",
+               doc(R"("pages":[{"id":"t","type":"thermostat","title":"x","item":"S","switch":{"item":"P","locked":1}}])"),
+               "pages[0].switch.locked");
   expect_issue("thermostat modes without mode",
                doc(R"("pages":[{"id":"t","type":"thermostat","title":"x","item":"S","modes":[{"value":"a"}]}])"),
                "pages[0].modes");

@@ -6282,9 +6282,9 @@ function fillThermostat(page) {
   const decimals = Math.abs(r.step - Math.round(r.step)) < 1e-6 ? 0 : Math.abs(r.step * 10 - Math.round(r.step * 10)) < 1e-6 ? 1 : 2;
   const unit = set ? unitOf(set) : '';
   f.target = {text: t.thermostat_target + ' ' + (target === null ? t.undefined : fmtNumber(target, decimals) + (unit ? ' ' + unit : '°'))};
-  // on / off ("switch", Engine::thermo_off): off, "off" for the target, the ring grey, no modes lit
+  // on / off ("switch"): its pill; off and "locked" (Engine::thermo_off), "off" for the target, the ring grey, no modes lit
   const sw = page.switch, swSt = sw && sw.item ? stateOf(sw) : null;
-  const off = !!(swSt && swSt.type !== 'UnDef' && !isOn(sw));
+  const lit = !swSt || swSt.type === 'UnDef' || isOn(sw), off = !!(sw && sw.locked) && !lit;
   if (off) f.target = {text: t.off};
   const heating = !off && isOn(page.heating), cooling = !off && !heating && isOn(page.cooling);
   // the mode's rules may lock the target (Engine::thermo_locked), and off: no minus and plus then
@@ -6329,7 +6329,7 @@ function fillThermostat(page) {
       drawPill(ctx, b, label, !off && mode === value);
     });
     const pb = sw && sw.item && layoutBox('thermostat', 'power_hs');
-    if (pb) drawPill(ctx, pb, off ? t.off : t.on, !off, 'power');
+    if (pb) drawPill(ctx, pb, lit ? t.on : t.off, lit, 'power');
   }}};
   return f;
 }
@@ -6704,7 +6704,10 @@ function pvThermostatEditor(box, head, hint, page) {
         field('Target temperature', itemField(page.item, v => pvEdit((c, p) => { p.item = v; }), 'Number'))),
     two(ref('current', 'Number', 'Temperature now (optional)'), ref('mode', 'String,Number', 'Mode (optional)')),
     two(ref('heating', 'Switch,Contact,Number', 'Heats (optional)'), ref('cooling', 'Switch,Contact,Number', 'Cools (optional)')),
-    two(ref('switch', 'Switch', 'On / off (optional)'), document.createElement('span')),
+    two(ref('switch', 'Switch', 'On / off (optional)'),
+        page.switch && page.switch.item ? pvFlag('Off keeps the target (no minus / plus, the ring grey)', !!page.switch.locked,
+          on => pvEdit((c, p) => { if (!p.switch) return; if (on) p.switch.locked = true; else delete p.switch.locked; }))
+        : document.createElement('span')),
     note('"Heats" and "cools": an item that is ON (OPEN, above 0) while it does. It shows under the target.'),
     pvRow(field('Lowest', num('min', 5)), field('Highest', num('max', 30)), field('Step', num('step', 0.5))),
     note('The target\'s range and step: empty takes the item\'s in openHAB (its state description), else 5 to 30 by 0.5.'),
