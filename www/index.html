@@ -3862,9 +3862,14 @@ function drawPage(box, cfg, id) {
       box.appendChild(el);
       continue;
     }
-    if (want.badge) {   // the field on a rounded box a pixel clear of its top and bottom (compose.py badge())
-      el.style.top = (o.y + 1) + 'px'; el.style.height = (o.h - 2) + 'px';
-      el.style.background = want.badge; el.style.borderRadius = '5px';
+    if (want.badge) {   // a rounded box a pixel clear of its line's top and bottom (compose.py badge()): the line is
+      // its text field's (an info line's "_text"), the badge's field may reach higher (the icon's, layout INFO_ICON_UP)
+      const line = layout.objects.find(x => x.n === o.n.replace(/_badge(ico)?$/, '_text')) || o;
+      const box = document.createElement('span');
+      box.style.cssText = 'position:absolute;left:0;right:0;z-index:-1;border-radius:5px;top:' + (line.y + 1 - o.y)
+                        + 'px;height:' + (line.h - 2) + 'px;background:' + want.badge;
+      el.style.isolation = 'isolate';
+      el.appendChild(box);
     }
     if (o.t === 1) {  // slider
       el.className = 'slider';
