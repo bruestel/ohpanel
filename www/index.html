@@ -4648,6 +4648,31 @@ function unnamed(name, input) {
   return l;
 }
 
+/* A text the display shows in a field of its own (LAYOUT.fit: font, width, bytes): `input` takes as much as the
+   schema allows, a line under it says how it shows when it is too wide for the field (Engine::fitted).
+   `where` gives [page template, object] -- it may change (a button's icon place). */
+function fitHint(input, where) {
+  const p = document.createElement('p');
+  p.className = 'sub warn';
+  const show = () => {
+    const [template, object] = where(), fit = LAYOUT.fit && LAYOUT.fit[template] && LAYOUT.fit[template][object];
+    const v = input.value.trim(), shown = fit && v ? fitted(v, ...fit) : v;
+    p.textContent = shown !== v ? 'Too wide for the display, shown as "' + shown + '"' : '';
+    p.hidden = shown === v;
+  };
+  input.addEventListener('input', show);
+  show();
+  const box = document.createElement('div');
+  box.append(input, p);
+  box.update = show;
+  return box;
+}
+
+/* A page's title, as long as the schema allows, with what the display shows of it. */
+function titleInput(page, onInput) {
+  return fitHint(textInput(page.title, onInput, {maxLength: 64}), () => [templateOf(page), 'title']);
+}
+
 function textInput(value, onInput, attrs = {}) {
   const i = document.createElement('input');
   i.type = 'text';
@@ -5606,7 +5631,7 @@ function pvEditor() {
     box.append(pvRow($('vTime').closest('label'), $('vDate').closest('label')), pvButtons([]));
   } else if (t === 'title') {
     head.textContent = 'Page title';
-    box.append(pvRow(field('Title', textInput(page.title, v => pvEdit((c, p) => { p.title = v; }), {maxLength: 30}))));
+    box.append(pvRow(field('Title', titleInput(page, v => pvEdit((c, p) => { p.title = v; })))));
     pvDeletePage(box, page);
   } else if (t === 'weather') {
     head.textContent = h.weather_icon ? 'Weather' : 'Weather (not shown)';
@@ -5734,7 +5759,7 @@ function pvEditor() {
     p.className = 'sub';
     p.textContent = 'With an item (a plain Switch) the relay shows in openHAB: the button switches it and tells openHAB, '
                   + 'and switching the item switches the relay.';
-    box.append(pvRow(field('Label', textInput(e.label, v => set('label', v), {maxLength: 20})),
+    box.append(pvRow(field('Label', fitHint(textInput(e.label, v => set('label', v), {maxLength: 24}), () => ['home', 'relay1_text'])),
                      field('Item', itemField(e.item, v => set('item', v), 'Switch'))), sw, p,
                pvSlotButtons(slot, 2));
   } else if (slot && slot.kind === 'info') {
@@ -5824,14 +5849,18 @@ function pvEditor() {
     const rules = field('Depending on the state',
                         rulesField(b.value_style, v => set('value_style', v), true, false, false, b, null, {withActive: true}));
     rules.hidden = !b.item;
+    // as long as the schema allows; what the tile's field (the corner's name or the centred text) shows of it
+    let center = b.layout === 'center';
+    const label = fitHint(textInput(b.label, v => set('label', v), {maxLength: 32}),
+                          () => ['buttons', 'tile1' + (center ? '_text' : '_name')]);
     // two fixed columns, so a field keeps its width whatever shows beside it
     const target = document.createElement('div');   // the action's page or command, or nothing
     target.append(openSel, cmd);
     box.append(
-      pvRow(field('Label', textInput(b.label, v => set('label', v), {maxLength: 10}))),
+      pvRow(field('Label', label)),
       two(field('Icon', iconField(b.icon, v => set('icon', v))),
           field('Icon place', selectInput([['', 'top left, the name at the bottom (state above it)'], ['center', 'in the middle, large, the name under it']],
-                                          b.layout === 'center' ? 'center' : '', v => set('layout', v)))),
+                                          b.layout === 'center' ? 'center' : '', v => { set('layout', v); center = v === 'center'; label.update(); }))),
       pvRow(field('Color', colorField(b.color, v => set('color', v), 'theme accent', THEME.accent))),
       // with an item the form shows its rules, without one not (hidden, not rebuilt: the field keeps the focus)
       two(field('Item', itemField(b.item, v => { set('item', v); rules.hidden = !v; })),
@@ -6406,7 +6435,7 @@ function pvMediaEditor(box, head, hint, page) {
                               ...favs.map(p => [p.id, p.title || p.id])],
                              page.favorites || '', v => pvEdit((c, p) => { if (v) p.favorites = v; else delete p.favorites; }));
   box.append(
-    two(field('Title', textInput(page.title, v => pvEdit((c, p) => { p.title = v; }), {maxLength: 30})),
+    two(field('Title', titleInput(page, v => pvEdit((c, p) => { p.title = v; }))),
         field('Icon (while nothing plays)', iconField(page.icon, v => pvEdit((c, p) => { if (v) p.icon = v; else delete p.icon; })))),
     two(field('Player (play, pause, next, previous)', itemField((page.control || {}).item, v => ref('control', v), 'Player')),
         field('Volume', itemField((page.volume || {}).item, v => ref('volume', v), 'Dimmer,Number'))),
@@ -6472,7 +6501,7 @@ function pvLightEditor(box, head, hint, page) {
     return wrap;
   };
   box.append(
-    two(field('Title', textInput(page.title, v => pvEdit((c, p) => { p.title = v; }), {maxLength: 30})),
+    two(field('Title', titleInput(page, v => pvEdit((c, p) => { p.title = v; }))),
         field('Icon', iconField(page.icon, v => pvEdit((c, p) => { if (v) p.icon = v; else delete p.icon; })))),
     two(field('Brightness', itemField((page.brightness || {}).item, v => ref('brightness', v), 'Dimmer')),
         field('Colour (optional)', itemField((page.color || {}).item, v => ref('color', v), 'Color'))),
@@ -6641,7 +6670,7 @@ function pvThermostatEditor(box, head, hint, page) {
     if (v !== '' && isFinite(n)) p[k] = n; else delete p[k];
   }), {inputMode: 'decimal', maxLength: 6, placeholder: fromOh(k) !== null ? fromOh(k) + ' (from openHAB)' : String(dflt)});
   box.append(
-    two(field('Title', textInput(page.title, v => pvEdit((c, p) => { p.title = v; }), {maxLength: 30})),
+    two(field('Title', titleInput(page, v => pvEdit((c, p) => { p.title = v; }))),
         field('Target temperature', itemField(page.item, v => pvEdit((c, p) => { p.item = v; }), 'Number'))),
     two(ref('current', 'Number', 'Temperature now (optional)'), ref('mode', 'String,Number', 'Mode (optional)')),
     two(ref('heating', 'Switch,Contact,Number', 'Heats (optional)'), ref('cooling', 'Switch,Contact,Number', 'Cools (optional)')),
@@ -6706,7 +6735,7 @@ function pvKeypadEditor(box, head, hint, page) {
     if (s.item) p.state = s; else delete p.state;
   });
   box.append(
-    two(field('Title', textInput(page.title, v => pvEdit((c, p) => { p.title = v; }), {maxLength: 30})),
+    two(field('Title', titleInput(page, v => pvEdit((c, p) => { p.title = v; }))),
         field('Item the buttons send to', itemField(page.item || '', v => pvEdit((c, p) => { if (v) p.item = v; else delete p.item; }), 'String'))),
     two(field('Code places', selectInput([['', 'as typed (up to 8)'], ...[1, 2, 3, 4, 5, 6, 7, 8].map(n => [String(n), n + ' digits'])],
                                          typeof page.length === 'number' ? String(page.length) : '',
@@ -6766,7 +6795,7 @@ function pvFavoritesEditor(box, head, hint, page) {
   try { cfgNow = JSON.parse($('pJson').value); } catch (e) { /* the JSON is being edited */ }
   const players = pagesOf(cfgNow).filter(p => p.type === 'media');
   box.append(
-    field('Title', textInput(page.title, v => pvEdit((c, p) => { p.title = v; }), {maxLength: 30})),
+    field('Title', titleInput(page, v => pvEdit((c, p) => { p.title = v; }))),
     note('A String item whose command options are the stations ("stream URI=key"); names, short names, icons and logos '
        + 'come from its ohpanel metadata. The stream URIs go to the play item of the player (its form).'),
     two(field('Catalogue item', itemField(st.item, v => pvEdit((c, p) => {
@@ -6896,7 +6925,7 @@ function pvEntitiesEditor(box, head, hint, page) {
     renderPreview();
   });
   box.append(
-    pvRow(field('Title', textInput(page.title, v => set('title', v), {maxLength: 30}))),
+    pvRow(field('Title', titleInput(page, v => set('title', v)))),
     two(field('Style', selectInput([['', 'List: icon, label, value, a line between rows'],
                                     ['cards', 'Cards: two columns, the label small above the value'],
                                     ['rows', 'Rows: each row on a card of its own']],
@@ -7087,7 +7116,8 @@ function pvWeatherEditor(box, head, hint, page) {
     const acts = pvButtons([['▲', 'sec', () => move(k - 1), k === 0], ['▼', 'sec', () => move(k + 1), k === extras.length - 1],
                             ['✕', 'sec', () => { dayEdit(x => { x.extras = (x.extras || []).filter(Boolean).filter((_, j) => j !== k); }); redraw(); }]]);
     row.append(unnamed('Icon', iconField(e.icon, v => set('icon', v))),
-               unnamed('Label', textInput(e.label, v => set('label', v), {maxLength: 16, placeholder: 'Label, e.g. Wind'})),
+               unnamed('Label', fitHint(textInput(e.label, v => set('label', v), {maxLength: 16, placeholder: 'Label, e.g. Wind'}),
+                                         () => ['weather', 'chip1_text'])),
                unnamed('Item', itemField(e.item, v => set('item', v))), acts);
     extrasBox.appendChild(row);
   });
@@ -7288,7 +7318,7 @@ function pvQrEditor(box, head, hint, page) {
   });
   show(wifi ? 'wifi' : 'text');
   box.append(
-    two(field('Title', textInput(page.title, v => set('title', v), {maxLength: 30})), field('The code holds', kind)),
+    two(field('Title', titleInput(page, v => set('title', v))), field('The code holds', kind)),
     textRow, wifiBox,
     captionRows,
     pvRow(field('Colour of the code', colorField(page.color, v => set('color', v), 'theme accent', THEME.accent))),
