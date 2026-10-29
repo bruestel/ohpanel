@@ -427,11 +427,14 @@ def home_page(p: Project) -> None:
                                           layout.INFO_H), 1, maxl=20, pco=LIGHT_GREY)
         text(home, f"info{line}_tag", (lx, y, lw, layout.INFO_H), 1, xcen=1, maxl=5)
         text(home, f"info{line}_right", (rx, y, rw, layout.INFO_H), 1, xcen=1, maxl=5, pco=LIGHT_GREY)
-        text(home, f"info{line}_tagicon", (lx, y, lw, layout.INFO_H), ICON_FONT, xcen=1, maxl=5)
-        # the badges: the default background's red box to start with; the firmware sets the colour and background
+        # an icon in a field as high as its font, up where it shows centred on the line (layout.INFO_ICON_UP)
+        icon_box = (lx, y - layout.INFO_ICON_UP, lw, layout.INFO_ICON_H)
+        text(home, f"info{line}_tagicon", icon_box, ICON_FONT, xcen=1, maxl=5)
+        # the badges: the default background's red box to start with; the firmware sets the colour and background.
+        # Both on one picture, the icon's field; the text at its bottom, where the line's other texts are
         badge = PICTURES[f"badge{line}"]["red"]
-        for name, font in ((f"info{line}_badge", 1), (f"info{line}_badgeico", ICON_FONT)):
-            text(home, name, (lx, y, lw, layout.INFO_H), font, xcen=1, maxl=5, pic=badge)
+        text(home, f"info{line}_badge", icon_box, 1, xcen=1, ycen=2, maxl=5, pic=badge)
+        text(home, f"info{line}_badgeico", icon_box, ICON_FONT, xcen=1, maxl=5, pic=badge)
 
     # the relays: a label, and under it a bar the firmware colours (the theme's accent while the relay is on,
     # dark grey while off: Engine::draw_relays)

@@ -79,11 +79,13 @@ PALETTE = {"white": 65535, "black": 0, "red": 63488, "green": 21920, "blue": 105
 
 def badge(color565):
     """The left field of an info line as a badge: a rounded box in the colour,
-    a pixel clear of the field's top and bottom."""
-    w, h, k = layout.INFO_LEFT[1], layout.INFO_H, 8
+    a pixel clear of the line's top and bottom, on a picture as high as the
+    icon's field (from INFO_ICON_UP above the line)."""
+    w, h, k = layout.INFO_LEFT[1], layout.INFO_ICON_H, 8
+    top, bottom = layout.INFO_ICON_UP + 1, min(h, layout.INFO_ICON_UP + layout.INFO_H - 1)
     rgb = ((color565 >> 11) * 255 // 31, ((color565 >> 5) & 63) * 255 // 63, (color565 & 31) * 255 // 31)
     img = Image.new("RGBA", (w * k, h * k), (0, 0, 0, 0))
-    ImageDraw.Draw(img).rounded_rectangle((0, k, w * k - 1, (h - 1) * k - 1), radius=layout.BADGE_RADIUS * k,
+    ImageDraw.Draw(img).rounded_rectangle((0, top * k, w * k - 1, bottom * k - 1), radius=layout.BADGE_RADIUS * k,
                                           fill=rgb + (255,))
     return img.resize((w, h), Image.LANCZOS)
 
@@ -156,7 +158,8 @@ def slots():
                      {"logo": Image.open(os.path.join(layout.ASSETS, "logo", "splash.png")).convert("RGBA")})
     badges = {name: badge(c) for name, c in PALETTE.items()}
     for line, y in enumerate(layout.INFO_Y, start=1):
-        out[f"badge{line}"] = (layout.INFO_LEFT[0], y, layout.INFO_LEFT[1], layout.INFO_H, badges)
+        out[f"badge{line}"] = (layout.INFO_LEFT[0], y - layout.INFO_ICON_UP, layout.INFO_LEFT[1], layout.INFO_ICON_H,
+                               badges)
     return out
 
 

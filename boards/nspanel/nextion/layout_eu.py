@@ -125,9 +125,13 @@ RANGE_LOW_X = RANGE_DOWN_X + RANGE_ARROW_W       # the low's value
 RANGE_STEP, RANGE_STEPS = 6, 7                   # up to 42 px: "-12°" is 35, "9,5°" 34
 RANGE_GAP = 4                                    # after the low (the arrow's box has its own margin)
 RANGE_HIGH_W = 38                                # "-12°"; the last place ends before the date
-# the info lines: 21 px apart, their fields as high, the text centred
+# the info lines: their text fields 21 px high, the text centred; the left field's icon (and its badge) in a field
+# as high as the icon font, INFO_ICON_UP px above the line -- the font draws its icons low in its cell, in a lower
+# field they sat low and were cut at the bottom. 24 px apart, so that field stays clear of the line above (its icon,
+# its badge).
 INFO_H = 21
-INFO_Y = (230, 251)       # the two lines' top
+INFO_Y = (230, 254)       # the two lines' top
+INFO_ICON_UP, INFO_ICON_H = 4, 24
 # the left field (a line number, mostly) may be a badge: a rounded box in a
 # colour, a picture per colour and background (boards/nspanel/nextion/assets/compose.py)
 INFO_LEFT = (MARGIN, 26)  # x, w: even, so a two-digit number has as much room left as right
