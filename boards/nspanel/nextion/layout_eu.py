@@ -141,12 +141,12 @@ INFO_RIGHT = (196, 52)    # x, w
 INFO_GAP = 8
 INFO_MAIN_X = 44          # the main text: 6 px clear of the left field (12..38)
 # the vertical centres of the two value rows: one group, the number fields
-# (VALUE_NUMBER_H) touching -- overlapping ones would repaint each other
-VALUE_ROWS = (174, 202)
+# (VALUE_NUMBER_H) a pixel apart -- overlapping ones would repaint each other
+VALUE_ROWS = (174, 203)   # 29 apart: the icons' fields (32 px) overlap only where neither has ink
 VALUE_NUMBER_H = 28        # the 26 px font and a pixel each side
-VALUE_ICON_X = MARGIN - 2  # the 24 px glyph in a 25 px box starts 2 px in
+VALUE_ICON_CX = MARGIN + 11.5   # the icon (32 px font, its ink 23 px wide) from the margin
 # a value row: icon | number | unit (small, at the top, right after it)
-VALUE_NUMBER = (37, 100)   # x, w
+VALUE_NUMBER = (40, 100)   # x, w: 5 px after the icon
 VALUE_UNIT_W, VALUE_DIGIT, VALUE_UNIT_STEPS = 36, 13, 12
 VALUE_UNIT_STEP = 7      # half a digit, rounded up: 12 places cover 6 digits
 FONT_VALUE, FONT_VALUE_UNIT = 3, 1

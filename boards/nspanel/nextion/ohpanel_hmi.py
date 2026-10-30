@@ -413,9 +413,10 @@ def home_page(p: Project) -> None:
     # value rows: an icon and the number beside it, its unit small at the number's top
     for (icon_name, number, row), cy in zip((("row1_icon", "row1", "row1"), ("row2_icon", "row2", "row2")),
                                             layout.VALUE_ROWS):
-        # the icon's ink centred on the number's capitals (font 3: rows 5..20 of its 26, the field 1 px higher): the
-        # icon font draws its icons low in its cell
-        icon(home, icon_name, layout.VALUE_ICON_X + 13, cy - 0.5, ICON_FONT, maxl=10)
+        # the icon (32 px font) centred by its ink on the number's capitals: font 3 has them in rows 5..20 of its 26,
+        # its field 1 px higher than the font, so their middle is the row's -- the icon font draws its icons low in
+        # its cell
+        icon(home, icon_name, layout.VALUE_ICON_CX, cy, ICON_FONT_LARGE, maxl=10)
         num = text(home, number, (layout.VALUE_NUMBER[0], cy - layout.VALUE_NUMBER_H // 2, layout.VALUE_NUMBER[1],
                                   layout.VALUE_NUMBER_H), layout.FONT_VALUE, maxl=8)
         units(num, row + "_u", layout.VALUE_UNIT_STEPS, layout.VALUE_UNIT_STEP, cy - 13, 20, layout.VALUE_UNIT_W,

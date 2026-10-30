@@ -123,10 +123,10 @@ INFO_RIGHT = (RIGHT - 52, 52)
 INFO_GAP = 8
 INFO_MAIN_X = 44
 # the two value rows above the info lines, the number fields touching
-VALUE_ROWS = (334, 362)
+VALUE_ROWS = (334, 363)   # 29 apart: the icons' fields (32 px) overlap only where neither has ink
 VALUE_NUMBER_H = 28
-VALUE_ICON_X = MARGIN - 2
-VALUE_NUMBER = (37, 100)
+VALUE_ICON_CX = MARGIN + 11.5
+VALUE_NUMBER = (40, 100)
 VALUE_UNIT_W, VALUE_DIGIT, VALUE_UNIT_STEPS = 36, 13, 12
 VALUE_UNIT_STEP = 7
 FONT_VALUE, FONT_VALUE_UNIT = 3, 1
