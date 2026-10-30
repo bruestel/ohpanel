@@ -76,8 +76,7 @@ web interface with invented data, the preview working.
 
 ## What you need
 
-- A **Sonoff NSPanel**, EU version (the square one) or US version (the tall one; new, not yet tested on a real
-  panel); not the NSPanel Pro
+- A **Sonoff NSPanel**, EU version (the square one) or US version (the tall one); not the NSPanel Pro
 - **openHAB**, reachable from the panel's WiFi (tested with openHAB 5.1)
 - For the first installation once: a **USB serial adapter with 3.3 V**, a few jumper wires and a small
   flat screwdriver or another thin tool (see [Installation](docs/install.md))
