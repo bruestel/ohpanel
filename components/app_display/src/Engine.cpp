@@ -477,36 +477,28 @@ void Engine::disc(int x, int y, int r, int colour, bool over_note) {
     sink_.send(c);
 }
 
-/* Two bars and a disc in each corner; from kRoundFrom on by rows: the corners' (as disc draws them) and the middle. */
+/* Row by row from the top, each run of rows as wide as the corners leave it (as disc draws them), the middle in one:
+   no bar or square shows first while it is drawn (two bars and the corners' discs did, on the cover page). */
 void Engine::rounded(int x, int y, int w, int h, int r, int colour, bool over_note) {
-  if (r >= kRoundFrom) {
-    int run_y = y, run_h = 0, run_in = -1;
-    for (int dy = 0; dy < r; dy++) {   // the top rows, then the bottom ones mirrored
-      const int in = r - static_cast<int>(std::sqrt((r + 0.5) * (r + 0.5) - (r - dy) * (r - dy)));
-      if (run_h && in == run_in) {
-        run_h++;
-        continue;
-      }
-      if (run_h) {
-        fill(x + run_in, run_y, w - 2 * run_in, run_h, colour, over_note);
-        fill(x + run_in, y + h - (run_y - y) - run_h, w - 2 * run_in, run_h, colour, over_note);
-      }
-      run_y = y + dy;
-      run_h = 1;
-      run_in = in;
-    }
-    if (run_h) {
-      fill(x + run_in, run_y, w - 2 * run_in, run_h, colour, over_note);
-      fill(x + run_in, y + h - (run_y - y) - run_h, w - 2 * run_in, run_h, colour, over_note);
-    }
-    fill(x, y + r, w, h - 2 * r, colour, over_note);
-    return;
+  std::vector<std::pair<int, int>> runs;   // the top corners' rows: an inset each, how many rows have it
+  for (int dy = 0; dy < r; dy++) {
+    const int in = r - static_cast<int>(std::sqrt((r + 0.5) * (r + 0.5) - (r - dy) * (r - dy)));
+    if (!runs.empty() && runs.back().first == in)
+      runs.back().second++;
+    else
+      runs.emplace_back(in, 1);
   }
-  fill(x + r, y, w - 2 * r, h, colour, over_note);
+  int at = y;
+  for (const auto &[in, rows] : runs) {
+    fill(x + in, at, w - 2 * in, rows, colour, over_note);
+    at += rows;
+  }
   fill(x, y + r, w, h - 2 * r, colour, over_note);
-  for (const int cx : {x + r, x + w - 1 - r})
-    for (const int cy : {y + r, y + h - 1 - r})
-      disc(cx, cy, r, colour, over_note);
+  at = y + h - r;
+  for (auto run = runs.rbegin(); run != runs.rend(); ++run) {   // the bottom ones mirrored
+    fill(x + run->first, at, w - 2 * run->first, run->second, colour, over_note);
+    at += run->second;
+  }
 }
 
 /* A pill's shape in `colour`: round ends (2r + 1 px across), the middle as high -- from kRoundFrom row by row from
