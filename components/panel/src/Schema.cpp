@@ -930,7 +930,8 @@ class Validator {
       }
     } else if (t == "keypad") {
       allowed(pg, p, {"id", "type", "title", "icon", "color", "text", "item", "state", "result", "length", "keys",
-                      "buttons"});
+                      "buttons", "stay"});
+      boolean(pg, "stay", p);   // no going back to the start page: neither after home_after nor on waking
       // the line over the code without a state: its words, icon and colour
       string(pg, "text", p, false, 32);
       icon(pg, p);

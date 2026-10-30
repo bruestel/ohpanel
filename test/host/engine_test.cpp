@@ -2330,6 +2330,47 @@ int main(int argc, char **argv) {
     e.set_config(read("test/host/data/office.json"));
   }
 
+  {  // a keypad with "stay": no going back to the start page, neither after home_after nor when the screen wakes
+    cJSON *doc = cJSON_Parse(read("test/host/data/office.json").c_str());
+    cJSON_AddItemToArray(cJSON_GetObjectItem(doc, "pages"), cJSON_Parse(R"({"id": "alarm", "type": "keypad",
+        "title": "Alarm", "item": "Alarm_Command", "stay": true, "buttons": [{"label": "Off", "command": "DISARM {code}"}]})"));
+    cJSON_AddItemToObject(cJSON_GetObjectItem(doc, "display"), "screen", cJSON_Parse(R"({"idle_brightness": 0, "idle_after": 120})"));
+    for (cJSON *pg = cJSON_GetObjectItem(doc, "pages")->child; pg; pg = pg->next)
+      if (std::string(cJSON_GetStringValue(cJSON_GetObjectItem(pg, "id"))) == "lights")
+        cJSON_ReplaceItemInArray(cJSON_GetObjectItem(pg, "buttons"), 0,
+                                 cJSON_Parse(R"({"label": "Alarm", "icon": "shield", "open": "alarm"})"));
+    char *text = cJSON_PrintUnformatted(doc);
+    e.set_config(text);
+    cJSON_free(text);
+    cJSON_Delete(doc);
+    int64_t t = 40000000;
+    e.idle(t);
+    e.on_message(event("blank", "wake", "release"));              // (idle at 0 % long since: off)
+    e.idle(t += 100);
+    e.on_message(loaded("home"));
+    e.on_message(event("home", "swipe", "left"));
+    e.on_message(loaded("buttons"));
+    e.on_message(event("buttons", "tile1", "release"));
+    e.on_message(loaded("keypad"));
+    CHECK(e.current() == "alarm");
+    e.idle(t += 61000);                                           // past home_after (60 s): it stays
+    CHECK(e.current() == "alarm" && !e.asleep());
+    e.idle(t += 60000);                                           // off once idle
+    CHECK(e.asleep());
+    e.on_message(loaded("blank"));
+    rec.out.clear();
+    e.on_message(event("blank", "wake", "release"));
+    e.idle(t += 100);
+    CHECK(!e.asleep() && e.current() == "alarm" && rec.has(page_cmd("keypad")));   // woken on it
+    e.on_message(loaded("keypad"));
+    e.on_message(event("keypad", "close", "release"));            // the close cross still leaves it
+    CHECK(e.current() == "lights");
+    e.on_message(loaded("buttons"));
+    e.set_config(read("test/host/data/office.json"));
+    e.on_message(event("buttons", "close", "release"));
+    e.on_message(loaded("home"));
+  }
+
   {  // keypad buttons by the state ("show_when"): disarmed the two to arm, armed only "Off" -- the page anew when the
      // set changes, a button's event then meaning the buttons that show
     cJSON *doc = cJSON_Parse(read("test/host/data/office.json").c_str());

@@ -6811,6 +6811,8 @@ function pvKeypadEditor(box, head, hint, page) {
                                          v => pvEdit((c, p) => { if (v) p.length = parseInt(v, 10); else delete p.length; }))),
         field('Bottom row', selectInput([['', '⌫  0  C'], ['phone', '*  0  #  (backspace on the places)']], page.keys === 'phone' ? 'phone' : '',
                                         v => pvEdit((c, p) => { if (v) p.keys = v; else delete p.keys; })))),
+    pvFlag('Stays open: no going back to the start page after a while without a touch, and woken on it',
+           page.stay, on => pvEdit((c, p) => { if (on) p.stay = true; else delete p.stay; })),
     two(field('State (optional)', itemField(st.item || '', v => setState('item', v), 'String,Number,Switch,Contact')),
         field('Reply from openHAB (optional)', itemField((page.result || {}).item || '', v => pvEdit((c, p) => {
           if (v) p.result = {item: v}; else delete p.result;

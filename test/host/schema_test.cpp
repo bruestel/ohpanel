@@ -235,6 +235,10 @@ int main() {
   expect_valid("home after", doc("\"display\":{\"home_after\":120}"));
   expect_valid("page fade", doc("\"display\":{\"page_fade\":100}"));
   expect_issue("page fade not ms", doc("\"display\":{\"page_fade\":true}"), "display.page_fade");
+  expect_valid("keypad stay", doc("\"pages\":[{\"id\":\"k\",\"type\":\"keypad\",\"title\":\"K\",\"item\":\"I\",\"stay\":true,"
+                                   "\"buttons\":[{\"label\":\"Off\"}]}]"));
+  expect_issue("keypad stay not bool", doc("\"pages\":[{\"id\":\"k\",\"type\":\"keypad\",\"title\":\"K\",\"item\":\"I\","
+                                           "\"stay\":1,\"buttons\":[{\"label\":\"Off\"}]}]"), "pages[0].stay");
   expect_valid("open page", doc("\"display\":{\"open_page\":{\"item\":\"Panel_Page\"}}"));
   expect_issue("open page without item", doc("\"display\":{\"open_page\":{}}"), "display.open_page.item");
   expect_issue("open page bad item", doc("\"display\":{\"open_page\":{\"item\":\"a b\"}}"), "display.open_page.item");

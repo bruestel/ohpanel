@@ -369,6 +369,7 @@ class Engine {
   std::string open_item_;
   bool open_known_ = false;  // the item's state was seen once
   void open_state();
+  bool stays(const cJSON *page) const;
   /* Drawing on the screen, as the firmware draws its own shapes (lost when the page is drawn again). `over_note`:
      sent while a notification card is up too (the card's own drawing). */
   void fill(int x, int y, int w, int h, int colour, bool over_note = false);

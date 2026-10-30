@@ -89,7 +89,7 @@ with a `format` it shows the whole text instead.
 | `language` | `en` (default), `bg`, `cs`, `da`, `de`, `el`, `es`, `et`, `fi`, `fr`, `ga`, `hr`, `hu`, `it`, `lt`, `lv`, `mt`, `nb`, `nl`, `pl`, `pt`, `ro`, `sk`, `sl`, `sv` | language of the texts the panel itself writes (on/off, weekdays, months, "no value", the info, settings, cover and thermostat words) and how it writes numbers: `1,234.5` (en, ga, mt), `1.234,5` (de, da, el, es, hr, it, nl, ro, sl), `1 234,5` (bg, cs, et, fi, fr, hu, lt, lv, nb, pl, pt, sk, sv) |
 | `date_format` | string | how dates are written; default: the language's own, short enough for the home screen (`%a, %e %b` "Mon, 5 Oct", `%a, %e. %b` "Mo, 5. Okt.", `%a %e %b` "lun 5 oct", `%a %-d.%-m.` "ma 5.10." ...); e.g. `%a, %e. %b %y` ("Mo, 5. Okt. 26") or `%d/%m/%Y` |
 | `time_format` | string | e.g. `%H:%M` (default, "09:35"), `%-H:%M` ("9:35"), `%I:%M %p` ("01:35 PM") or `%-I:%M %p` ("1:35 PM"); with `%p` the display shows AM/PM small above the minutes |
-| `home_after` | number | seconds without a touch (on the screen or a button) after which another page goes back to the start page (the swipe row's first, home unless the row begins with another one); not a media page while its player plays (paused, it counts from then); default 60, 0: never; at most 3600 |
+| `home_after` | number | seconds without a touch (on the screen or a button) after which another page goes back to the start page (the swipe row's first, home unless the row begins with another one); not a media page while its player plays (paused, it counts from then), nor a keypad with `stay`; default 60, 0: never; at most 3600 |
 | `page_fade` | number | a swipe to another page fades the screen out and in again, that many ms each way (in 4 steps), hiding how the display draws the new page; default 0 (not), at most 1000 |
 | `cover_reveal` | string | how the media page's cover appears: `dissolve` (in a random order, the default), `center` (from the middle outwards), `sharpen` (blurred first, 8 x 8 and then 4 x 4 points averaged, then sharp; a third more to draw), `wipe` (row by row from the top) |
 | `screen` | object | the screen's brightness, see below |
@@ -493,6 +493,7 @@ A code typed on the panel and sent with a button: an alarm system's modes, a doo
 | `text`, `icon`, `color` | | without a `state`: shown over the code instead, e.g. `"Door code"` with `lock` |
 | `length` | 1 to 8 | the code's places (without: one per digit typed, up to 8) |
 | `keys` | `digits` (default), `phone` | the bottom row: backspace, 0, C (clears); or `*`, 0, `#` with backspace at the end of the code's places |
+| `stay` | bool | `true`: once open the page stays, an alarm panel by the door: no going back to the start page after `display.home_after`, and a screen that went off wakes on it. The close cross still leaves it. Default `false` |
 | `result` | `{item}` | "Reply from openHAB": a String item a rule writes a text to, e.g. "Wrong code". If it changes within 10 s after sending, its text shows for a few seconds instead of waiting for the state. Never interpreted |
 
 A **button** is `{"label", "icon"?, "action"?, "item"?, "command"?, "code"?, "when"?, "show_when"?}`:

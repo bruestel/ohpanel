@@ -1896,8 +1896,9 @@ void Engine::idle(int64_t now_ms) {
   // a player that plays stays (and the volume card over it): what plays is what one looks at
   const cJSON *shown_page = current_ == "home" ? nullptr : page_config(current_);
   const bool playing = shown_page && type_of(shown_page) == PageType::Media && media_playing(shown_page);
-  // the time on another page counts from leaving the start page at the earliest (not from a notification either)
-  if (current_ == start_page() || asleep_ || note_ || playing)
+  // the time on another page counts from leaving the start page at the earliest (not from a notification either);
+  // a keypad with "stay" never goes back (an alarm panel by the door)
+  if (current_ == start_page() || asleep_ || note_ || playing || stays(shown_page))
     start_ms_ = now_ms;
   else if (settings_.home_after > 0 && started_ &&
            now_ms - std::max(touched_ms_, start_ms_) >= settings_.home_after * 1000LL) {
@@ -1923,6 +1924,11 @@ void Engine::idle(int64_t now_ms) {
 }
 
 // ----------------------------------------------------------------- screen --
+
+/* A page that stays once open (a keypad's "stay"): not left for the start page by itself. */
+bool Engine::stays(const cJSON *page) const {
+  return page && type_of(page) == PageType::Keypad && flag(page, "stay");
+}
 
 void Engine::show_current() {
   if (asleep_)
@@ -1980,8 +1986,10 @@ void Engine::screen_tick() {
   }
   if (asleep_) {
     asleep_ = false;
-    current_ = start_page();
-    history_.clear();
+    if (!stays(current_ == "home" ? nullptr : page_config(current_))) {   // woken on the start page
+      current_ = start_page();
+      history_.clear();
+    }
     show_current();
   }
   set_level(level);
