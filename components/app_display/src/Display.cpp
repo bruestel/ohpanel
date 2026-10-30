@@ -367,6 +367,7 @@ void task(void *) {
   cb.secret_command = [](const std::string &item, const std::string &command) {
     appoh::send_command(item, command, true);
   };
+  cb.update = [](const std::string &item, const std::string &state) { appoh::send_state(item, state); };
   cb.relay = [](int index, bool on) {
     if (g_hooks.relay) g_hooks.relay(index, on);
   };

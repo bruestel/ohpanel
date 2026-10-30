@@ -338,6 +338,11 @@ void Engine::set_config(const std::string &json) {
     notify_item_ = notify;
     notify_known_ = false;
   }
+  const std::string open_item = str(member(member(config_, "display"), "open_page"), "item");
+  if (open_item != open_item_) {
+    open_item_ = open_item;
+    open_known_ = false;
+  }
   update_theme();
   if (status_.openhab)
     prefetch_at_ = now_ms_ + kPrefetchDelayMs;   // a catalogue the new configuration names
@@ -1619,6 +1624,8 @@ void Engine::hardware_button(int index) {
 void Engine::on_state(const std::string &item) {
   if (item == notify_item_)
     notify_state();
+  if (item == open_item_)
+    open_state();
   screen_item(item);
   follow_relays(&item);
   for (const auto &b : bindings_)
@@ -1661,6 +1668,41 @@ void Engine::notify_state() {
   } else {
     draw_note();
   }
+}
+
+// -------------------------------------------------------- page from item --
+
+/* display.open_page's item changed: a page id opens that page as the start of the way back (the close cross goes
+   to the start page), the screen woken; then the item goes back to NULL. An id the panel does not know stays (a
+   rule sees nothing done); NULL or an empty state is the panel's own reset. */
+void Engine::open_state() {
+  appoh::ItemState st;
+  if (!cb_.state || !cb_.state(open_item_, st))
+    return;
+  const std::string id = st.undefined() ? "" : st.state;
+  const bool first = !open_known_;
+  open_known_ = true;
+  if (id.empty())
+    return;
+  if (first) {   // asked for while the panel was away: too late now, and in the way of the same id asked again
+    if (cb_.update)
+      cb_.update(open_item_, "NULL");
+    return;
+  }
+  if (id[0] == '@' || (id != "home" && !page_config(id)))   // '@': the panel's own, no id of the configuration
+    return;
+  touched_ms_ = now_ms_;   // wakes the screen
+  history_.clear();
+  if (asleep_) {
+    asleep_ = false;       // woken on that page, not the start page (screen_tick)
+    open(id, false);
+  } else if (fade_.phase == 1) {
+    fade_.target = id;     // a swipe fading out: it lands there instead
+  } else if (id != current_) {
+    open(id, false);
+  }
+  if (cb_.update)
+    cb_.update(open_item_, "NULL");
 }
 
 /* The words of `text` in lines of at most `width` pixels in `font`; a word

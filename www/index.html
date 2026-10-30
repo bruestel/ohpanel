@@ -1013,6 +1013,12 @@ pre.box{margin:0;padding:.6rem .7rem;max-height:18rem;overflow:auto;background:v
           <code>alert</code> (red); empty or NULL takes it away. The same text twice shows once: set the item to NULL
           before.</p>
         <div id="vNotify"></div>
+          value="warning|Window open|The bathroom window has been open for 30 minutes."></label></div>
+        <h3 class="screenh">Open a page</h3>
+        <p class="sub">A String item: a page id set on it (or <code>home</code>, <code>info</code>,
+          <code>settings</code>) opens that page and wakes the screen. The panel then sets the item to NULL, so a
+          rule sees it done and can ask for the same page again. An id the panel does not know is left as it is.</p>
+        <div id="vOpenPage"></div>
       </div>
     </div>
     <div class="card">
@@ -4248,6 +4254,11 @@ function syncDisplaySelects(cfg) {
     $('vNotify').innerHTML = '';
     $('vNotify').appendChild(itemField((d.notifications || {}).item || '',
                                        v => editDisplay('notifications', v.trim() ? {item: v.trim()} : '', ''), 'String'));
+  }
+  if (!$('vOpenPage').contains(document.activeElement)) {
+    $('vOpenPage').innerHTML = '';
+    $('vOpenPage').appendChild(itemField((d.open_page || {}).item || '',
+                                         v => editDisplay('open_page', v.trim() ? {item: v.trim()} : '', ''), 'String'));
   }
   const sample = new Date(2026, 9, 5, 13, 35);
   fillSelect($('vDate'), DATE_FORMATS, d.date_format || defaultDate(), v => strftime(v, sample) + '  (' + v + ')');

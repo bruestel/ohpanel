@@ -400,7 +400,7 @@ class Validator {
     if (!object(d, path))
       return;
     allowed(d, path, {"language", "date_format", "time_format", "background", "theme", "texts", "home_after", "screen",
-                      "notifications", "page_fade", "cover_reveal"});
+                      "notifications", "open_page", "page_fade", "cover_reveal"});
     // how the media page's cover appears (Cover.h)
     one_of(d, "cover_reveal", path, {"dissolve", "center", "sharpen", "wipe"});
     // a swipe to another page fades out and in, that many ms each way (0: not)
@@ -413,6 +413,14 @@ class Validator {
       if (object(n, p)) {
         allowed(n, p, {"item"});
         item_name(cJSON_GetObjectItem(n, "item"), member(p, "item"));
+      }
+    }
+    // an item whose state, a page id, opens that page; the panel sets it to NULL after
+    if (const cJSON *o = cJSON_GetObjectItem(d, "open_page")) {
+      const std::string p = member(path, "open_page");
+      if (object(o, p)) {
+        allowed(o, p, {"item"});
+        item_name(cJSON_GetObjectItem(o, "item"), member(p, "item"));
       }
     }
     if (const cJSON *screen = cJSON_GetObjectItem(d, "screen"))

@@ -235,6 +235,9 @@ int main() {
   expect_valid("home after", doc("\"display\":{\"home_after\":120}"));
   expect_valid("page fade", doc("\"display\":{\"page_fade\":100}"));
   expect_issue("page fade not ms", doc("\"display\":{\"page_fade\":true}"), "display.page_fade");
+  expect_valid("open page", doc("\"display\":{\"open_page\":{\"item\":\"Panel_Page\"}}"));
+  expect_issue("open page without item", doc("\"display\":{\"open_page\":{}}"), "display.open_page.item");
+  expect_issue("open page bad item", doc("\"display\":{\"open_page\":{\"item\":\"a b\"}}"), "display.open_page.item");
   expect_valid("format pattern", doc("\"home\":{\"values\":[{\"item\":\"P\",\"format\":\"%,.2f kW (%%)\",\"factor\":0.001},"
                                      "{\"item\":\"T\",\"format\":\"%d %unit%\"}]}"));
   expect_issue("format unknown placeholder", doc("\"home\":{\"values\":[{\"item\":\"P\",\"format\":\"%x W\"}]}"),

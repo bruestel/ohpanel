@@ -85,6 +85,8 @@ struct Callbacks {
   std::function<void(const std::string &item, const std::string &command)> command;
   /* ... one holding a code (the keypad page's): not logged (else: command). */
   std::function<void(const std::string &item, const std::string &command)> secret_command;
+  /* Sets an item's state in openHAB (no command to its devices): display.open_page's NULL. */
+  std::function<void(const std::string &item, const std::string &state)> update;
   /* Switches a relay (index 0/1) the panel controls directly. */
   std::function<void(int index, bool on)> relay;
   /* The restart button of the settings page. */
@@ -361,6 +363,12 @@ class Engine {
   std::string notify_last_;
   void notify_state();
   void draw_note();
+  /* display.open_page.item: a page id set on it opens that page (and wakes the screen); the panel then sets the
+     item to NULL, so the same page can be asked for again and a rule sees it done. The state the item has when
+     the panel starts is one it missed: cleared, not opened. */
+  std::string open_item_;
+  bool open_known_ = false;  // the item's state was seen once
+  void open_state();
   /* Drawing on the screen, as the firmware draws its own shapes (lost when the page is drawn again). `over_note`:
      sent while a notification card is up too (the card's own drawing). */
   void fill(int x, int y, int w, int h, int colour, bool over_note = false);

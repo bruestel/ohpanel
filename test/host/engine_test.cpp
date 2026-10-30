@@ -165,6 +165,8 @@ int main(int argc, char **argv) {
     return true;
   };
   cb.command = [&](const std::string &item, const std::string &cmd) { commands.push_back({item, cmd}); };
+  std::vector<std::pair<std::string, std::string>> updates;   // states set (Callbacks::update)
+  cb.update = [&](const std::string &item, const std::string &state) { updates.push_back({item, state}); };
   cb.relay = [&](int i, bool on) { relays.push_back({i, on}); };
   std::vector<std::pair<std::string, int>> remembered;
   cb.remember = [&](const std::string &key, int value) { remembered.push_back({key, value}); };
@@ -1936,6 +1938,58 @@ int main(int argc, char **argv) {
     e.on_message(loaded("home"));
     e.idle(t += 30000);
     CHECK(!e.asleep() && e.brightness() == 60);
+
+    // display.open_page: a page id on the item opens that page, the item set to NULL after
+    {
+      cJSON *doc = cJSON_Parse(with_screen(R"({"idle_brightness": 0, "idle_after": 30})").c_str());
+      cJSON_AddItemToObject(cJSON_GetObjectItem(doc, "display"), "open_page", cJSON_Parse(R"({"item": "Panel_Page"})"));
+      char *json = cJSON_PrintUnformatted(doc);
+      set_state("Panel_Page", "radio", "String");
+      updates.clear();
+      e.set_config(json);
+      cJSON_free(json);
+      cJSON_Delete(doc);
+    }
+    e.on_message(event("home", "swipe", "none"));
+    e.idle(t += 100);
+    e.on_state("Panel_Page");                          // the state at the start: missed, cleared and not opened
+    CHECK(e.current() == "home" && updates.size() == 1 &&
+          updates.back() == std::make_pair(std::string("Panel_Page"), std::string("NULL")));
+    set_state("Panel_Page", "NULL", "UnDef");
+    e.on_state("Panel_Page");                          // its own reset: nothing
+    CHECK(updates.size() == 1);
+    set_state("Panel_Page", "plants-covers", "String");
+    rec.out.clear();
+    e.on_state("Panel_Page");
+    CHECK(e.current() == "plants-covers" && rec.has(page_cmd("buttons")) && updates.size() == 2 &&
+          updates.back().second == "NULL");
+    e.on_message(loaded("buttons"));
+    e.on_message(event("buttons", "close", "release"));
+    CHECK(e.current() == "home");                      // the close cross: the start page, not where it came from
+    e.on_message(loaded("home"));
+    set_state("Panel_Page", "no-such-page", "String");
+    e.on_state("Panel_Page");                          // a page it does not know: nothing, and left as it is
+    CHECK(e.current() == "home" && updates.size() == 2);
+    set_state("Panel_Page", "@cover", "String");
+    e.on_state("Panel_Page");
+    CHECK(e.current() == "home" && updates.size() == 2);
+    e.idle(t += 30000);                                // off: the page asked for wakes the screen on it
+    CHECK(e.asleep());
+    e.on_message(loaded("blank"));
+    rec.out.clear();
+    set_state("Panel_Page", "lights", "String");
+    e.on_state("Panel_Page");
+    e.idle(t += 100);
+    CHECK(!e.asleep() && e.current() == "lights" && rec.has(page_cmd("buttons")) && e.brightness() == 85 &&
+          updates.size() == 3);
+    e.on_message(loaded("buttons"));
+    set_state("Panel_Page", "NULL", "UnDef");
+    e.on_state("Panel_Page");
+    set_state("Panel_Page", "home", "String");
+    e.on_state("Panel_Page");
+    CHECK(e.current() == "home" && updates.size() == 4);
+    e.on_message(loaded("home"));
+
     e.set_config(read("test/host/data/office.json"));
     e.on_message(event("home", "swipe", "none"));
     e.idle(t += 100);

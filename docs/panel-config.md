@@ -94,6 +94,7 @@ with a `format` it shows the whole text instead.
 | `cover_reveal` | string | how the media page's cover appears: `dissolve` (in a random order, the default), `center` (from the middle outwards), `sharpen` (blurred first, 8 x 8 and then 4 x 4 points averaged, then sharp; a third more to draw), `wipe` (row by row from the top) |
 | `screen` | object | the screen's brightness, see below |
 | `notifications` | `{"item"}` | a String item whose new states show as notifications, see below |
+| `open_page` | `{"item"}` | a String item: a page id set on it opens that page, see below |
 | `background` | background id | the picture behind every page: `aurora` (default), `candy`, `dunes`, `forest`, `black`: the backgrounds of the display design, listed in `boards/nspanel/nextion/display-manifest-<variant>.json` |
 | `theme` | `{"accent", "text", "dim"}`, each a colour (see above) | the colours the panel draws with; each one left out is the background's own (Aurora: a light blue accent, white text, light grey dim). `accent` marks what is active or chosen: lit buttons and icons, sliders, the chosen pill, the thermostat's ring, the QR code; `text` is the texts' colour; `dim` the quieter ones: the date, small labels, inactive icons. The web interface's *Display* card picks them, and resets one to the background's |
 | `texts` | object | overrides single texts of the language: `on`, `off`, `undefined` (shown for NULL/UNDEF states), the name lists `weekdays`, `weekdays_short` (7, starting with Sunday), `months`, `months_short` (12), and the settings page's `settings_title`, `settings` (its 3 slider labels), `never`, `restart`, `restart_confirm` |
@@ -128,6 +129,19 @@ reports changes: to show the same text again, set the item to NULL before.
 // an openHAB rule (DSL)
 Panel_Notify.postUpdate(NULL)
 Panel_Notify.sendCommand("warning|Window open|The bathroom window has been open for 30 minutes.")
+```
+
+`display.open_page.item` names a String item; a page id set on it (a
+configured page, `home`, `info` or `settings`) opens that page, from wherever
+the panel is, and wakes the screen. The close cross then goes to the start
+page. Once the page is open the panel sets the item to NULL: a rule sees it
+done, and the same page can be asked for again. An id the panel does not know
+is left on the item. The state the item has when the panel starts was asked
+for while the panel was away: it is set to NULL and opens nothing.
+
+```
+// an openHAB rule (DSL): the alarm's keypad when the door opens while it is armed
+Panel_Page.sendCommand("alarm")
 ```
 
 The formats use these placeholders: `%a`/`%A` weekday short/long, `%b`/`%B`
