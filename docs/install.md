@@ -6,9 +6,8 @@ that, the updates of the firmware and of the display's design, comes over WiFi f
 > [!IMPORTANT]
 > OHpanel is for the **Sonoff NSPanel**: the **EU version** (the square one) and the **US version** (the tall one,
 > its screen upright). Each has a firmware and a display design of its own, `nspanel-eu` or `nspanel-us` in the
-> files' names below; take the ones of your panel (a panel refuses the other's firmware). The US version's is new
-> and untested on a real panel so far: tell us how it works. The photos show the EU version. The NSPanel Pro is a
-> different device.
+> files' names below; take the ones of your panel (a panel refuses the other's firmware). The US version's is new:
+> tell us how it works. The photos show both versions. The NSPanel Pro is a different device.
 
 **Contents:** [What you need](#what-you-need) · [Safety](#safety) · [Open the panel](#open-the-panel) ·
 [Connect the serial adapter](#connect-the-serial-adapter) · [Flash](#flash) · [Join your WiFi](#join-your-wifi) ·
@@ -51,24 +50,34 @@ or wire touches the plate.
 
 ## Connect the serial adapter
 
-The main board has a 5-pin header labelled **IO0 · GND · ESP_RX · ESP_TX · 3V3**. For flashing, IO0 is tied to
-ground (GND), for example to one of the two lower pins of the header J2, which are ground.
-
-![The panel opened: the serial header top right, the bridge from IO0 to ground on the left](images/nspanel-open-wired.jpg)
-
-![The serial header close up and where each pin goes](images/nspanel-serial-pins.jpg)
+The main board has a 5-pin header: **IO0 · GND · ESP_RX · ESP_TX · 3V3** on the EU version, **IO0 · GND · RX ·
+TX · 3V3** (J1) on the US version. For flashing, IO0 is tied to ground (GND): on the EU version for example to one
+of the two lower pins of the header J2, on the US version to the pad **GND** under the small 2 x 4 header, beside
+**5VA**.
 
 | Panel | Adapter |
 |---|---|
 | IO0 | to GND (flashing only) |
 | GND | GND |
-| ESP_RX | TX |
-| ESP_TX | RX |
+| ESP_RX (US: RX) | TX |
+| ESP_TX (US: TX) | RX |
 | 3V3 | 3.3 V |
 
 RX and TX cross: the panel's RX goes to the adapter's TX and the other way round.
 
+**EU version**
+
+![The panel opened: the serial header top right, the bridge from IO0 to ground on the left](images/nspanel-open-wired.jpg)
+
+![The serial header close up and where each pin goes](images/nspanel-serial-pins.jpg)
+
 ![IO0 bridged to a ground pin of J2](images/nspanel-io0-to-gnd.jpg)
+
+**US version**
+
+![The US version's main board: the serial header J1 left of the metal can, under it the pads GND and 5VA](images/nspanel-us-serial-pins.jpg)
+
+![The US version wired: the adapter on J1, IO0 bridged to the pad GND beside 5VA](images/nspanel-us-open-wired.jpg)
 
 Connect the adapter's 3.3 V last (or plug the adapter into the computer last): with IO0 on ground while the
 panel gets power, the ESP32 starts its bootloader and waits for the flash.
@@ -76,7 +85,9 @@ panel gets power, the ESP32 starts its bootloader and waits for the flash.
 ## Flash
 
 Coming from other firmware (Sonoff's own, Tasmota, ESPHome), erase the flash first: their settings are not
-taken over. Flash over the serial port even where the other firmware could take OHpanel over WiFi (Tasmota's
+taken over. To keep Sonoff's own firmware, save it before: `esptool --port /dev/ttyUSB0 read_flash 0 0x400000
+nspanel-stock.bin` (4 MB, about a minute at `--baud 921600`); `write_flash 0 nspanel-stock.bin` brings it back.
+The display's design cannot be saved: a Nextion display can only be written, not read. Flash over the serial port even where the other firmware could take OHpanel over WiFi (Tasmota's
 update can): that keeps its partition table, in which OHpanel cannot store its configuration nor update itself.
 
 **In the browser** (Chrome or Edge): open the [OHpanel flasher](https://bruestel.github.io/ohpanel/flash/),
@@ -84,10 +95,11 @@ click *Connect*, choose the adapter's port and *Install OHpanel*. Tick *Erase de
 
 **With esptool** (the file from the release's zip; the port is `COM3` or similar on Windows):
 
-    esptool --chip esp32 --port /dev/ttyUSB0 erase_flash
+    esptool --chip esp32 --port /dev/ttyUSB0 --after no_reset erase_flash
     esptool --chip esp32 --port /dev/ttyUSB0 --baud 460800 write_flash 0x0 ohpanel-nspanel-eu-factory-<version>.bin
 
-Between the two commands the panel may have to go back into the bootloader: power off, IO0 on ground, power on.
+`--after no_reset` keeps the panel in its bootloader after the erase. Without it, or when esptool cannot connect
+for the second command, put the panel back into the bootloader: power off, IO0 on ground, power on.
 
 When it is written: take the wire off IO0, power the panel off and on (unplug the adapter and plug it in again).
 It starts OHpanel. Disconnect the adapter, close the case and put the panel back on the wall.
