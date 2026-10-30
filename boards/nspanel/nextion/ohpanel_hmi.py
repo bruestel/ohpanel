@@ -439,12 +439,14 @@ def home_page(p: Project) -> None:
         text(home, f"info{line}_badge", icon_box, 1, xcen=1, ycen=2, maxl=5, pic=badge)
         text(home, f"info{line}_badgeico", icon_box, ICON_FONT, xcen=1, maxl=5, pic=badge)
 
-    # the relays: a label, and under it a bar the firmware colours (the theme's accent while the relay is on,
-    # dark grey while off: Engine::draw_relays)
-    for k, (x, y, w, h) in enumerate(layout.RELAYS, start=1):
+    # the relays: a label, and beside it a bar the firmware colours (the theme's accent while the relay is on,
+    # dark grey while off: Engine::draw_relays) -- under it, or upright beside it (layout.RELAYS_UPRIGHT: the label
+    # drawn by the firmware there, top to bottom in the turned font, its field hidden; the manifest's "boxes")
+    for k, ((x, y, w, h), bar) in enumerate(zip(layout.RELAYS, layout.RELAY_BARS), start=1):
         text(home, f"relay{k}_text", (x, y, w, h), 1, xcen=1, maxl=20, pco=WHITE if k == 1 else LIGHT_GREY)
-        text(home, f"relay{k}_bar", (x, y + layout.RELAY_BAR_DY, w, layout.RELAY_BAR_H), 1, maxl=1,
-             bco=TILE_OFF_565)
+        text(home, f"relay{k}_bar", bar, 1, maxl=1, bco=TILE_OFF_565)
+        if layout.RELAYS_UPRIGHT:
+            hotspot(home, f"relay{k}_label", (x, y, w, h))
 
     # the shortcuts, and the touch areas over them and the weather icon
     for n, (x, y) in enumerate(layout.SHORTCUTS, start=1):
@@ -1417,6 +1419,7 @@ def drawn_boxes(p: Project) -> dict:
             "boot": {"qr_area": box("boot", "qr_area")},
             "thermostat": {n: box("thermostat", n) for n in ["ring_hs", "minus_hs", "plus_hs", "state_hs", "power_hs"] +
                            [f"m{n}{k}_hs" for n in range(1, 5) for k in range(1, n + 1)]},
+            "home": {f"relay{k}_label": box("home", f"relay{k}_label") for k in (1, 2) if layout.RELAYS_UPRIGHT},
             "keypad": {n: box("keypad", n) for n in ["state_hs"] +
                        [f"b{n}{k}_hs" for n in range(1, 5) for k in range(1, n + 1)]}}
 

@@ -96,19 +96,54 @@ void Engine::draw_clock() {
 
 void Engine::draw_relays() {
   const cJSON *home = member(config_, "home");
+  // upright labels (the NSPanel US on its side: the design marks where, the manifest's "boxes")
+  const auto pg = boxes_.find("home");
+  const bool upright = pg != boxes_.end() && pg->second.count("relay1_label");
   for (int i = 0; i < 2; i++) {
     const cJSON *r = slot(home, "relays", i);
     const std::string side = "relay" + std::to_string(i + 1);
     if (!r) {
       vis(side + "_text", false);
       vis(side + "_bar", false);
+      if (upright)
+        relay_label(pg->second.at(side + "_label"), side, "", kWhite);
       continue;
     }
     // the relay where there is one (it switches at once), else the item
     const bool is_on = member(r, "item") && !flag(r, "relay", true) ? on(r) : relays_[i];
-    txt(side + "_text", str(r, "label"));
+    if (upright) {
+      vis(side + "_text", false);
+      relay_label(pg->second.at(side + "_label"), side, str(r, "label"), i == 0 ? kWhite : kLightGrey);
+    } else {
+      txt(side + "_text", str(r, "label"));
+    }
     // the bar under it (boards/nspanel/nextion/ohpanel_hmi.py home_page): the accent while on
     num(side + "_bar", "bco", is_on ? theme_.accent : kDarkGrey);
+  }
+}
+
+/* A relay's label upright in `b`, written top to bottom: its characters in the turned font (font 1's Latin-1 turned
+   a quarter clockwise, boards/nspanel/nextion/fonts.py), one under the other, each its advance in font 1 below the
+   one before, the whole centred on the box -- drawn again only when it changes, the background back first. */
+void Engine::relay_label(const Box &b, const std::string &side, const std::string &text, int colour) {
+  constexpr int kTurnedFont = 10, kCharW = 18, kCharH = 16;
+  const std::string label = shorten(1, text, b.h, false);
+  const std::string key = label + "|" + std::to_string(colour);
+  if (drawn_[side + "_label"] == key)
+    return;
+  drawn_[side + "_label"] = key;
+  restore(b.x, b.y, b.w, b.h);
+  int y = b.y + (b.h - text_width(1, label)) / 2;
+  for (size_t at = 0; at < label.size();) {
+    size_t n = 1;   // one character, a whole UTF-8 one
+    while (at + n < label.size() && (static_cast<unsigned char>(label[at + n]) & 0xC0) == 0x80)
+      n++;
+    const std::string c = label.substr(at, n);
+    send("xstr " + std::to_string(b.x + (b.w - kCharW) / 2) + "," + std::to_string(y) + "," + std::to_string(kCharW) +
+         "," + std::to_string(kCharH) + "," + std::to_string(kTurnedFont) + "," + std::to_string(colour) +
+         ",0,0,0,3,\"" + nextion::quote(c) + "\"");
+    y += text_width(1, c);
+    at += n;
   }
 }
 

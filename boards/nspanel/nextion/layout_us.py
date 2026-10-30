@@ -113,6 +113,8 @@ RANGE_END = RIGHT                            # nothing beside them
 # the relays' labels over the two buttons (their middles at x=80 and 240), a bar under each
 RELAYS = [(20, 440, 120, 20), (180, 440, 120, 20)]
 RELAY_BAR_DY, RELAY_BAR_H = 24, 3
+RELAY_BARS = [(x, y + RELAY_BAR_DY, w, RELAY_BAR_H) for x, y, w, _ in RELAYS]
+RELAYS_UPRIGHT = False
 # the info lines right above them
 INFO_H = 21
 INFO_Y = (386, 410)

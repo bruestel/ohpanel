@@ -370,6 +370,7 @@ class Engine {
   // round ends, its label on it (font 2), an icon before it
   void pill(const Box &b, int colour, int ink, const std::string &label, const std::string &glyph = "");
   void pill_shape(const Box &b, int colour);   // its round shape alone
+  void relay_label(const Box &b, const std::string &side, const std::string &text, int colour);   // upright
   void restore(int x, int y, int w, int h);   // the page's background back (bg_pic)
   void close_note();
   std::vector<std::string> wrap(int font, const std::string &text, int width) const;

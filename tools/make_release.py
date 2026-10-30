@@ -52,7 +52,8 @@ def one(pattern):
 
 
 # what the README says of each variant's files
-PANELS = {"eu": "the Sonoff NSPanel EU", "us": "the Sonoff NSPanel US (portrait)"}
+PANELS = {"eu": "the Sonoff NSPanel EU", "us": "the Sonoff NSPanel US (portrait)",
+          "us-landscape": "the Sonoff NSPanel US on its side, its buttons on the right (landscape)"}
 
 
 def files(name):

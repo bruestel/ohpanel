@@ -11,8 +11,10 @@
   const ok = () => json({ok: true});
   const notInDemo = () => json({error: 'Not in the demo: this needs a panel.'}, 400);
   const started = Date.now();
-  // the panel variant shown: the NSPanel EU, or with ?variant=us the US (its layout, what the panel says it is)
-  const variant = new URLSearchParams(location.search).get('variant') === 'us' ? 'us' : 'eu';
+  // the panel variant shown: the NSPanel EU, or with ?variant=us the US, ?variant=us-landscape the US on its side
+  // (its layout, what the panel says it is)
+  const VARIANTS = {eu: 'EU', us: 'US', 'us-landscape': 'US landscape'};
+  const asked = new URLSearchParams(location.search).get('variant'), variant = VARIANTS[asked] ? asked : 'eu';
 
   // the data, loaded once
   let data = null;
@@ -195,10 +197,10 @@
     document.head.appendChild(st);
     const bar = document.createElement('div');
     // the other variant: the same page and configuration, its layout
-    const pick = v => v === variant ? '<b style="text-decoration:underline">' + v.toUpperCase() + '</b>'
-      : '<a href="?variant=' + v + '" data-variant style="color:#fff">' + v.toUpperCase() + '</a>';
-    bar.innerHTML = 'OHpanel demo: invented data, no panel. Changes stay in this tab. NSPanel ' + pick('eu') + ' · ' +
-      pick('us') + ' · <a href="../licences/THIRD-PARTY-NOTICES.md" style="color:#fff">Licences</a>';
+    const pick = v => v === variant ? '<b style="text-decoration:underline">' + VARIANTS[v] + '</b>'
+      : '<a href="?variant=' + v + '" data-variant style="color:#fff">' + VARIANTS[v] + '</a>';
+    bar.innerHTML = 'OHpanel demo: invented data, no panel. Changes stay in this tab. NSPanel ' +
+      Object.keys(VARIANTS).map(pick).join(' · ') + ' · <a href="../licences/THIRD-PARTY-NOTICES.md" style="color:#fff">Licences</a>';
     bar.querySelectorAll('a[data-variant]').forEach(a => a.addEventListener('click', () => { a.href += location.hash; }));
     bar.style.cssText = 'position:fixed;left:50%;bottom:12px;transform:translateX(-50%);z-index:9999;padding:6px 14px;' +
       'border-radius:999px;background:#e64a19;color:#fff;font:600 13px system-ui,sans-serif;box-shadow:0 2px 8px rgba(0,0,0,.3)';

@@ -41,7 +41,8 @@ include($ENV{IDF_PATH}/tools/cmake/project.cmake)
 # This string becomes project_name in the app descriptor, and the OTA handler
 # refuses an image whose project_name differs from the running one -- the guard
 # against flashing somebody else's firmware, and the firmware of another panel
-# variant: "ohpanel" for the NSPanel EU, "ohpanel-us" for the NSPanel US. Never
+# variant: "ohpanel" for the NSPanel EU, "ohpanel-us" for the NSPanel US,
+# "ohpanel-us-landscape" for the NSPanel US on its side. Never
 # rename them: every deployed panel would reject the next update and need a
 # cable. (Renamed from "jpanel" once, on 2026-10-06, before any panel ran this
 # firmware.)

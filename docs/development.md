@@ -26,12 +26,14 @@ to the recipe that leaves the design as it was keeps it, and panels need no new 
 ### Panel variants
 
 Each panel variant has a firmware and a display design of its own (`tools/variant.py`): `eu`, the NSPanel EU
-(landscape, its frame hiding the rightmost 30 px; environment `nspanel`), and `us`, the NSPanel US (portrait,
-320x480; environment `nspanel-us`; not yet tried on a real panel). The variant is `custom_variant` of the environment
+(landscape, its frame hiding the rightmost 30 px; environment `nspanel`), `us`, the NSPanel US (portrait,
+320x480; environment `nspanel-us`), and `us-landscape`, the NSPanel US on its side, its buttons on the right
+(480x320, all of it visible; on home the relays' labels upright beside the buttons, in a turned font; environment
+`nspanel-us-landscape`). The variant is `custom_variant` of the environment
 in `platformio.ini`; it picks the display manifest (`boards/nspanel/nextion/display-manifest-<variant>.json`) and
 the preview's layout (`www/layout-<variant>.json`), names the release files (`ohpanel-nspanel-<variant>-...`) and
-the firmware's project (`CMakeLists.txt`: `ohpanel` for the EU, `ohpanel-us` for the US), so a panel refuses an
-update meant for the other variant. `boards/nspanel/nextion/build.sh <variant>` builds the variant's design:
+the firmware's project (`CMakeLists.txt`: `ohpanel` for the EU, `ohpanel-us`, `ohpanel-us-landscape` for the US),
+so a panel refuses an update meant for another variant -- the US's two take each other's (the same panel turned). `boards/nspanel/nextion/build.sh <variant>` builds the variant's design:
 `boards/nspanel/nextion/layout.py` takes `OHPANEL_VARIANT` and is `layout_eu.py` or `layout_us.py` (the same names,
 the same objects on every page, as many a sheet: the firmware fills both alike), and the pictures that depend on
 the layout (backgrounds at the display's size, tiles, controls, the logo) are the variant's
@@ -81,8 +83,8 @@ since a release's own files cannot be fetched from another page.
 
 ## Releases
 
-A release has the sources (GitHub adds them) and a zip per panel variant, `ohpanel-nspanel-eu-<version>.zip` and
-`ohpanel-nspanel-us-<version>.zip`, each with that panel's binaries and the licences that must go with every copy of
+A release has the sources (GitHub adds them) and a zip per panel variant, `ohpanel-nspanel-eu-<version>.zip`,
+`ohpanel-nspanel-us-<version>.zip` and `ohpanel-nspanel-us-landscape-<version>.zip`, each with that panel's binaries and the licences that must go with every copy of
 them (the fonts' licences ask for that). The workflow
 `release.yml` makes it from a tag:
 

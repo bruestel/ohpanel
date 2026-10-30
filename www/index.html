@@ -1987,7 +1987,8 @@ async function refreshInfo() {
   $('hdrNet').textContent = n.provisioning ? 'hotspot ' + n.ssid : (STATE_TEXT[n.state] || n.state);
 
   $('sVersion').textContent = info.version;
-  $('sPanel').textContent = 'NSPanel ' + (info.variant || 'eu').toUpperCase();
+  $('sPanel').textContent = {eu: 'NSPanel EU', us: 'NSPanel US', 'us-landscape': 'NSPanel US (landscape)'}[info.variant]
+                            || 'NSPanel ' + (info.variant || 'eu').toUpperCase();
   $('sUptime').textContent = fmtUptime(info.uptime_s);
   liveText($('sHeap'), fmtKb(info.heap) + (info.heap_total ? ' of ' + fmtKb(info.heap_total) : '')
     + ' (min ' + fmtKb(info.heap_min) + (info.heap_largest ? ', largest block ' + fmtKb(info.heap_largest) : '') + ')');
@@ -3144,8 +3145,23 @@ function fillHome(cfg) {
     const r = relays[i], side = 'relay' + (i + 1);
     const switched = info && Array.isArray(info.relays) ? !!info.relays[i] : !!(r && r.item && isOn(r));
     const on = r && (r.item && r.relay === false ? isOn(r) : switched);
-    f[side + '_text'] = {text: r ? (r.label || '') : ''};
     f[side + '_bar'] = r ? {text: '', bg: on ? THEME.accent : PALETTE['dark-grey']} : {hide: true};
+    // upright beside the panel's buttons (the NSPanel US on its side: Engine::relay_label), written top to bottom
+    const upright = layoutBox('home', side + '_label');
+    if (!upright) { f[side + '_text'] = {text: r ? (r.label || '') : ''}; return; }
+    f[side + '_text'] = {hide: true};
+    f[side + '_label'] = {draw: {box: upright, fn: ctx => {
+      if (!r || !r.label) return;
+      const [x, y, w, hh] = upright;
+      ctx.save();
+      ctx.translate(x + w / 2, y + hh / 2);
+      ctx.rotate(Math.PI / 2);
+      ctx.font = '15px Ubuntu, system-ui, sans-serif';
+      ctx.fillStyle = i === 0 ? '#ffffff' : PALETTE['light-grey'];
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText(r.label, 0, 1, hh);
+      ctx.restore();
+    }}};
   });
   for (let i = 0; i < 10; i++) {
     const s = (h.status_icons || [])[i], key = 'top' + (i + 1);
@@ -4482,7 +4498,7 @@ function pvTargets(template) {
       out.push({t: 'info:' + i, x, y, w: Math.max(...parts.map(o => o.x + o.w)) - x, h: Math.max(...parts.map(o => o.y + o.h)) - y});
     }
     for (let i = 0; i < 2; i++) {  // a relay button: its label and bar, with a little room around them
-      const parts = ['_text', '_bar'].map(p => objects.find(o => o.n === 'relay' + (i + 1) + p)).filter(Boolean);
+      const parts = ['_text', '_bar', '_label'].map(p => objects.find(o => o.n === 'relay' + (i + 1) + p)).filter(Boolean);
       if (!parts.length) continue;
       const x = Math.min(...parts.map(o => o.x)) - 2, y = Math.min(...parts.map(o => o.y)) - 4;
       out.push({t: 'relay:' + i, x, y, w: Math.max(...parts.map(o => o.x + o.w)) + 2 - x, h: Math.max(...parts.map(o => o.y + o.h)) + 2 - y});

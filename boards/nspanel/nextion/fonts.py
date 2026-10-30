@@ -89,7 +89,12 @@ FONTS = [
     # a button's icon in the middle of its tile (layout "center", a button without an item): icons only, no
     # Latin-1 -- 1.8 MB, what one background's pictures took
     ("icons48", 48, [(MDI, 40, 40, "icons"), (OWN, 40, 4, "own")]),
+    # font 1's Latin-1 turned a quarter clockwise, for a text written top to bottom (the NSPanel US on its side: the
+    # relays' labels upright, Engine::draw_relays): each character 18 px wide (font 1's height), as high as its
+    # advance at the top of a 16 px cell -- the firmware puts them one under the other, its advance apart
+    (UBUNTU_NAME + " turned", 16, [(UBUNTU, 16.9, 15, "latin1-turned")]),
 ]
+TURNED_FONT = len(FONTS) - 1   # 10
 
 
 def chars_of(part) -> list[tuple[int, str]]:
@@ -149,12 +154,38 @@ def own(em: int, top: int, height: int) -> dict:
     return chars
 
 
+def turned(part, height: int) -> dict:
+    """Font 1's Latin-1 (`part`: its TrueType font, size and baseline, as FONTS has them) turned a quarter
+    clockwise: a character's column x of its 18 px cell becomes row x of `height`, its row y column 17 - y."""
+    from PIL import ImageFont
+    font, size, baseline = part[0], part[1], part[2]
+    source = ImageFont.truetype(os.path.join(FONT_DIR, font), size)
+    have = zifont.cmap(os.path.join(FONT_DIR, font))
+    chars = {}
+    for code in range(0x20, 0x100):
+        if code not in have or 0x7F <= code < 0xA0:
+            continue
+        width, left, right, pixels = zifont.render(source, chr(code), 18, baseline)
+        w = left + width + right
+        if w > height:
+            raise ValueError(f"turned font: U+{code:04X} is {w} px wide, the cell {height}")
+        out = [0] * (18 * height)
+        for y in range(18):
+            for x in range(w):
+                out[x * 18 + 17 - y] = pixels[y * w + x]
+        chars[code] = (18, 0, 0, out)
+    return chars
+
+
 def make(name: str, height: int, parts) -> bytes:
     from PIL import ImageFont
     chars = {}
     for part in parts:
         if part[3] == "own":
             chars.update(own(part[1], part[2], height))
+            continue
+        if part[3] == "latin1-turned":
+            chars.update(turned(part, height))
             continue
         font = ImageFont.truetype(os.path.join(FONT_DIR, part[0]), part[1])
         for code, text in chars_of(part):

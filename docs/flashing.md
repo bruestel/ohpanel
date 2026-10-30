@@ -34,6 +34,7 @@ switch the power off and on again.
 
     pio run -e nspanel -t upload        # the NSPanel EU
     pio run -e nspanel-us -t upload     # the NSPanel US
+    pio run -e nspanel-us-landscape -t upload   # the NSPanel US on its side, its buttons on the right
 
 writes every part of the table. The US firmware's files are in `.pio/build/nspanel-us/` and are named
 `ohpanel-nspanel-us-...`; the rest of this page names the EU's.
@@ -121,7 +122,8 @@ interface says so on every page and names the file: write
 Firmware > Display firmware.
 
 A panel takes only its own variant's firmware: an NSPanel EU refuses `ohpanel-nspanel-us-firmware-...` and the other
-way round. Both have the same hardware, so to try one variant's design on the other panel the API takes it all the
+way round. An NSPanel US takes either of its two (`-us-`, `-us-landscape-`): turned on the wall, it gets the other's
+firmware, then its display design. Both have the same hardware, so to try one variant's design on the other panel the API takes it all the
 same with `any_variant=1` (not in the web interface; firmware that is not OHpanel's is still refused):
 
     curl -u <user>:<password> --data-binary @ohpanel-nspanel-us-firmware-<version>.bin \

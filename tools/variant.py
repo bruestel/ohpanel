@@ -1,8 +1,9 @@
 """
 The panel variant a firmware is built for, and the files that differ by it:
 
-    eu    the NSPanel EU (landscape, its frame hiding the rightmost 30 px), PlatformIO environment nspanel
-    us    the NSPanel US (portrait), environment nspanel-us
+    eu            the NSPanel EU (landscape, its frame hiding the rightmost 30 px), PlatformIO environment nspanel
+    us            the NSPanel US (portrait), environment nspanel-us
+    us-landscape  the NSPanel US mounted on its side, its buttons on the right, environment nspanel-us-landscape
 
 A build hook takes it from its PlatformIO environment (custom_variant, platformio.ini), everything else from
 OHPANEL_VARIANT (eu when unset) -- as boards/nspanel/nextion/build.sh hands it to the design's scripts
@@ -18,9 +19,9 @@ import os
 import pathlib
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-VARIANTS = ("eu", "us")
+VARIANTS = ("eu", "us", "us-landscape")
 # the PlatformIO environment of each (platformio.ini)
-ENVIRONMENTS = {"eu": "nspanel", "us": "nspanel-us"}
+ENVIRONMENTS = {"eu": "nspanel", "us": "nspanel-us", "us-landscape": "nspanel-us-landscape"}
 
 
 def current(env=None) -> str:

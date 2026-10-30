@@ -4,10 +4,11 @@ From the box to the first page of your own. The first installation needs a seria
 that, the updates of the firmware and of the display's design, comes over WiFi from the panel's web interface.
 
 > [!IMPORTANT]
-> OHpanel is for the **Sonoff NSPanel**: the **EU version** (the square one) and the **US version** (the tall one,
-> its screen upright). Each has a firmware and a display design of its own, `nspanel-eu` or `nspanel-us` in the
-> files' names below; take the ones of your panel (a panel refuses the other's firmware). The photos show both
-> versions. The NSPanel Pro is a different device.
+> OHpanel is for the **Sonoff NSPanel**: the **EU version** (the square one) and the **US version** (the tall one),
+> upright or on its side with its buttons on the right ("US landscape"). Each has a firmware and a display design
+> of its own, `nspanel-eu`, `nspanel-us` or `nspanel-us-landscape` in the files' names below; take the ones of your
+> panel (a panel refuses another's firmware; the US one takes either of its two, to turn it on the wall later).
+> The photos show both versions. The NSPanel Pro is a different device.
 
 **Contents:** [What you need](#what-you-need) · [Safety](#safety) · [Open the panel](#open-the-panel) ·
 [Connect the serial adapter](#connect-the-serial-adapter) · [Flash](#flash) · [Join your WiFi](#join-your-wifi) ·
@@ -24,7 +25,7 @@ that, the updates of the firmware and of the display's design, comes over WiFi f
 - a computer with Chrome or Edge (for the [browser flasher](https://bruestel.github.io/ohpanel/flash/)) or with
   [esptool](https://docs.espressif.com/projects/esptool/en/latest/esp32/installation.html)
 - the zip for your panel from the [latest release](https://github.com/bruestel/ohpanel/releases/latest),
-  `ohpanel-nspanel-eu-<version>.zip` (or `-us-`), unpacked: `ohpanel-nspanel-eu-factory-<version>.bin` (the first
+  `ohpanel-nspanel-eu-<version>.zip` (or `-us-`, `-us-landscape-`), unpacked: `ohpanel-nspanel-eu-factory-<version>.bin` (the first
   flash), `ohpanel-nspanel-eu-display-<version>.tft` (the display's design) and
   `ohpanel-nspanel-eu-firmware-<version>.bin` (for updates later), with their licences
 - **openHAB**, reachable from the panel's WiFi

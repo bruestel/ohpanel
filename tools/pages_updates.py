@@ -63,8 +63,9 @@ def channel(tag: str, out: pathlib.Path, licences: pathlib.Path) -> dict:
         version = tag.removeprefix("v")
         variants = {}
         for f in files:
-            m = re.match(r"ohpanel-(nspanel-([a-z]+))-(firmware|factory)-.*\.bin$|ohpanel-(nspanel-([a-z]+))-display-"
-                         r"([0-9a-f]{8})\.tft$", f.name)
+            # the variant may have a dash (us-landscape): what follows it is a kind, never letters alone
+            m = re.match(r"ohpanel-(nspanel-([a-z]+(?:-[a-z]+)*?))-(firmware|factory)-.*\.bin$|"
+                         r"ohpanel-(nspanel-([a-z]+(?:-[a-z]+)*?))-display-([0-9a-f]{8})\.tft$", f.name)
             if not m:
                 continue
             if m.group(1):

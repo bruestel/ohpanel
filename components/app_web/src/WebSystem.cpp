@@ -98,16 +98,19 @@ esp_err_t post_ota(httpd_req_t *req) {   // in_own_task: the password checked al
       const auto *desc = reinterpret_cast<const esp_app_desc_t *>(head.data() + kDescAt);
       const esp_app_desc_t *self = esp_app_get_description();
       if (std::strncmp(desc->project_name, self->project_name, sizeof(desc->project_name)) != 0) {
-        /* another panel variant's (CMakeLists.txt: "ohpanel" the NSPanel EU's, "ohpanel-us" the US's), or not
-           OHpanel at all. The other variant's only with ?any_variant=1 (not in the web interface): the hardware
-           is the same, only the display design is turned otherwise -- to try one panel's design on the other. */
+        /* another panel variant's (CMakeLists.txt: "ohpanel" the NSPanel EU's, "ohpanel-us" the US's,
+           "ohpanel-us-landscape" the US's on its side), or not OHpanel at all. The NSPanel US takes either of its
+           two: a panel turned on the wall. Another variant's only with ?any_variant=1 (not in the web interface):
+           the hardware is the same, only the display design is turned otherwise -- to try one panel's design on
+           the other. */
         const std::string other(desc->project_name, strnlen(desc->project_name, sizeof(desc->project_name)));
         const bool ours = other == "ohpanel" || other.rfind("ohpanel-", 0) == 0;
         if (!ours) {
           *why = "firmware is for a different project";
           return false;
         }
-        if (!any_variant) {
+        const auto us = [](const std::string &p) { return p == "ohpanel-us" || p == "ohpanel-us-landscape"; };
+        if (!any_variant && !(us(other) && us(self->project_name))) {
           *why = "firmware for another panel (" + other + "); this one takes " + self->project_name;
           return false;
         }

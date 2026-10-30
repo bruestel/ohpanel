@@ -170,6 +170,8 @@ SHORTCUTS = [(RIGHT + 1 - SHORTCUT - k * SHORTCUT_STEP, y) for y, n in ((176, 3)
 # the relays' labels, a bar under each that the firmware colours by the relay's state
 RELAYS = [(47, 283, 120, 20), (288, 283, 120, 20)]   # x, y, w, h of each label: left, right
 RELAY_BAR_DY, RELAY_BAR_H = 24, 3
+RELAY_BARS = [(x, y + RELAY_BAR_DY, w, RELAY_BAR_H) for x, y, w, _ in RELAYS]
+RELAYS_UPRIGHT = False   # the labels across, the panel's buttons under them
 
 
 # The weather page (page type "weather", the days of the forecast as sheets):
