@@ -124,13 +124,15 @@ bool enqueue(Job *job) {
   return true;
 }
 
-esp_http_client_handle_t make_client(const appcfg::OpenHab &cfg, const std::string &url, int timeout_ms) {
+esp_http_client_handle_t make_client(const appcfg::OpenHab &cfg, const std::string &url, int timeout_ms,
+                                     bool keep_session = false) {
   esp_http_client_config_t hc = {};
   hc.url = url.c_str();
   hc.timeout_ms = timeout_ms;
   hc.buffer_size = 2048;
   hc.keep_alive_enable = true;  // TCP keep-alive: a kept connection notices a dead peer
   apply_tls(hc, cfg);
+  hc.save_client_session = keep_session;  // a reconnect resumes the TLS session: no full handshake
   esp_http_client_handle_t client = esp_http_client_init(&hc);
   if (client && !cfg.token.empty()) {
     const std::string auth = "Bearer " + cfg.token;
@@ -146,8 +148,11 @@ esp_http_client_handle_t make_client(const appcfg::OpenHab &cfg, const std::stri
 esp_http_client_handle_t g_keep = nullptr;
 appcfg::OpenHab g_keep_cfg;  // what g_keep was made with; holds the CA it points into
 int64_t g_keep_used_at = 0;
+int64_t g_keep_made_at = 0;   // its full handshake: the session every reconnect resumes dates from it
 /* openHAB's server closes a connection idle for 30 s; one older than this is
-   dropped before use, not tried (and logged as failing) first. */
+   closed before use, not tried (and logged as failing) first. The handle stays:
+   it keeps the TLS session, and the next request resumes it in a fraction of
+   the full handshake (the first switch after a pause waited seconds). */
 constexpr int64_t kKeepIdleUs = 25 * 1000000LL;
 
 bool same_settings(const appcfg::OpenHab &a, const appcfg::OpenHab &b) {
@@ -160,6 +165,11 @@ void drop_keep() {
   g_keep = nullptr;
 }
 
+void close_keep() {
+  if (g_keep)
+    esp_http_client_close(g_keep);
+}
+
 /* A short POST (or PUT) from the worker task; returns the HTTP status, or 0
    if the request did not get through at all. */
 int post(const appcfg::OpenHab &cfg, const std::string &path, const char *content_type, const std::string &body,
@@ -168,14 +178,16 @@ int post(const appcfg::OpenHab &cfg, const std::string &path, const char *conten
   esp_err_t err = ESP_FAIL;
   for (int attempt = 0; attempt < 2 && err != ESP_OK; attempt++) {
     // a kept connection may have been closed by the server: once more on a new one
-    if (g_keep && (attempt > 0 || !same_settings(cfg, g_keep_cfg) ||
-                   esp_timer_get_time() - g_keep_used_at > kKeepIdleUs))
+    if (g_keep && !same_settings(cfg, g_keep_cfg))
       drop_keep();
+    else if (attempt > 0 || esp_timer_get_time() - g_keep_used_at > kKeepIdleUs)
+      close_keep();
     if (!g_keep) {
       g_keep_cfg = cfg;
-      g_keep = make_client(g_keep_cfg, url, kRequestTimeoutMs);
+      g_keep = make_client(g_keep_cfg, url, kRequestTimeoutMs, true);
       if (!g_keep)
         return 0;
+      g_keep_made_at = esp_timer_get_time();
     } else {
       esp_http_client_set_url(g_keep, url.c_str());
     }
@@ -190,7 +202,7 @@ int post(const appcfg::OpenHab &cfg, const std::string &path, const char *conten
   if (err != ESP_OK) {
     ESP_LOGW(TAG, "%s %s failed: %s", method == HTTP_METHOD_PUT ? "PUT" : "POST", path.c_str(),
              esp_err_to_name(err));
-    drop_keep();
+    close_keep();
   }
   return status;
 }
@@ -424,10 +436,32 @@ void do_command(const Job &job) {
             ")");
 }
 
+/* A server forgets a TLS session a while after its full handshake, however often it was resumed since (openHAB's
+   Jetty: a day; a proxy before it maybe sooner). An hour old, it is made anew while nothing waits on it -- by
+   subscribing again, which changes nothing -- so that a command seldom pays for the full handshake. */
+constexpr int64_t kSessionRenewUs = 3600 * 1000000LL;
+
+void renew_session() {
+  bool streaming;
+  {
+    Lock l;
+    streaming = !g_conn_id.empty();
+  }
+  if (!g_keep || !streaming || !may_connect() || esp_timer_get_time() - g_keep_made_at < kSessionRenewUs)
+    return;
+  ESP_LOGI(TAG, "Renewing the TLS session");
+  drop_keep();
+  do_subscribe();
+}
+
 void worker_task(void *) {
   for (;;) {
     Job *job = nullptr;
-    if (xQueueReceive(g_jobs, &job, portMAX_DELAY) != pdPASS || !job)
+    if (xQueueReceive(g_jobs, &job, pdMS_TO_TICKS(5 * 60 * 1000)) != pdPASS) {   // idle: maybe time to renew
+      renew_session();
+      continue;
+    }
+    if (!job)
       continue;
     if (may_connect()) {
       if (job->kind == Job::Kind::Subscribe)

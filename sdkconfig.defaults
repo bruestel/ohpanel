@@ -77,6 +77,8 @@ CONFIG_HTTPD_MAX_REQ_HDR_LEN=1024
 CONFIG_LWIP_MAX_SOCKETS=24
 # https: a browser resumes its TLS session with a ticket instead of a full ECDSA handshake on every new connection
 CONFIG_ESP_TLS_SERVER_SESSION_TICKETS=y
+# openHAB: the kept connection, closed after a pause, resumes its TLS session (by ticket or id) when it reconnects
+CONFIG_ESP_TLS_CLIENT_SESSION_TICKETS=y
 
 # IPv6: addresses by SLAAC (router advertisements), DHCPv6 only for what it tells besides (DNS servers; lwIP has
 # no stateful DHCPv6). Four addresses: link-local, a unique local, a global one -- and a second prefix while a
