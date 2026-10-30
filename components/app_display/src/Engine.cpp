@@ -509,13 +509,37 @@ void Engine::rounded(int x, int y, int w, int h, int r, int colour, bool over_no
       disc(cx, cy, r, colour, over_note);
 }
 
+/* A pill's shape in `colour`: round ends (2r + 1 px across), the middle as high -- from kRoundFrom row by row from
+   the top, each row across its whole width, so that no square middle shows first. */
+void Engine::pill_shape(const Box &b, int colour) {
+  const int r = (b.h - 1) / 2, top = b.y + (b.h - (2 * r + 1)) / 2;
+  if (r < kRoundFrom) {
+    fill(b.x + r, top, b.w - 2 * r, 2 * r + 1, colour);
+    disc(b.x + r, top + r, r, colour);
+    disc(b.x + b.w - 1 - r, top + r, r, colour);
+    return;
+  }
+  int run_y = 0, run_h = 0, run_k = -1;
+  for (int dy = -r; dy <= r; dy++) {
+    const int k = static_cast<int>(std::sqrt((r + 0.5) * (r + 0.5) - dy * dy));   // the ends' row, as disc
+    if (run_h && k == run_k) {
+      run_h++;
+      continue;
+    }
+    if (run_h)
+      fill(b.x + r - run_k, run_y, b.w - 2 * r + 2 * run_k, run_h, colour);
+    run_y = top + r + dy;
+    run_h = 1;
+    run_k = k;
+  }
+  fill(b.x + r - run_k, run_y, b.w - 2 * r + 2 * run_k, run_h, colour);
+}
+
 /* A pill: its ends discs of radius r (2r + 1 px across), the middle as high -- else the ends stand out --; the label
    drawn on it (a field's corners would stand out of it). */
 void Engine::pill(const Box &b, int colour, int ink, const std::string &label, const std::string &glyph) {
   const int r = (b.h - 1) / 2, top = b.y + (b.h - (2 * r + 1)) / 2;
-  fill(b.x + r, top, b.w - 2 * r, 2 * r + 1, colour);
-  disc(b.x + r, top + r, r, colour);
-  disc(b.x + b.w - 1 - r, top + r, r, colour);
+  pill_shape(b, colour);
   if (glyph.empty()) {
     send("xstr " + std::to_string(b.x + 6) + "," + std::to_string(top) + "," + std::to_string(b.w - 12) + "," +
          std::to_string(2 * r + 1) + ",2," + std::to_string(ink) + ",0,1,1,3,\"" + nextion::quote(label) + "\"");

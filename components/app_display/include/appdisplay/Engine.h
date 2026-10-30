@@ -369,6 +369,7 @@ class Engine {
   void rounded(const Box &b, int r, int colour) { rounded(b.x, b.y, b.w, b.h, r, colour); }
   // round ends, its label on it (font 2), an icon before it
   void pill(const Box &b, int colour, int ink, const std::string &label, const std::string &glyph = "");
+  void pill_shape(const Box &b, int colour);   // its round shape alone
   void restore(int x, int y, int w, int h);   // the page's background back (bg_pic)
   void close_note();
   std::vector<std::string> wrap(int font, const std::string &text, int width) const;
