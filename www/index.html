@@ -1013,7 +1013,9 @@ pre.box{margin:0;padding:.6rem .7rem;max-height:18rem;overflow:auto;background:v
           <code>alert</code> (red); empty or NULL takes it away. The same text twice shows once: set the item to NULL
           before.</p>
         <div id="vNotify"></div>
+        <div class="row"><label>Try one in the preview<input type="text" id="vNoteTry"
           value="warning|Window open|The bathroom window has been open for 30 minutes."></label></div>
+        <div class="actions"><button type="button" class="b" id="vNoteShow">Show in the preview</button></div>
         <h3 class="screenh">Open a page</h3>
         <p class="sub">A String item: a page id set on it (or <code>home</code>, <code>info</code>,
           <code>settings</code>) opens that page and wakes the screen. The panel then sets the item to NULL, so a
@@ -3798,6 +3800,7 @@ function renderPreview() {
   const missing = pageMissing(pvPage(PV.page));
   if (missing) setMsg($('vMsg'), 'Unfinished: still to choose ' + missing + (PV.edit ? ', below' : ' (Edit preview)') + '.', 'warn');
   drawPeeks(cfg);
+  if (PV.note) drawNote(box, PV.note);
   pvOverlays(box, template);
   pvEditor();
   if ($('vTodo')) {
@@ -3806,6 +3809,74 @@ function renderPreview() {
   }
   if (PV.entNow) PV.entNow();   // an entity page's members as they show now: with the states as they come
   scalePreview();
+}
+
+/* A notification's state as the panel reads it (Format.cpp parse_notification): "level|title|text", "level|text",
+   "title|text" or the text alone; a written \\n breaks the line. */
+function parseNote(value) {
+  const level = s => { s = s.toLowerCase(); return ['info', 'warning', 'alert'].includes(s) ? s : s === 'warn' ? 'warning'
+                                                   : s === 'error' || s === 'critical' ? 'alert' : ''; };
+  const parts = [];
+  let from = 0;
+  while (parts.length < 2) {   // the text may hold "|" itself
+    const bar = value.indexOf('|', from);
+    if (bar < 0) break;
+    parts.push(value.slice(from, bar));
+    from = bar + 1;
+  }
+  parts.push(value.slice(from));
+  if (parts.length === 3 && !level(parts[0])) parts.splice(1, 2, parts[1] + '|' + parts[2]);
+  const n = {level: 'info', title: '', text: parts[parts.length - 1]};
+  if (parts.length === 3) { n.level = level(parts[0]); n.title = parts[1]; }
+  else if (parts.length === 2) { if (level(parts[0])) n.level = level(parts[0]); else n.title = parts[0]; }
+  n.text = n.text.split('\\n').join('\n');
+  return n;
+}
+
+/* The notification card over the page, as Engine::draw_note draws it: framed in the level's colour, wide on the
+   left, the title in it, the text wrapped below; as high as it needs, near the top. A touch closes it. */
+function drawNote(box, n) {
+  const [vw, vh] = visibleSize();
+  const W = Math.min(400, vw - 24), X = Math.floor((vw - W) / 2), maxH = Math.min(296, vh - 24);
+  const R = 12, PAD = 14, TITLE_H = 44, LINE_H = 28, TOP = 24, LEFT = 14, EDGE = 2, TITLE_FONT = 4, TEXT_FONT = 3;
+  const colour = n.level === 'alert' ? PALETTE.red : n.level === 'warning' ? PALETTE.yellow : PALETTE.blue;
+  const inX = X + LEFT + 14, inner = X + W - EDGE - 12 - inX;
+  const width = (t, f) => { const w = textWidth(t, f); return w === null ? t.length * 10 : w; };
+  const shorten = (f, t, cut) => {   // Engine::shorten: what does not fit makes way for "..."
+    if (!cut && width(t, f) <= inner) return t;
+    let c = [...t];
+    while (c.length && (width(c.join('') + '...', f) > inner || c[c.length - 1] === ' ')) c.pop();
+    return c.join('') + '...';
+  };
+  let lines = [];   // Engine::wrap: by words, a line break kept
+  n.text.split('\n').forEach(para => {
+    let line = '';
+    para.split(' ').filter(Boolean).forEach(word => {
+      const longer = line ? line + ' ' + word : word;
+      if (line && width(longer, TEXT_FONT) > inner) { lines.push(line); line = word; } else line = longer;
+    });
+    lines.push(line);
+  });
+  const titleH = n.title ? TITLE_H : 0, room = Math.floor((maxH - 2 * PAD - titleH) / LINE_H), more = lines.length > room;
+  if (more) lines = lines.slice(0, room);
+  lines = lines.map((l, i) => shorten(TEXT_FONT, l, more && i === lines.length - 1));
+  const h = 2 * PAD + titleH + lines.length * LINE_H, y = Math.min(TOP, Math.floor((vh - h) / 2));
+  const div = (css, parent) => { const d = document.createElement('div'); d.style.cssText = css; parent.appendChild(d); return d; };
+  const card = div('position:absolute;z-index:5;left:' + X + 'px;top:' + y + 'px;width:' + W + 'px;height:' + h
+                   + 'px;border-radius:' + R + 'px;background:' + colour, box);
+  card.className = 'note';
+  div('position:absolute;left:' + LEFT + 'px;top:' + EDGE + 'px;right:' + EDGE + 'px;bottom:' + EDGE + 'px;border-radius:'
+      + (R - EDGE) + 'px;background:' + rgb565(8452), card);
+  let at = PAD;
+  const text = (t, top, hh, font, c) => {
+    const f = LAYOUT.fonts[font] || {height: 18};
+    const d = div('position:absolute;display:flex;align-items:center;white-space:pre;overflow:hidden;line-height:1.1;left:'
+                  + (inX - X) + 'px;top:' + top + 'px;width:' + inner + 'px;height:' + hh + 'px;font-size:'
+                  + Math.round(f.height * 0.85) + 'px;color:' + c, card);
+    d.textContent = t;
+  };
+  if (titleH) { text(shorten(TITLE_FONT, n.title, false), at, 40, TITLE_FONT, colour); at += titleH; }
+  lines.forEach(l => { text(l, at, LINE_H + 2, TEXT_FONT, '#fff'); at += LINE_H; });
 }
 
 /* Draws a page of the configuration into box (the display's size, screenSize()) as the display shows
@@ -8411,6 +8482,13 @@ function pvAction(component) {
   return null;
 }
 
+$('vNoteShow').addEventListener('click', () => {
+  const v = $('vNoteTry').value.trim();
+  PV.note = v ? parseNote(v) : null;
+  renderPreview();
+  $('vWrap').scrollIntoView({block: 'center', behavior: 'smooth'});
+});
+
 (() => {
   const wrap = $('vWrap');
   let start = null, drag = null;   // drag: an editable place taken by the finger in the edit mode ({t, moved})
@@ -8430,6 +8508,12 @@ function pvAction(component) {
   });
   wrap.addEventListener('pointerup', ev => {
     if (!start) return;
+    if (PV.note) {   // a notification on screen: a touch closes it and does nothing else (Engine::on_message)
+      start = null; drag = null;
+      PV.note = null;
+      renderPreview();
+      return;
+    }
     const end = point(ev), dx = end.x - start.x, dy = end.y - start.y;
     const at = start;
     start = null;

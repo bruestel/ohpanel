@@ -24,6 +24,12 @@ const DISPLAY = [
   ['cover-group', 'blinds-front'], ['entities-cards', 'energy'], ['entities-rows', 'plants'],
   ['entities-list', 'washer'], ['waste', 'waste'], ['weather', 'weather'], ['qr', 'guest-wifi'], ['info', 'info'],
 ];
+// notifications (display.notifications) over a page: the file name, the page, the item's state
+const NOTES = [
+  ['notification-warning', 'home', 'warning|Window open|The bathroom window has been open for 30 minutes.'],
+  ['notification-alert', 'kitchen', 'alert|Water leak|The sensor under the dishwasher reports water. The main valve is closed.'],
+  ['notification-info', 'blinds', 'info|Parcel|A parcel was left at the front door.'],
+];
 // the web interface: the file name, the address, the window
 const WEB = [
   ['web-panel', '#panel', [1300, 900]], ['web-editor', '#panel/kitchen/edit', [1300, 900]],
@@ -66,13 +72,16 @@ const shoot = async (name, clip) => {
 
 await mkdir(OUT, {recursive: true});
 await size([1300, 900]);
-for (const [name, page] of DISPLAY) {
+const display = async (name, page, note) => {
   await open(page === 'home' ? '#panel' : `#panel/${page}`, 3500);
+  if (note) await evaluate(`PV.note = parseNote(${JSON.stringify(note)}); renderPreview()`);
   const r = await evaluate("(b => b && {...b.toJSON(), k: [LAYOUT.visible[0] / LAYOUT.screen[0], " +
                            "LAYOUT.visible[1] / LAYOUT.screen[1]]})(document.getElementById('vBox')?.getBoundingClientRect())");
   // the visible part (the layout's "visible": 450 of the NSPanel EU's 480 points, its frame covers the rest)
   await shoot('display-' + name, r && {x: r.x, y: r.y, width: r.width * r.k[0], height: r.height * r.k[1]});
-}
+};
+for (const [name, page] of DISPLAY) await display(name, page);
+for (const [name, page, note] of NOTES) await display(name, page, note);
 for (const [name, hash, win] of WEB) {
   await size(win);
   await open(hash, 3500);

@@ -28,6 +28,8 @@ web interface, which shows a live preview of the display: what you change there 
 - **A home screen** with the weather, temperatures, status icons and shortcuts (animated, e.g. a turning
   washing machine), two info lines (the next bus, say) and the two hardware buttons with their relays,
   which openHAB can switch too
+- **openHAB in charge**: notifications as cards over the page (a warning, an alert), and a page opened by an
+  item, e.g. the alarm's keypad when the door opens
 - **Setup without a cable** after the first flash: the panel opens a hotspot, finds openHAB in the network
   and is updated over WiFi, both the firmware and the display's design
 - **Themes**: five backgrounds (Aurora, Black, Candy, Dunes, Forest), each with its own accent and text colours;
@@ -69,6 +71,12 @@ web interface, which shows a live preview of the display: what you change there 
 <td><img src="docs/images/screens/display-info.png" alt="Panel info"></td>
 </tr>
 <tr><td align="center">An alarm system's keypad</td><td align="center">Waste collection, by date</td><td align="center">Panel info</td></tr>
+<tr>
+<td><img src="docs/images/screens/display-notification-warning.png" alt="A warning"></td>
+<td><img src="docs/images/screens/display-notification-alert.png" alt="An alert"></td>
+<td><img src="docs/images/screens/display-notification-info.png" alt="A notice"></td>
+</tr>
+<tr><td align="center">Notifications from openHAB:<br>a warning</td><td align="center">an alert</td><td align="center">a notice; a touch closes it</td></tr>
 </table>
 
 All of them, and the web interface, are in the [demo](https://bruestel.github.io/ohpanel/demo/): the real
