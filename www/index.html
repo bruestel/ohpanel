@@ -1980,6 +1980,7 @@ async function refreshInfo() {
     return;
   }
   if (showTransfer(info.transfer) && !xferTimer) pollTransfer();
+  updateArrived();
   const n = info.net;
   $('hdrName').textContent = info.device;
   $('hdrDot').className = 'dot ' + (n.state === 'connected' ? 'ok' : n.provisioning ? 'warn' : '');
@@ -8744,7 +8745,7 @@ $('oStart').addEventListener('click', () => {
    own files cannot be fetched from another page. Looked for only when asked; the browser downloads the file, checks
    it against its SHA-256 and sends it to the panel as an upload would. */
 const UPDATES = 'https://bruestel.github.io/ohpanel/update/';
-let UPD = null;   // what was found: {u: its update.json, v: this panel variant's files, channel}
+let UPD = null;   // what was found: {u: its update.json, v: this panel variant's files, channel, waiting}
 
 /* A version's order: 0.11.0-rc1 before 0.11.0, a build past a tag (0.11.0-rc1-6-gabc1234) after the tag. */
 function versionKey(v) {
@@ -8776,7 +8777,7 @@ async function checkUpdates() {
     $('uNotes').href = best.url;
     $('uNotes').hidden = false;
     setMsg($('uMsg'), 'OHpanel ' + kind + best.version + ' is there (this panel runs ' + running + '). Once the panel '
-           + 'runs it, look again: a new display design follows the same way.', 'ok');
+           + 'runs it, a new display design follows here the same way.', 'ok');
   } else if (v.display && dp.design_expected === v.design && dp.design !== v.design) {
     $('uDisplay').hidden = false;
     setMsg($('uMsg'), 'The display design ' + v.design + ' of ' + best.version + ' is still to be written.', 'ok');
@@ -8784,6 +8785,15 @@ async function checkUpdates() {
     setMsg($('uMsg'), 'Up to date: this panel runs ' + running + ', the latest ' + (kind || 'release ') + 'is '
            + best.version + '.', 'ok');
   }
+}
+
+/* The panel runs what was just installed (its firmware's version, the display its design): the card looks again --
+   the "Done" gone, the display design offered after a firmware, "up to date" after the design. */
+function updateArrived() {
+  const w = UPD && UPD.waiting, dp = (info && info.display) || {};
+  if (!w || (w.version ? info.version !== w.version : !(dp.design === w.design && dp.design_current))) return;
+  UPD.waiting = null;
+  checkUpdates();
 }
 
 /* The update's firmware or display design: downloaded, checked, sent to the panel (/api/v1/ota, /display/tft). */
@@ -8828,8 +8838,10 @@ async function installUpdate(kind) {
     try { err = JSON.parse(xhr.responseText).error || ''; } catch (e) {}
     if (xhr.status !== 200) { done(err || 'HTTP ' + xhr.status, 'err'); return; }
     $('uProg').value = 100;
-    done(kind === 'firmware' ? 'Done. The panel restarts with ' + u.version + '; check again then for its display design.'
+    done(kind === 'firmware' ? 'Done. The panel restarts with ' + u.version + '; then its display design follows here.'
          : 'Done. The display restarts with the new design.', 'ok');
+    // what the message waits for: once the panel says so (refreshInfo), the card looks again (updateArrived)
+    UPD.waiting = kind === 'firmware' ? {version: u.version} : {design: v.design};
   };
   xhr.onerror = () => done('The upload was aborted.', 'err');
   xhr.send(data);
