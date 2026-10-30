@@ -555,6 +555,8 @@ class Engine {
   int thermo_knob_ = -1;             // the bead the knob is on (-1: none drawn)
   Timed<double> thermo_drag_;        // the target the finger is setting
   bool thermo_touching_ = false;     // a touch began on the ring (not inside it)
+  int thermo_from_ = 0;              // ... where: x * 1000 + y
+  bool thermo_swiped_ = false;       // the last touch on the ring was a swipe: the target kept, the page changes
   Timed<double> thermo_sent_;        // a target sent: shown until the item says so, or a while has passed
   Timed<int> mode_tapped_;           // a mode just tapped: lit until the item says so, or a while has passed
 

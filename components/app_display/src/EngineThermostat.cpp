@@ -152,6 +152,7 @@ void Engine::draw_thermostat(const cJSON *page) {
   thermo_knob_ = -1;
   thermo_drag_.clear();
   thermo_touching_ = false;
+  thermo_swiped_ = false;
   // minus and plus: the icon on its disc (drawn by thermo_refresh, after the ring: what is drawn right as the page
   // loads, the display paints its background over)
   for (const char *n : {"minus", "plus"}) {   // shown by thermo_refresh unless locked
@@ -371,7 +372,8 @@ void Engine::thermo_event(const cJSON *page, const std::string &component) {
 
 /* The finger on the ring ("tdrw", while it moves too) or let go ("tdru"): x * 1000 + y, read as the angle round
    the ring -- in its opening, the nearer end. A touch has to begin on the ring, not inside it. Shown at once; sent
-   when let go. */
+   when let go. One that goes on sideways off the ring is a swipe (the page in the swipe row next to it): the
+   target as it was, nothing sent -- along the ring's top a finger moves sideways too, but stays on it. */
 void Engine::thermo_value(const std::string &name, int value) {
   const cJSON *page = current_ == "home" ? nullptr : page_config(current_);
   const auto pg = boxes_.find("thermostat");
@@ -386,6 +388,21 @@ void Engine::thermo_value(const std::string &name, int value) {
     if (std::hypot(dx, dy) < g.r - 2.5 * kThermoBead)
       return;   // inside the ring: not for it
     thermo_touching_ = true;
+    thermo_from_ = value;
+    thermo_swiped_ = false;
+  }
+  if (thermo_swiped_) {
+    if (name == "tdru")
+      thermo_touching_ = false;
+    return;
+  }
+  const int mx = std::abs(value / 1000 - thermo_from_ / 1000), my = std::abs(value % 1000 - thermo_from_ % 1000);
+  if (mx >= 40 && mx > 2 * my && std::fabs(std::hypot(dx, dy) - g.r) > 2.5 * kThermoBead) {
+    thermo_swiped_ = true;
+    thermo_touching_ = name != "tdru";
+    thermo_drag_.clear();
+    thermo_refresh(page);
+    return;
   }
   double a = std::atan2(dy, dx);
   while (a < kRingFrom)

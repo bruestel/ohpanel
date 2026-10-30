@@ -2103,6 +2103,15 @@ int main(int argc, char **argv) {
     CHECK(rec.has("target.txt=\"Ziel 20,0 °C\"") && commands.back().second == "21.5 °C");
     e.on_message(value("tdru", 225 * 1000 + 48));
     CHECK(commands.back().second == "20 °C");
+    // a swipe over the ring: along its top first (still the ring), then on sideways off it -- the target as it was,
+    // nothing sent
+    const size_t sent = commands.size();
+    e.on_message(value("tdrw", 225 * 1000 + 48));
+    e.on_message(value("tdrw", 245 * 1000 + 50));
+    rec.out.clear();
+    e.on_message(value("tdrw", 330 * 1000 + 52));
+    e.on_message(value("tdru", 335 * 1000 + 52));
+    CHECK(commands.size() == sent && rec.has("target.txt=\"Ziel 20,0 °C\""));
     e.on_message(event("thermostat", "mode3", "release"));
     CHECK(commands.back() == std::make_pair(std::string("Kitchen_Mode"), std::string("off")));
     // a mode whose rule locks the target: no minus and plus, the ring not to be dragged

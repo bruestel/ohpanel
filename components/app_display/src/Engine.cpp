@@ -995,8 +995,8 @@ void Engine::back() {
 void Engine::swipe(const std::string &direction) {
   const cJSON *page = current_ == "home" ? nullptr : page_config(current_);
   if ((shown_ == "cover" && now_ms_ - cover_drag_.since_ms < 1000) ||
-      (shown_ == "thermostat" && now_ms_ - thermo_drag_.since_ms < 1000))
-    return;   // a finger moving on the cover's drawing, on the thermostat's ring: not a swipe
+      (shown_ == "thermostat" && !thermo_swiped_ && now_ms_ - thermo_drag_.since_ms < 1000))
+    return;   // a finger moving on the cover's drawing, on the thermostat's ring (not off it sideways): not a swipe
   const std::vector<std::string> &row = swipe_row();
   if (const int sheets = sheets_of(page); sheets > 1 && (direction == "left" || direction == "right")) {
     // the finger moving left brings the next sheet (rows, a day), as the next page in the row; past the last (the
