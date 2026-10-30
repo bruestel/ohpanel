@@ -160,7 +160,9 @@ WIFI_ICON = (RIGHT - 24, 5, 25, 25)   # the 24 px glyph in a 25 px box
 STATUS_VALUE = (RIGHT - 124, 5, 100, 25)
 STATUS_VALUE_ICON = (RIGHT - 22, 5, 25, 25)
 CLOCK = (RIGHT - 160, 45, 160, 62)    # font 6, right-aligned
+CLOCK_XCEN = 2
 DATE = (RIGHT - 165, 110, 165, 30)    # font 3, right-aligned, on the field's bottom
+DATE_XCEN = 2
 RANGE_END = DATE[0]                   # today's low and high end before the date
 # the shortcut icons (32 px font) in 35 px fields 47 px apart, right-aligned in two rows: three, then four
 SHORTCUT, SHORTCUT_STEP = 35, 47

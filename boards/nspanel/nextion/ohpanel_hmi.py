@@ -355,11 +355,11 @@ def home_page(p: Project) -> None:
     shows one."""
     home = new_page(p, "home")
     x, y, w, h = layout.CLOCK
-    text(home, "clock", layout.CLOCK, 6, xcen=2, maxl=5)
-    text(home, "date", layout.DATE, TEXT_FONT, xcen=2, ycen=2, maxl=25)
-    # AM/PM small above the clock's minutes
+    text(home, "clock", layout.CLOCK, 6, xcen=layout.CLOCK_XCEN, maxl=5)
+    text(home, "date", layout.DATE, TEXT_FONT, xcen=layout.DATE_XCEN, ycen=2, maxl=25)
+    # AM/PM small above the clock's minutes (the clock right-aligned in its field)
     my, mw, mh = layout.MERIDIEM
-    text(home, "ampm", (layout.RIGHT - mw, my, mw, mh), 2, xcen=2, ycen=2, maxl=10)
+    text(home, "ampm", (x + w - mw, my, mw, mh), 2, xcen=2, ycen=2, maxl=10)
 
     for k, (sx, sy) in enumerate(layout.STATUS_ICONS, start=1):
         text(home, f"top{k}", (sx, sy, 25, 25), ICON_FONT, xcen=1, maxl=10, pco=LIGHT_GREY)
@@ -413,7 +413,9 @@ def home_page(p: Project) -> None:
     # value rows: an icon and the number beside it, its unit small at the number's top
     for (icon_name, number, row), cy in zip((("row1_icon", "row1", "row1"), ("row2_icon", "row2", "row2")),
                                             layout.VALUE_ROWS):
-        text(home, icon_name, (layout.VALUE_ICON_X, cy - 12, 25, 25), ICON_FONT, xcen=1, maxl=10)
+        # the icon's ink centred on the number's capitals (font 3: rows 5..20 of its 26, the field 1 px higher): the
+        # icon font draws its icons low in its cell
+        icon(home, icon_name, layout.VALUE_ICON_X + 13, cy - 0.5, ICON_FONT, maxl=10)
         num = text(home, number, (layout.VALUE_NUMBER[0], cy - layout.VALUE_NUMBER_H // 2, layout.VALUE_NUMBER[1],
                                   layout.VALUE_NUMBER_H), layout.FONT_VALUE, maxl=8)
         units(num, row + "_u", layout.VALUE_UNIT_STEPS, layout.VALUE_UNIT_STEP, cy - 13, 20, layout.VALUE_UNIT_W,

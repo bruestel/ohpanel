@@ -69,27 +69,32 @@ CLOSE_DISC = 25
 CLOSE_ICON = (VISIBLE_W - MARGIN - CLOSE_DISC, 8, CLOSE_DISC, CLOSE_DISC)   # x 283..307
 
 
-# Home ("C" of the sketches, 2026-10-23): on top the weather picture on the left, the clock and the date
-# right-aligned beside it; under them the outdoor temperature large with today's low and high under it. At the
-# bottom, standing on the relays: the two value rows on the left with the shortcuts beside them on the right, the
-# two info lines, the relays' labels and bars over the two buttons.
+# Home ("D" of the mock-ups, 2026-10-30): on top the clock and the date, centred; under them the weather block,
+# centred too: the weather picture, beside it the outdoor temperature large with today's low and high under it,
+# standing on the picture's bottom. At the bottom, standing on the relays: the two value rows on the left with the
+# shortcuts beside them on the right, the two info lines, the relays' labels and bars over the two buttons.
 STATUS_ICONS = [(MARGIN + 1 + 27 * k, 5) for k in range(10)]   # up to ten, 27 px apart: clear of the WiFi icon
 WIFI_ICON = (RIGHT - 24, 5, 25, 25)
 STATUS_VALUE = (RIGHT - 124, 5, 100, 25)
 STATUS_VALUE_ICON = (RIGHT - 22, 5, 25, 25)
-WEATHER_HOME = (MARGIN - 2, 34, 104, 104)
+WEATHER_HOME = (56, 140, 104, 104)                               # the block's left: centred for "14°" 
 WEATHER_BOTTOM = WEATHER_HOME[1] + WEATHER_HOME[3] - 2           # 136
-# the clock (font 6) right-aligned beside the weather picture, its digits from y=51; AM/PM small above its
-# minutes, under the WiFi icon; the date under it (font 3) as on the EU, 65 px below the clock's top
-CLOCK = (RIGHT - 170, 36, 170, 62)
+# the clock (font 6) centred, its digits from y=51, in a field as wide as "00:00" (its digits all 37 px, the colon
+# 16): AM/PM stands small above its minutes (with a gap after "9:23"); the date under it (font 3) centred across the
+# screen, 65 px below the clock's top
+CLOCK_W = 4 * 37 + 16 + 2
+CLOCK = ((VISIBLE_W - CLOCK_W) // 2, 36, CLOCK_W, 62)
+CLOCK_XCEN = 1   # centred
 CLOCK_BASELINE, DATE_BASELINE = 96, 125
 MERIDIEM = (30, 40, 22)
-DATE = (RIGHT - 180, 101, 180, 30)
-# the outdoor temperature large (48 px font) from the left margin under the weather picture, its unit small at its
-# top right after it; the low and high under it (as the EU's beside the weather picture)
-OUTDOOR_BASELINE = 186
+DATE = (MARGIN, 101, VISIBLE_W - 2 * MARGIN, 30)
+DATE_XCEN = 1   # centred
+# the outdoor temperature large (48 px font) beside the weather picture, its unit small at its top right after
+# it; the low and high under it, their baseline where the picture's ink ends (99 px down: it stands on its bottom)
+OUTDOOR_X = WEATHER_HOME[0] + WEATHER_HOME[2] + 5
+OUTDOOR_BASELINE = WEATHER_HOME[1] + 99 - 28
 OUTDOOR_TEMP_CY = OUTDOOR_BASELINE - 15
-OUTDOOR_TEMP = (MARGIN, OUTDOOR_TEMP_CY - 24, 130, 48)
+OUTDOOR_TEMP = (OUTDOOR_X, OUTDOOR_TEMP_CY - 24, 130, 48)
 OUTDOOR_UNIT_Y, OUTDOOR_UNIT_H, OUTDOOR_DIGIT = OUTDOOR_TEMP_CY - 19, 24, 25
 OUTDOOR_UNIT_STEP = 13
 FONT_OUTDOOR, FONT_OUTDOOR_UNIT = 5, 2
@@ -99,7 +104,7 @@ RANGE_BASELINE = OUTDOOR_BASELINE + 29      # the outdoor field (to y=194) clear
 RANGE_Y, RANGE_H = RANGE_BASELINE + 5 - 22, 22
 RANGE_ARROW_Y = (RANGE_BASELINE - 8) - 12
 RANGE_ARROW_W = 24
-RANGE_DOWN_X = MARGIN - 4
+RANGE_DOWN_X = OUTDOOR_X - 4
 RANGE_LOW_X = RANGE_DOWN_X + RANGE_ARROW_W
 RANGE_STEP, RANGE_STEPS = 6, 7
 RANGE_GAP = 4
@@ -157,17 +162,17 @@ ENTITY_ROWS_Y, ENTITY_ROWS_STEP, ENTITY_ROWS_H, ENTITY_ROWS_N = 44, 56, 48, 7
 ENTITY_ROWS_RADIUS = 10
 ENTITY_DOTS = (MARGIN, 450, VISIBLE_W - 2 * MARGIN, 26)
 
-# The boot page: the title, the hotspot's QR code under it in the middle, the rows of a label and a value under the
-# code, the logo at the bottom.
+# The boot page: the title, the rows of a label and a value right under it, the hotspot's QR code (only while it
+# serves) under them in the middle, the logo at the bottom.
 BOOT_TITLE = (16, 26, 288, 35)
 BOOT_MARGIN_X, BOOT_MARGIN_Y = 18, 76
+BOOT_ROWS_Y = (76, 101, 126, 151, 176)   # firmware, device, IP, IPv6, more
 BOOT_QR_SIZE = 110
-BOOT_QR = ((VISIBLE_W - BOOT_QR_SIZE) // 2, BOOT_MARGIN_Y, BOOT_QR_SIZE, BOOT_QR_SIZE)
-BOOT_ROWS_Y = (206, 231, 256, 281, 306)   # firmware, device, IP, IPv6, more
+BOOT_QR = ((VISIBLE_W - BOOT_QR_SIZE) // 2, BOOT_ROWS_Y[-1] + 36, BOOT_QR_SIZE, BOOT_QR_SIZE)
 BOOT_LABEL = (16, 90)
 BOOT_VALUE_X = 108
 BOOT_VALUE_GAP = 4
-BOOT_BELOW_QR = ("firmware", "device", "ip", "ipv6", "info")   # every row: the whole width
+BOOT_BELOW_QR = ("firmware", "device", "ip", "ipv6", "info")   # every row the whole width (the code is below them)
 BOOT_LOGO_W, BOOT_LOGO_H = 300, 64
 BOOT_LOGO = ((VISIBLE_W - BOOT_LOGO_W) // 2, VISIBLE_H - 34 - BOOT_LOGO_H, BOOT_LOGO_W, BOOT_LOGO_H)
 # The logo the display shows itself when it starts (layout_eu.py): as wide as the boot page's, the screen allowing
