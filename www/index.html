@@ -7979,7 +7979,7 @@ function pageMissing(p) {
 
 function slugify(t) {
   return (t.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/ß/g, 'ss')
-    .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'page').slice(0, 32);
+    .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'page').slice(0, 21).replace(/-+$/, '');   // room for "-2"
 }
 
 /* What points to page `id`: [description, remove-function] pairs. */
@@ -8097,12 +8097,49 @@ function deletePage(p) {
 }
 const deletable = p => !!p && p.type !== 'home' && !p.builtin && p.id !== INFO_PAGE.id;
 
-/* The editor's end for the page shown: delete it. */
+/* A page's id changed to `id`: what points to it follows -- the places pageRefs takes out when it is deleted. */
+function renamePage(old, id) {
+  PV.page = PV.page === old ? id : PV.page;
+  PV.history = PV.history.map(x => x === old ? id : x);
+  pvEdit(c => {
+    c.pages.find(p => p.id === old).id = id;
+    if (Array.isArray(c.swipe)) c.swipe = c.swipe.map(x => x === old ? id : x);
+    const h = c.home || {};
+    if (h.weather_page === old) h.weather_page = id;
+    (h.shortcuts || []).forEach(s => { if (s && s.open === old) s.open = id; });
+    (c.pages || []).forEach(p => (p.buttons || []).forEach(b => { if (b && b.open === old) b.open = id; }));
+  });
+}
+
+/* The page's id, what buttons, shortcuts and openHAB (display.open_page) name it by: taken once typed (on leaving
+   the field or Enter), as the configuration's check wants it and not one taken already. */
+function pageIdField(page) {
+  const i = textInput(page.id, () => {}, {maxLength: 24, spellcheck: false, autocapitalize: 'off'});
+  const msg = document.createElement('p');
+  msg.className = 'sub warn';
+  const problem = v => !/^[a-z0-9]([a-z0-9-]*[a-z0-9])?$/.test(v) ? 'Only a-z, 0-9 and -, not at the start or the end'
+    : v !== page.id && (v === 'home' || v === SETTINGS_PAGE.id || v === INFO_PAGE.id || pagesOf(PV.cfg).some(p => p.id === v))
+      ? 'Another page has this id' : '';
+  const show = () => { msg.textContent = problem(i.value.trim()); msg.hidden = !msg.textContent; };
+  i.addEventListener('input', show);
+  i.addEventListener('keydown', ev => { if (ev.key === 'Enter') i.blur(); });
+  i.addEventListener('change', () => {
+    const v = i.value.trim();
+    if (v !== page.id && !problem(v)) renamePage(page.id, v);
+  });
+  show();
+  const box = document.createElement('div');
+  box.append(i, msg);
+  return field('Page id', box);
+}
+
+/* The editor's end for the page shown: its id, and delete it. */
 function pvDeletePage(box, page) {
   if (!deletable(page)) return;
-  const b = pvButtons([['Delete this page', 'danger', () => deletePage(page)]]);
-  b.classList.add('pvdel');
-  box.appendChild(b);
+  const end = document.createElement('div');
+  end.className = 'pvdel';
+  end.append(pvRow(pageIdField(page)), pvButtons([['Delete this page', 'danger', () => deletePage(page)]]));
+  box.appendChild(end);
 }
 
 function pgItem(p, cfg, place, start = false, rowSize = 0) {
