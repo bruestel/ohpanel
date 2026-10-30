@@ -82,7 +82,9 @@ FONTS = [
     (UBUNTU_NAME, 36, [(UBUNTU, 32.9, 30, "text")]),
     (UBUNTU_NAME, 48, [(UBUNTU, 43.6, 40, "text"), (MDI, 40, 40, "media")]),
     (UBUNTU_NAME, 72, [(UBUNTU, 64.9, 61, "text"), (MDI, 60, 59, "media")]),
-    ("icons24", 24, [(NOTO, 17.5, 19, "latin1"), (MDI, 19, 22, "icons"), (OWN, 19, 5, "own")]),
+    # the Latin-1 a px lower than in a text font: beside an icon in one field (the volume page's mute) its capitals
+    # end where the icons' ink is centred (the icons draw low, ink 7..21); lower still would cut a descender
+    ("icons24", 24, [(NOTO, 17.5, 20, "latin1"), (MDI, 19, 22, "icons"), (OWN, 19, 5, "own")]),
     ("icons32", 32, [(NOTO, 23.2, 25, "latin1"), (MDI, 27, 27, "icons"), (OWN, 27, 3, "own")]),
     # a button's icon in the middle of its tile (layout "center", a button without an item): icons only, no
     # Latin-1 -- 1.8 MB, what one background's pictures took
