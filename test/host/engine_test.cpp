@@ -1725,7 +1725,8 @@ int main(int argc, char **argv) {
   }
 
   {  // the NSPanel US on its side: the relays' labels upright beside its buttons -- the first's in the lower half,
-     // its characters in the turned font (10) one under the other, each its advance in font 1 below the last
+     // read from the bottom up: its characters in the turned font (10) one over the other, each its advance in font 1
+     // above the last
     Recorder r4;
     Engine g(r4, cb);
     CHECK(g.load_design(read("boards/nspanel/nextion/display-manifest-us-landscape.json").c_str(),
@@ -1741,7 +1742,7 @@ int main(int argc, char **argv) {
     CHECK(r4.has("vis relay1_text,0") && !r4.has_prefix("relay1_text.txt="));
     CHECK(chars.size() == 5 && chars[0].find("\"L\"") != std::string::npos && chars[4].find("\"t\"") != std::string::npos);
     const auto y = [](const std::string &c) { return std::stoi(c.substr(c.find(',') + 1)); };
-    CHECK(chars.size() == 5 && y(chars[0]) > 172 && y(chars[1]) > y(chars[0]) && y(chars[4]) < 172 + 132);
+    CHECK(chars.size() == 5 && y(chars[0]) + 16 < 172 + 132 && y(chars[1]) < y(chars[0]) && y(chars[4]) > 172);
   }
 
   {  // switched on with the panel: the display's boot page reported before anyone listened -- not

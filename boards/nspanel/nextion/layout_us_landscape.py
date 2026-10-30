@@ -138,7 +138,7 @@ INFO_ICON_UP, INFO_ICON_H = 4, 24
 INFO_LEFT = (MARGIN, 26)  # x, w: even, so a two-digit number has as much room left as right
 BADGE_RADIUS = 5
 # the right field (a time, mostly) clear of the main text by INFO_GAP
-INFO_RIGHT = (226, 52)    # x, w
+INFO_RIGHT = (204, 52)    # x, w: clear of the lower shortcuts (from 263)
 INFO_GAP = 8
 INFO_MAIN_X = 44          # the main text: 6 px clear of the left field (12..38)
 # the vertical centres of the two value rows: one group, the number fields
@@ -157,14 +157,14 @@ FONT_VALUE, FONT_VALUE_UNIT = 3, 1
 # clock, the date and the shortcut icons right-aligned -- on home before the
 # relays' strip at the right edge (HOME_RIGHT), on the other pages at the margin.
 RIGHT = VISIBLE_W - MARGIN            # 468: where the visible things end
-# the relays beside their buttons on the right: a label upright (written top to bottom, the firmware draws it in
-# the turned font: Engine::draw_relays) and a bar beside it the firmware colours by the relay's state -- the first
+# the relays beside their buttons on the right: a label upright (read from the bottom up, the firmware draws it in
+# the turned font: Engine::relay_label) and a bar beside it the firmware colours by the relay's state -- the first
 # relay's (the button at the bottom) in the lower half, the second's in the upper
 RELAY_STRIP = 30                      # its width, at the display's right edge
 RELAYS_UPRIGHT = True
 RELAYS = [(VISIBLE_W - RELAY_STRIP + 2, 172, 20, 132), (VISIBLE_W - RELAY_STRIP + 2, 16, 20, 132)]   # the labels
 RELAY_BARS = [(VISIBLE_W - 6, y, 3, h) for _, y, _, h in RELAYS]                                  # beside each
-HOME_RIGHT = VISIBLE_W - RELAY_STRIP - 4  # 446: home's right edge, clear of them
+HOME_RIGHT = VISIBLE_W - RELAY_STRIP - 12  # 438: home's right edge, well clear of them
 WIFI_ICON = (HOME_RIGHT - 24, 5, 25, 25)   # the 24 px glyph in a 25 px box
 # beside the WiFi icon, right-aligned: a value and its icon (32 px font)
 STATUS_VALUE = (HOME_RIGHT - 124, 5, 100, 25)

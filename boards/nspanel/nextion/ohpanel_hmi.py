@@ -441,7 +441,7 @@ def home_page(p: Project) -> None:
 
     # the relays: a label, and beside it a bar the firmware colours (the theme's accent while the relay is on,
     # dark grey while off: Engine::draw_relays) -- under it, or upright beside it (layout.RELAYS_UPRIGHT: the label
-    # drawn by the firmware there, top to bottom in the turned font, its field hidden; the manifest's "boxes")
+    # drawn by the firmware there, read from the bottom up in the turned font, its field hidden; the manifest's "boxes")
     for k, ((x, y, w, h), bar) in enumerate(zip(layout.RELAYS, layout.RELAY_BARS), start=1):
         text(home, f"relay{k}_text", (x, y, w, h), 1, xcen=1, maxl=20, pco=WHITE if k == 1 else LIGHT_GREY)
         text(home, f"relay{k}_bar", bar, 1, maxl=1, bco=TILE_OFF_565)

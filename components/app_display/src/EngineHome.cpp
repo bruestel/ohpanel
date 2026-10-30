@@ -122,9 +122,10 @@ void Engine::draw_relays() {
   }
 }
 
-/* A relay's label upright in `b`, written top to bottom: its characters in the turned font (font 1's Latin-1 turned
-   a quarter clockwise, boards/nspanel/nextion/fonts.py), one under the other, each its advance in font 1 below the
-   one before, the whole centred on the box -- drawn again only when it changes, the background back first. */
+/* A relay's label upright in `b`, read from the bottom up: its characters in the turned font (font 1's Latin-1 turned
+   a quarter anticlockwise, boards/nspanel/nextion/fonts.py), one over the other, each its advance in font 1 above the
+   one before, the whole centred on the box -- drawn again only when it changes, the background back first. Each
+   on the background cropped (as the EU's label fields): on nothing, the display smooths the edges against black. */
 void Engine::relay_label(const Box &b, const std::string &side, const std::string &text, int colour) {
   constexpr int kTurnedFont = 10, kCharW = 18, kCharH = 16;
   const std::string label = shorten(1, text, b.h, false);
@@ -133,16 +134,18 @@ void Engine::relay_label(const Box &b, const std::string &side, const std::strin
     return;
   drawn_[side + "_label"] = key;
   restore(b.x, b.y, b.w, b.h);
-  int y = b.y + (b.h - text_width(1, label)) / 2;
+  int bottom = b.y + (b.h + text_width(1, label)) / 2;   // where the next character's ink ends below
   for (size_t at = 0; at < label.size();) {
     size_t n = 1;   // one character, a whole UTF-8 one
     while (at + n < label.size() && (static_cast<unsigned char>(label[at + n]) & 0xC0) == 0x80)
       n++;
     const std::string c = label.substr(at, n);
-    send("xstr " + std::to_string(b.x + (b.w - kCharW) / 2) + "," + std::to_string(y) + "," + std::to_string(kCharW) +
-         "," + std::to_string(kCharH) + "," + std::to_string(kTurnedFont) + "," + std::to_string(colour) +
-         ",0,0,0,3,\"" + nextion::quote(c) + "\"");
-    y += text_width(1, c);
+    // the character at the bottom of its cell; the cell's rest above it, which the next one draws over
+    const std::string ground = bg_sent_ >= 0 ? std::to_string(bg_sent_) + ",0,0,0" : "0,0,0,3";
+    send("xstr " + std::to_string(b.x + (b.w - kCharW) / 2) + "," + std::to_string(bottom - kCharH) + "," +
+         std::to_string(kCharW) + "," + std::to_string(kCharH) + "," + std::to_string(kTurnedFont) + "," +
+         std::to_string(colour) + "," + ground + ",\"" + nextion::quote(c) + "\"");
+    bottom -= text_width(1, c);
     at += n;
   }
 }

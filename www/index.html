@@ -3146,7 +3146,7 @@ function fillHome(cfg) {
     const switched = info && Array.isArray(info.relays) ? !!info.relays[i] : !!(r && r.item && isOn(r));
     const on = r && (r.item && r.relay === false ? isOn(r) : switched);
     f[side + '_bar'] = r ? {text: '', bg: on ? THEME.accent : PALETTE['dark-grey']} : {hide: true};
-    // upright beside the panel's buttons (the NSPanel US on its side: Engine::relay_label), written top to bottom
+    // upright beside the panel's buttons (the NSPanel US on its side: Engine::relay_label), read from the bottom up
     const upright = layoutBox('home', side + '_label');
     if (!upright) { f[side + '_text'] = {text: r ? (r.label || '') : ''}; return; }
     f[side + '_text'] = {hide: true};
@@ -3155,7 +3155,7 @@ function fillHome(cfg) {
       const [x, y, w, hh] = upright;
       ctx.save();
       ctx.translate(x + w / 2, y + hh / 2);
-      ctx.rotate(Math.PI / 2);
+      ctx.rotate(-Math.PI / 2);
       ctx.font = '15px Ubuntu, system-ui, sans-serif';
       ctx.fillStyle = i === 0 ? '#ffffff' : PALETTE['light-grey'];
       ctx.textAlign = 'center'; ctx.textBaseline = 'middle';

@@ -89,9 +89,9 @@ FONTS = [
     # a button's icon in the middle of its tile (layout "center", a button without an item): icons only, no
     # Latin-1 -- 1.8 MB, what one background's pictures took
     ("icons48", 48, [(MDI, 40, 40, "icons"), (OWN, 40, 4, "own")]),
-    # font 1's Latin-1 turned a quarter clockwise, for a text written top to bottom (the NSPanel US on its side: the
-    # relays' labels upright, Engine::draw_relays): each character 18 px wide (font 1's height), as high as its
-    # advance at the top of a 16 px cell -- the firmware puts them one under the other, its advance apart
+    # font 1's Latin-1 turned a quarter anticlockwise, for a text read from the bottom up (the NSPanel US on its side:
+    # the relays' labels upright, Engine::relay_label): each character 18 px wide (font 1's height), as high as its
+    # advance at the bottom of a 16 px cell -- the firmware puts them one over the other, its advance apart
     (UBUNTU_NAME + " turned", 16, [(UBUNTU, 16.9, 15, "latin1-turned")]),
 ]
 TURNED_FONT = len(FONTS) - 1   # 10
@@ -156,7 +156,7 @@ def own(em: int, top: int, height: int) -> dict:
 
 def turned(part, height: int) -> dict:
     """Font 1's Latin-1 (`part`: its TrueType font, size and baseline, as FONTS has them) turned a quarter
-    clockwise: a character's column x of its 18 px cell becomes row x of `height`, its row y column 17 - y."""
+    anticlockwise: a character's column x of its 18 px cell becomes row height - 1 - x, its row y column y."""
     from PIL import ImageFont
     font, size, baseline = part[0], part[1], part[2]
     source = ImageFont.truetype(os.path.join(FONT_DIR, font), size)
@@ -172,7 +172,7 @@ def turned(part, height: int) -> dict:
         out = [0] * (18 * height)
         for y in range(18):
             for x in range(w):
-                out[x * 18 + 17 - y] = pixels[y * w + x]
+                out[(height - 1 - x) * 18 + y] = pixels[y * w + x]
         chars[code] = (18, 0, 0, out)
     return chars
 
