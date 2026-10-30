@@ -597,6 +597,7 @@ int main(int argc, char **argv) {
   e.on_state("DeskLamp_Switch");
   CHECK(rec.has("tile1_value.txt=\"An\""));
   CHECK(rec.has(pic_cmd("tile1_pic", "aurora", "button1", "on")));
+  CHECK(rec.out.front() == "ref_stop" && rec.out.back() == "ref_star");   // the tile and its fields in one go
   // unchanged values are not resent
   rec.out.clear();
   e.on_state("DeskLamp_Switch");

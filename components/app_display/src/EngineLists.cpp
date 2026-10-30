@@ -124,7 +124,13 @@ void Engine::draw_buttons(const cJSON *page) {
   for (int i = 0; i < 8; i++) {
     const cJSON *b = slot(page, "buttons", i);
     if (b && member(b, "item"))
-      bind(b, [this, page, i] { draw_button(page, i); });
+      bind(b, [this, page, i] {
+        // a state changed: the tile's picture and its fields' colours in one go -- drawn one by one, the fields
+        // showed a moment in the old colour on the new tile
+        if (building_buttons_)
+          return draw_button(page, i);
+        batch_refresh([this, page, i] { draw_button(page, i); });
+      });
     else
       draw_button(page, i);
   }

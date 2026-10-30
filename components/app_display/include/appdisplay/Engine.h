@@ -376,6 +376,8 @@ class Engine {
 
   // --- output
   void send(const std::string &command);
+  void batch_refresh(const std::function<void()> &draw);   // what `draw` changes shown in one go
+  int hold_refresh_ = 0;   // batch_refresh: 1 paused before the next command, 2 paused
   void txt(const std::string &obj, const std::string &text);
   void num(const std::string &obj, const char *attr, int value);
   void vis(const std::string &obj, bool visible);

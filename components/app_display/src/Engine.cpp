@@ -412,7 +412,27 @@ void Engine::send(const std::string &command) {
   if (note_drawn_ && command.rfind("th_", 0) != 0 && command.rfind("bg_", 0) != 0 &&
       command.rfind("dim=", 0) != 0 && command.rfind("page ", 0) != 0)
     return;
+  if (hold_refresh_ == 1) {   // the first change of a batch: refreshing paused before it (batch_refresh)
+    hold_refresh_ = 2;
+    sink_.send("ref_stop");
+  }
   sink_.send(command);
+}
+
+/* `draw` with the display's refreshing paused, so that what it changes shows in one go (a tile's picture and its
+   fields' colours): ref_stop before the first command it sends, ref_star after the last -- nothing when it sends
+   nothing. */
+void Engine::batch_refresh(const std::function<void()> &draw) {
+  if (hold_refresh_) {
+    draw();
+    return;
+  }
+  hold_refresh_ = 1;
+  draw();
+  const bool sent = hold_refresh_ == 2;
+  hold_refresh_ = 0;
+  if (sent)
+    send("ref_star");
 }
 
 void Engine::fill(int x, int y, int w, int h, int colour, bool over_note) {
