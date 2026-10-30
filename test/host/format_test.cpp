@@ -224,8 +224,8 @@ int main(int argc, char **argv) {
     ss << f.rdbuf();
     static std::string raw = ss.str();
     CHECK(icons_use(reinterpret_cast<const uint8_t *>(raw.data()), raw.size()));
-    CHECK(icon_count() == 7499);  // MDI 7.4.47, kept old names, OHpanel's own icons
-    CHECK(icon_glyph("ohpanel-equalizer-1") == std::string("\xEF\xBC\x8A"));  // U+FF0A (the code places and the dryer frames sort first)
+    CHECK(icon_count() == 7651);  // MDI 7.4.47, kept old names, OHpanel's own icons
+    CHECK(icon_glyph("ohpanel-equalizer-1") == std::string("\xEF\xBC\xAA"));  // U+FF2A (the icons from "battery" to "dryer" sort first)
     CHECK(icon_glyph("desk-lamp") == std::string("\xEE\xA5\x9E"));
     CHECK(icon_glyph("close-circle-outline") == std::string("\xEE\x85\x99"));
     CHECK(icon_glyph("lecturn") == icon_glyph("lectern"));  // an old name, an alias now
