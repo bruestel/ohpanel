@@ -71,6 +71,8 @@ SemaphoreHandle_t g_mux = nullptr;
 std::vector<std::string> g_items;
 std::vector<std::string> g_groups;   // their members subscribed too
 std::vector<std::string> g_sent;     // what was last subscribed: the items and the groups' members (sorted)
+std::vector<std::string> g_taken;    // ... what of it openHAB took (200) on the stream g_taken_on
+std::string g_taken_on;
 std::string g_conn_id;  // the open stream's connection id; empty while there is none
 bool g_subscribed = false;
 std::map<std::string, ItemState> g_cache;
@@ -341,7 +343,10 @@ void stream_task(void *) {
 
 // ------------------------------------------------------------------ worker ----
 
-void do_subscribe() {
+/* `again`: sent even when the set is the one subscribed (renew_session wants the request). Otherwise the same set
+   again changes nothing but costs a snapshot of every item from openHAB -- the display queue overrun, the page
+   drawn again -- as when a cover's metadata, fetched at the start, names a "moving" item already in it. */
+void do_subscribe(bool again = false) {
   std::string conn_id;
   std::vector<std::string> items;
   std::vector<std::string> groups;
@@ -373,6 +378,8 @@ void do_subscribe() {
   items.erase(std::unique(items.begin(), items.end()), items.end());
   {
     Lock l;
+    if (!again && g_subscribed && conn_id == g_taken_on && items == g_taken)
+      return;
     g_sent = items;   // what the status counts
   }
   /* Nothing to do without a stream: the next "ready" queues another job. */
@@ -396,6 +403,8 @@ void do_subscribe() {
     Lock l;
     if (g_conn_id == conn_id)
       g_subscribed = true;
+    g_taken = items;
+    g_taken_on = conn_id;
   } else if (status == 404) {
     /* The connection id is gone -- openHAB restarted under us. Start over. */
     set_error("openHAB no longer knows the stream, reconnecting");
@@ -451,7 +460,7 @@ void renew_session() {
     return;
   ESP_LOGI(TAG, "Renewing the TLS session");
   drop_keep();
-  do_subscribe();
+  do_subscribe(true);
 }
 
 void worker_task(void *) {
