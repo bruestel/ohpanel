@@ -144,6 +144,10 @@ about **15 minutes** over WiFi; the screen stays dark meanwhile, then shows OHpa
 > The firmware knows which design it was built for: while the display runs another one, every page of the web
 > interface says so and names the file. Firmware and display design of the same release belong together.
 
+> [!NOTE]
+> Still powered by the serial adapter? Some adapters cannot feed the display while it takes a new design. If the
+> upload fails, put the panel on mains and write it again.
+
 ## Your first pages
 
 Under **Panel**, the preview shows the display as it is now. **Edit preview** turns it into the editor: tap a
@@ -183,7 +187,9 @@ set up before, it tries that network first; the hotspot follows when it is not r
 Then the bootloader waits instead of starting OHpanel.
 
 **Writing the display design stops.** Start it again; the panel switches the display off and on when a broken
-upload left it stuck. A weak WiFi makes it slow, not wrong: it may take 20 minutes.
+upload left it stuck. A weak WiFi makes it slow, not wrong: it may take 20 minutes. If the log says
+`display answered 0x00 instead of 0x05` at every speed and the panel runs on the serial adapter, the adapter may
+not give the display enough power: put the panel on mains and try again.
 
 **The screen says nothing, the web interface works.** The display runs another design: write
 `ohpanel-nspanel-eu-display-<version>.tft` (see above).
