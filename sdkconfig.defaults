@@ -133,6 +133,12 @@ CONFIG_MBEDTLS_CERTIFICATE_BUNDLE_CROSS_SIGNED_VERIFY=y
 # TLS memory in PSRAM: two connections at once (the event stream and a
 # command) do not fit the internal RAM over https.
 CONFIG_MBEDTLS_EXTERNAL_MEM_ALLOC=y
+# The outgoing record as large as the incoming one: a resumed session sends its
+# ticket in the ClientHello, and Java's (openHAB's Jetty) carry the server's
+# certificate chain: about 4 KB with a public certificate, too large for the
+# default 4 KB (MBEDTLS_ERR_SSL_BUFFER_TOO_SMALL, -0x008A). 12 KB more PSRAM
+# per TLS connection.
+CONFIG_MBEDTLS_SSL_OUT_CONTENT_LEN=16384
 
 # --- https for the web interface ---------------------------------------------
 # The panel's own CA and server certificate are made on the device
