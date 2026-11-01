@@ -414,8 +414,11 @@ void Engine::draw_code(const std::string &field, const std::string &text, const 
     int x, y, w, h;
   };
   std::vector<Rect> rects;
-  std::map<std::pair<int, int>, size_t> open;   // (x, width) -> the rectangle ending in the row above
+  // the rectangles ending in the row above and in this one, by x (vectors: a map's small nodes stay in internal RAM)
+  std::vector<size_t> above, here;
   for (int y = 0; y < n; y++) {
+    size_t a = 0;
+    here.clear();
     for (int x = 0; x < n;) {
       if (!dark(x, y) || (apart && !finder(x, y))) {
         x++;
@@ -424,15 +427,18 @@ void Engine::draw_code(const std::string &field, const std::string &text, const 
       int end = x;
       while (end < n && dark(end, y) && !(apart && !finder(end, y)))
         end++;
-      const auto it = open.find({x, end - x});
-      if (it != open.end() && rects[it->second].y + rects[it->second].h == y) {
-        rects[it->second].h++;
+      while (a < above.size() && rects[above[a]].x < x)
+        a++;
+      if (a < above.size() && rects[above[a]].x == x && rects[above[a]].w == end - x) {
+        rects[above[a]].h++;
+        here.push_back(above[a]);
       } else {
-        open[{x, end - x}] = rects.size();
+        here.push_back(rects.size());
         rects.push_back({x, y, end - x, 1});
       }
       x = end;
     }
+    above.swap(here);
   }
   if (apart)   // the other modules apart: one each, a pixel less -- a gap between
     for (int y = 0; y < n; y++)
