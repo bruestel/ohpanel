@@ -7,8 +7,11 @@
 
 #include <cJSON.h>
 #include <esp_crt_bundle.h>
+#include <esp_heap_caps.h>
 #include <esp_http_client.h>
 #include <esp_log.h>
+
+#include <algorithm>
 
 namespace appoh {
 namespace {
@@ -19,6 +22,25 @@ constexpr int kTimeoutMs = 5000;
 
 /* The root document is a few kilobytes; anything far beyond is not openHAB. */
 constexpr size_t kMaxProbeBody = 16 * 1024;
+
+/* Room in `body` for `more` bytes, at most `limit` in all: what the response announced (Content-Length) at once,
+   else doubling. False when no free block is that large: a std::string that cannot grow aborts the firmware (no
+   exceptions), as a 300 KB cover did once the PSRAM had no 512 KB in one piece. */
+bool make_room(std::string &body, size_t more, size_t limit, int64_t announced) {
+  const size_t need = body.size() + more;
+  if (need <= body.capacity())
+    return true;
+  size_t want = std::max(need, body.capacity() * 2);
+  if (announced > 0 && static_cast<size_t>(announced) >= need)
+    want = static_cast<size_t>(announced);
+  want = std::min(want, limit);
+  if (heap_caps_get_largest_free_block(MALLOC_CAP_8BIT) < want + 64) {
+    ESP_LOGW(TAG, "No %u bytes in one piece for a response", static_cast<unsigned>(want));
+    return false;
+  }
+  body.reserve(want);
+  return true;
+}
 
 }  // namespace
 
@@ -61,13 +83,18 @@ Response http_get(const appcfg::OpenHab &cfg, const std::string &path, size_t li
 
   r.err = esp_http_client_open(client, 0);
   if (r.err == ESP_OK) {
-    esp_http_client_fetch_headers(client);
+    const int64_t announced = esp_http_client_fetch_headers(client);
     r.status = esp_http_client_get_status_code(client);
     char buf[1024];
     int n;
     while ((n = esp_http_client_read(client, buf, sizeof(buf))) > 0) {
       if (r.body.size() + n > limit) {
         r.err = ESP_ERR_INVALID_SIZE;
+        break;
+      }
+      if (!make_room(r.body, n, limit, announced)) {
+        r.err = ESP_ERR_NO_MEM;
+        r.body.clear();   // not a part of it to parse
         break;
       }
       r.body.append(buf, n);
@@ -117,11 +144,16 @@ bool fetch(const std::string &url, size_t limit, std::string &body, std::string 
       esp_http_client_fetch_headers(client);
       status = esp_http_client_get_status_code(client);
     }
+    const int64_t announced = esp_http_client_get_content_length(client);
     char buf[1024];
     int n;
     while (err == ESP_OK && status == 200 && (n = esp_http_client_read(client, buf, sizeof(buf))) > 0) {
       if (body.size() + n > limit) {
         err = ESP_ERR_INVALID_SIZE;
+        break;
+      }
+      if (!make_room(body, n, limit, announced)) {
+        err = ESP_ERR_NO_MEM;
         break;
       }
       body.append(buf, n);
@@ -133,6 +165,7 @@ bool fetch(const std::string &url, size_t limit, std::string &body, std::string 
     return true;
   if (error)
     *error = err == ESP_ERR_INVALID_SIZE ? "larger than " + std::to_string(limit / 1024) + " KB"
+             : err == ESP_ERR_NO_MEM    ? "no memory for it in one piece"
              : err != ESP_OK            ? std::string(esp_err_to_name(err))
                                         : "HTTP " + std::to_string(status);
   body.clear();
