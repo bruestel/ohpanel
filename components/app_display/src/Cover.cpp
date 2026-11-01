@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstring>
 
 namespace appdisplay {
 
@@ -163,14 +164,56 @@ bool cover_source(const std::string &text) {
          (text.size() > 1 && text[0] == '/' && text[1] != '/') || text.rfind("data:image/", 0) == 0;
 }
 
-bool data_uri_bytes(const std::string &uri, std::string &out) {
+void Chunks::append(const char *data, size_t n) {
+  while (n > 0) {
+    if (parts.empty() || parts.back().size() == kPart) {
+      parts.emplace_back();
+      parts.back().reserve(kPart);
+    }
+    const size_t take = std::min(n, kPart - parts.back().size());
+    parts.back().append(data, take);
+    data += take;
+    n -= take;
+    size += take;
+  }
+}
+
+size_t Chunks::read(size_t at, uint8_t *out, size_t n) const {
+  size_t done = 0;
+  while (done < n && at < size) {
+    const std::string &part = parts[at / kPart];
+    const size_t off = at % kPart, take = std::min(n - done, part.size() - off);
+    std::memcpy(out + done, part.data() + off, take);
+    done += take;
+    at += take;
+  }
+  return done;
+}
+
+std::string not_jpeg(const uint8_t *head, size_t n) {
+  const auto starts = [&](const char *magic, size_t len) { return n >= len && std::memcmp(head, magic, len) == 0; };
+  if (starts("\xff\xd8\xff", 3))
+    return "";
+  if (starts("\x89PNG", 4))
+    return "a PNG";
+  if (starts("GIF8", 4))
+    return "a GIF";
+  if (starts("RIFF", 4) && n >= 12 && std::memcmp(head + 8, "WEBP", 4) == 0)
+    return "a WebP";
+  if (starts("<", 1))
+    return "a web page";
+  return "not a picture it knows";
+}
+
+bool data_uri_bytes(const std::string &uri, Chunks &out) {
   if (uri.rfind("data:", 0) != 0)
     return false;
   const size_t comma = uri.find(',');
   if (comma == std::string::npos || comma < 7 || uri.compare(comma - 7, 7, ";base64") != 0)
     return false;
-  out.clear();
-  out.reserve((uri.size() - comma) * 3 / 4);
+  out = Chunks{};
+  char run[256];   // decoded bytes handed on in runs
+  size_t in_run = 0;
   uint32_t acc = 0;
   int bits = 0;
   for (size_t i = comma + 1; i < uri.size(); i++) {
@@ -188,10 +231,15 @@ bool data_uri_bytes(const std::string &uri, std::string &out) {
     bits += 6;
     if (bits >= 8) {
       bits -= 8;
-      out.push_back(static_cast<char>(acc >> bits & 0xFF));
+      run[in_run++] = static_cast<char>(acc >> bits & 0xFF);
+      if (in_run == sizeof(run)) {
+        out.append(run, in_run);
+        in_run = 0;
+      }
     }
   }
-  return !out.empty();
+  out.append(run, in_run);
+  return out.size > 0;
 }
 
 }  // namespace appdisplay

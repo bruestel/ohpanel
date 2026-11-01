@@ -197,11 +197,12 @@ std::string health_json() {
   o += buf;
 
   snprintf(buf, sizeof(buf),
-           "\"uptime_s\":%lld,\"heap\":%u,\"heap_min\":%u,\"heap_largest\":%u,",
+           "\"uptime_s\":%lld,\"heap\":%u,\"heap_min\":%u,\"heap_largest\":%u,\"psram_largest\":%u,",
            static_cast<long long>(esp_timer_get_time() / 1000000),
            static_cast<unsigned>(heap_caps_get_free_size(MALLOC_CAP_INTERNAL)),
            static_cast<unsigned>(heap_caps_get_minimum_free_size(MALLOC_CAP_INTERNAL)),
-           static_cast<unsigned>(heap_caps_get_largest_free_block(MALLOC_CAP_INTERNAL)));
+           static_cast<unsigned>(heap_caps_get_largest_free_block(MALLOC_CAP_INTERNAL)),
+           static_cast<unsigned>(heap_caps_get_largest_free_block(MALLOC_CAP_SPIRAM)));
   o += buf;
 
   o += "\"crash\":" + summary_json() + ",";

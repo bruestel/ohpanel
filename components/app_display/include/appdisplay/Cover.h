@@ -37,7 +37,21 @@ Cover cover_rects(const uint8_t *rgb, int size, int scale, int radius, Reveal re
    server ("/...") or the picture itself ("data:image/...;base64,..."). */
 bool cover_source(const std::string &text);
 
+/* Bytes kept in parts of 16 KB: a picture of some hundred KB without a block that large in one piece (the PSRAM,
+   2 MB, may have none although enough is free). */
+struct Chunks {
+  static constexpr size_t kPart = 16 * 1024;
+  std::vector<std::string> parts;   // each full but the last
+  size_t size = 0;
+  void append(const char *data, size_t n);
+  /* Up to n bytes from `at` into `out`; how many there were. */
+  size_t read(size_t at, uint8_t *out, size_t n) const;
+};
+
 /* The bytes of a "data:...;base64,..." address; false for anything else. */
-bool data_uri_bytes(const std::string &uri, std::string &out);
+bool data_uri_bytes(const std::string &uri, Chunks &out);
+
+/* What a picture is, from its first bytes: "" a JPEG, else a word for what it is ("a PNG", "a GIF", ...). */
+std::string not_jpeg(const uint8_t *head, size_t n);
 
 }  // namespace appdisplay

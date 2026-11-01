@@ -434,6 +434,8 @@ esp_err_t get_info(httpd_req_t *req) {
      so this is the first place to look if it does not. */
   cJSON_AddNumberToObject(root, "psram", heap_caps_get_total_size(MALLOC_CAP_SPIRAM));
   cJSON_AddNumberToObject(root, "psram_free", heap_caps_get_free_size(MALLOC_CAP_SPIRAM));
+  // the largest piece: a response or a picture that must be in one may not fit although enough is free
+  cJSON_AddNumberToObject(root, "psram_largest", heap_caps_get_largest_free_block(MALLOC_CAP_SPIRAM));
   cJSON_AddStringToObject(root, "version", esp_app_get_description()->version);
   // the relays as they are switched (the web preview's buttons on home)
   cJSON *relays = cJSON_AddArrayToObject(root, "relays");

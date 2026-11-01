@@ -483,10 +483,11 @@ extern "C" void app_main() {
         last_oh = line;
       }
       if (full)
-        ESP_LOGI(TAG, "health: heap %u (min %u), psram free %u, boot: %s",
+        ESP_LOGI(TAG, "health: heap %u (min %u), psram free %u (largest block %u), boot: %s",
                  static_cast<unsigned>(heap_caps_get_free_size(MALLOC_CAP_INTERNAL)),
                  static_cast<unsigned>(heap_caps_get_minimum_free_size(MALLOC_CAP_INTERNAL)),
-                 static_cast<unsigned>(heap_caps_get_free_size(MALLOC_CAP_SPIRAM)), diagnostics::boot_reason());
+                 static_cast<unsigned>(heap_caps_get_free_size(MALLOC_CAP_SPIRAM)),
+                 static_cast<unsigned>(heap_caps_get_largest_free_block(MALLOC_CAP_SPIRAM)), diagnostics::boot_reason());
       diagnostics::check_stacks();
     }
 

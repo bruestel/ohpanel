@@ -12,6 +12,7 @@
 #include <esp_log.h>
 
 #include <algorithm>
+#include <functional>
 
 namespace appoh {
 namespace {
@@ -105,7 +106,12 @@ Response http_get(const appcfg::OpenHab &cfg, const std::string &path, size_t li
   return r;
 }
 
-bool fetch(const std::string &url, size_t limit, std::string &body, std::string *error) {
+namespace {
+
+/* fetch's work: what comes handed to `part` (the announced size with it, -1 unknown) as it comes; ESP_OK from it
+   goes on, anything else stops with that error. */
+bool fetch_parts(const std::string &url, size_t limit,
+                 const std::function<esp_err_t(const char *, size_t, int64_t)> &part, std::string *error) {
   const appcfg::OpenHab cfg = appcfg::openhab();
   const bool own = url.rfind("/", 0) == 0 || (cfg.configured() && url.rfind(cfg.url + "/", 0) == 0);
   const std::string full = url.rfind("/", 0) == 0 ? cfg.url + url : url;
@@ -129,7 +135,6 @@ bool fetch(const std::string &url, size_t limit, std::string &body, std::string 
   const std::string auth = "Bearer " + cfg.token;
   if (own && !cfg.token.empty())
     esp_http_client_set_header(client, "Authorization", auth.c_str());
-  body.clear();
   esp_err_t err = esp_http_client_open(client, 0);
   int status = 0;
   if (err == ESP_OK) {
@@ -147,16 +152,14 @@ bool fetch(const std::string &url, size_t limit, std::string &body, std::string 
     const int64_t announced = esp_http_client_get_content_length(client);
     char buf[1024];
     int n;
+    size_t got = 0;
     while (err == ESP_OK && status == 200 && (n = esp_http_client_read(client, buf, sizeof(buf))) > 0) {
-      if (body.size() + n > limit) {
+      if (got + n > limit) {
         err = ESP_ERR_INVALID_SIZE;
         break;
       }
-      if (!make_room(body, n, limit, announced)) {
-        err = ESP_ERR_NO_MEM;
-        break;
-      }
-      body.append(buf, n);
+      err = part(buf, n, announced);
+      got += n;
     }
   }
   esp_http_client_close(client);
@@ -168,8 +171,29 @@ bool fetch(const std::string &url, size_t limit, std::string &body, std::string 
              : err == ESP_ERR_NO_MEM    ? "no memory for it in one piece"
              : err != ESP_OK            ? std::string(esp_err_to_name(err))
                                         : "HTTP " + std::to_string(status);
-  body.clear();
   return false;
+}
+
+}  // namespace
+
+bool fetch(const std::string &url, size_t limit, std::string &body, std::string *error) {
+  body.clear();
+  const bool ok = fetch_parts(url, limit, [&](const char *data, size_t n, int64_t announced) {
+    if (!make_room(body, n, limit, announced))
+      return ESP_ERR_NO_MEM;
+    body.append(data, n);
+    return ESP_OK;
+  }, error);
+  if (!ok)
+    body.clear();
+  return ok;
+}
+
+bool fetch(const std::string &url, size_t limit, const std::function<bool(const char *, size_t)> &part,
+           std::string *error) {
+  return fetch_parts(url, limit, [&](const char *data, size_t n, int64_t) {
+    return part(data, n) ? ESP_OK : ESP_ERR_INVALID_STATE;
+  }, error);
 }
 
 namespace {

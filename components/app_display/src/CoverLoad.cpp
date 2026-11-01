@@ -1,6 +1,7 @@
 /*
    Loading a cover picture on the device (Engine draws it, Cover.h): the
-   picture fetched (or taken from a data: address), decoded by the ESP32's
+   picture fetched (or taken from a data: address) in parts of 16 KB (Chunks: no large block in one piece), anything
+   but a JPEG left at its first bytes, decoded by the ESP32's
    own JPEG decoder in ROM -- scaled down by it already, 1/2 to 1/8 --, cut
    to a square in its middle, averaged down to the size asked for and turned
    into rectangles. In a task of its own: the display task must not wait for
@@ -41,19 +42,19 @@ bool g_waiting = false;
 SemaphoreHandle_t g_wake = nullptr;
 CoverDone g_done;
 
-/* The decoder's input (the bytes in memory) and output (the picture at its scale). */
+/* The decoder's input (the bytes in memory, in parts) and output (the picture at its scale). */
 struct Jpeg {
-  const uint8_t *data;
-  size_t size, at = 0;
+  const Chunks *data;
+  size_t at = 0;
   uint8_t *pixels = nullptr;   // w x h RGB
   int w = 0, h = 0;
 };
 
 UINT jpeg_in(JDEC *d, BYTE *buf, UINT n) {
   Jpeg &j = *static_cast<Jpeg *>(d->device);
-  n = static_cast<UINT>(std::min<size_t>(n, j.size - j.at));
+  n = static_cast<UINT>(std::min<size_t>(n, j.data->size - j.at));
   if (buf)
-    memcpy(buf, j.data + j.at, n);
+    j.data->read(j.at, buf, n);
   j.at += n;
   return n;
 }
@@ -71,16 +72,16 @@ UINT jpeg_out(JDEC *d, void *bitmap, JRECT *r) {
 }
 
 /* The JPEG decoded at the smallest of its scales still at least `size`
-   pixels on its shorter side; false for anything the ROM decoder cannot
-   read (PNG, progressive JPEG). */
-bool decode(const std::string &bytes, int size, Jpeg &j) {
+   pixels on its shorter side; "" when it was, else why not (a progressive
+   JPEG, which the ROM decoder cannot read). */
+std::string decode(const Chunks &bytes, int size, Jpeg &j) {
   void *pool = heap_caps_malloc(kPool, MALLOC_CAP_DEFAULT);
   if (!pool)
-    return false;
+    return "no memory to decode it";
   JDEC dec;
-  j.data = reinterpret_cast<const uint8_t *>(bytes.data());
-  j.size = bytes.size();
-  bool ok = jd_prepare(&dec, jpeg_in, pool, kPool, &j) == JDR_OK;
+  j.data = &bytes;
+  const JRESULT prepared = jd_prepare(&dec, jpeg_in, pool, kPool, &j);
+  bool ok = prepared == JDR_OK;
   if (ok) {
     int scale = 0;
     while (scale < 3 && static_cast<int>(std::min(dec.width, dec.height) >> (scale + 1)) >= size)
@@ -94,7 +95,13 @@ bool decode(const std::string &bytes, int size, Jpeg &j) {
     ok = j.pixels && jd_decomp(&dec, jpeg_out, static_cast<BYTE>(scale)) == JDR_OK;
   }
   heap_caps_free(pool);
-  return ok;
+  if (ok)
+    return "";
+  if (prepared == JDR_FMT3)
+    return "a progressive JPEG, the panel decodes only baseline ones";
+  if (prepared == JDR_OK)
+    return j.pixels ? "a broken JPEG" : "no memory to decode it";
+  return "a JPEG the decoder does not read";
 }
 
 /* The square in the picture's middle, averaged down (or repeated up) to size x size. */
@@ -122,28 +129,41 @@ std::vector<uint8_t> square(const Jpeg &j, int size) {
 }
 
 std::shared_ptr<Cover> load(const Request &r) {
-  std::string bytes, error;
+  Chunks bytes;
+  std::string error, what;
   if (r.source.rfind("data:", 0) == 0) {
     if (!data_uri_bytes(r.source, bytes)) {
       ESP_LOGW(TAG, "not a base64 data address");
       return nullptr;
     }
-  } else if (!appoh::fetch(r.source, kMaxBytes, bytes, &error)) {
-    ESP_LOGW(TAG, "%.80s: %s", r.source.c_str(), error.c_str());
+  } else if (!appoh::fetch(r.source, kMaxBytes, [&](const char *data, size_t n) {
+               // its first bytes say what it is: anything but a JPEG goes no further
+               if (bytes.size == 0 && n >= 4 && !(what = not_jpeg(reinterpret_cast<const uint8_t *>(data), n)).empty())
+                 return false;
+               bytes.append(data, n);
+               return true;
+             }, &error)) {
+    ESP_LOGW(TAG, "%.80s: %s", r.source.c_str(),
+             what.empty() ? error.c_str() : (what + ", the panel decodes only JPEG").c_str());
     return nullptr;
   }
-  const size_t fetched = bytes.size();
+  uint8_t head[12] = {};
+  if (const std::string kind = not_jpeg(head, bytes.read(0, head, sizeof(head))); !kind.empty()) {
+    ESP_LOGW(TAG, "%.80s: %s, the panel decodes only JPEG", r.source.c_str(), kind.c_str());
+    return nullptr;
+  }
   Jpeg j;
-  const bool ok = decode(bytes, r.size, j);
-  std::string().swap(bytes);
+  const std::string why = decode(bytes, r.size, j);
+  const size_t fetched = bytes.size;
+  bytes = Chunks{};
   std::shared_ptr<Cover> cover;
-  if (ok) {
+  if (why.empty()) {
     const std::vector<uint8_t> pixels = square(j, r.size);
     cover = std::make_shared<Cover>(cover_rects(pixels.data(), r.size, r.scale, r.radius, r.reveal));
     ESP_LOGI(TAG, "%dx%d px, %u rectangles, from %u bytes of %.48s", j.w, j.h,
              static_cast<unsigned>(cover->rects.size()), static_cast<unsigned>(fetched), r.source.c_str());
   } else {
-    ESP_LOGW(TAG, "%.80s: not a JPEG the decoder reads", r.source.c_str());
+    ESP_LOGW(TAG, "%.80s: %s", r.source.c_str(), why.c_str());
   }
   heap_caps_free(j.pixels);
   return cover;

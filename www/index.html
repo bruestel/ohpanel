@@ -2005,7 +2005,8 @@ async function refreshInfo() {
   $('sUptime').textContent = fmtUptime(info.uptime_s);
   liveText($('sHeap'), fmtKb(info.heap) + (info.heap_total ? ' of ' + fmtKb(info.heap_total) : '')
     + ' (min ' + fmtKb(info.heap_min) + (info.heap_largest ? ', largest block ' + fmtKb(info.heap_largest) : '') + ')');
-  liveText($('sPsram'), info.psram ? fmtKb(info.psram_free) + ' of ' + fmtKb(info.psram) : 'not found');
+  liveText($('sPsram'), info.psram ? fmtKb(info.psram_free) + ' of ' + fmtKb(info.psram)
+    + (info.psram_largest ? ' (largest block ' + fmtKb(info.psram_largest) + ')' : '') : 'not found');
   sample('heap', info.heap);
   showCpu(info.cpu);
   if (info.psram) sample('psram', info.psram_free);

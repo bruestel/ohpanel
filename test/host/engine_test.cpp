@@ -11,6 +11,7 @@
 #include <algorithm>
 #include <array>
 #include <cstdio>
+#include <cstring>
 #include <fstream>
 #include <map>
 #include <tuple>
@@ -251,9 +252,30 @@ int main(int argc, char **argv) {
     CHECK(sharpen.rects.size() > centre.rects.size() && sharpen.rects.front().w >= 8);
     CHECK(wipe.rects.size() == centre.rects.size() && wipe.rects.front().y == 0 && wipe.rects.back().y > 20);
     CHECK(reveal_of("center") == Reveal::Center && reveal_of("") == Reveal::Dissolve && reveal_of("x") == Reveal::Dissolve);
-    std::string bytes;
-    CHECK(data_uri_bytes("data:image/jpeg;base64,/9j/4A==", bytes) && bytes == std::string("\xff\xd8\xff\xe0"));
+    Chunks bytes;
+    uint8_t got[8] = {};
+    CHECK(data_uri_bytes("data:image/jpeg;base64,/9j/4A==", bytes) && bytes.size == 4 && bytes.read(0, got, 8) == 4 &&
+          std::memcmp(got, "\xff\xd8\xff\xe0", 4) == 0);
     CHECK(!data_uri_bytes("https://x/y.jpg", bytes));
+    // in parts of 16 KB: read back across them, the same bytes
+    {
+      Chunks c;
+      std::string all;
+      for (int i = 0; i < 40000; i++)
+        all.push_back(static_cast<char>(i * 7 % 251));
+      for (size_t at = 0; at < all.size(); at += 1000)
+        c.append(all.data() + at, std::min<size_t>(1000, all.size() - at));
+      CHECK(c.size == all.size() && c.parts.size() == 3 && c.parts[0].size() == Chunks::kPart);
+      std::string back(all.size(), '\0');
+      size_t at = 0;
+      while (at < all.size())
+        at += c.read(at, reinterpret_cast<uint8_t *>(back.data()) + at, 999);
+      CHECK(back == all && c.read(all.size(), got, 8) == 0);
+    }
+    // what a picture is, from its first bytes
+    const auto kind = [](const char *head, size_t n) { return not_jpeg(reinterpret_cast<const uint8_t *>(head), n); };
+    CHECK(kind("\xff\xd8\xff\xe0", 4).empty() && kind("\x89PNG\r\n", 6) == "a PNG" && kind("GIF89a", 6) == "a GIF");
+    CHECK(kind("RIFF\0\0\0\0WEBPVP8 ", 16) == "a WebP" && kind("<html>", 6) == "a web page" && !kind("xyz", 3).empty());
     CHECK(cover_source("https://i.scdn.co/image/ab67") && cover_source("/rest/items/A/state") &&
           cover_source("data:image/png;base64,AAAA") && !cover_source("") && !cover_source("UNDEF") &&
           !cover_source("//x"));

@@ -171,6 +171,10 @@ bool metadata(const std::string &item, std::map<std::string, Metadata> &out, boo
    the configured token. Blocking; false (and why in `error`) when it did
    not come, or came larger than `limit` bytes. */
 bool fetch(const std::string &url, size_t limit, std::string &body, std::string *error = nullptr);
+/* The same handed to `part` as it comes, 1 KB at a time: nothing in one piece (a cover, kept in parts); false
+   from `part` stops it (false returned, `error` then says only that). */
+bool fetch(const std::string &url, size_t limit, const std::function<bool(const char *, size_t)> &part,
+           std::string *error = nullptr);
 
 /* openHAB over https on a host, looked for on `port` (when it is not one of
    plain http's), 443 and 8443, whatever protocol the settings use: where it
