@@ -178,12 +178,21 @@ int post(const appcfg::OpenHab &cfg, const std::string &path, const char *conten
          esp_http_client_method_t method = HTTP_METHOD_POST) {
   const std::string url = cfg.url + path;
   esp_err_t err = ESP_FAIL;
+  bool kept = false;       // the attempt ran on the kept handle: over https with the session saved on it
+  bool fallback = false;   // that failed to connect, the next attempt does a full handshake
   for (int attempt = 0; attempt < 2 && err != ESP_OK; attempt++) {
-    // a kept connection may have been closed by the server: once more on a new one
-    if (g_keep && !same_settings(cfg, g_keep_cfg))
+    /* A kept connection may have been closed by the server: once more on a new one. A connection that could
+       not be made at all may be the saved session the server does not take (one failed every resumed
+       handshake, and every command with it): then once more with a full handshake, the session made anew. */
+    if (g_keep && err == ESP_ERR_HTTP_CONNECT && kept && cfg.url.rfind("https:", 0) == 0) {
+      ESP_LOGW(TAG, "%s: no connection on the saved TLS session, once more with a full handshake", path.c_str());
+      fallback = true;
+    }
+    if (g_keep && (!same_settings(cfg, g_keep_cfg) || err == ESP_ERR_HTTP_CONNECT))
       drop_keep();
     else if (attempt > 0 || esp_timer_get_time() - g_keep_used_at > kKeepIdleUs)
       close_keep();
+    kept = g_keep != nullptr;
     if (!g_keep) {
       g_keep_cfg = cfg;
       g_keep = make_client(g_keep_cfg, url, kRequestTimeoutMs, true);
@@ -201,10 +210,16 @@ int post(const appcfg::OpenHab &cfg, const std::string &path, const char *conten
     g_keep_used_at = esp_timer_get_time();
   }
   const int status = err == ESP_OK ? esp_http_client_get_status_code(g_keep) : 0;
+  if (fallback && err == ESP_OK)
+    ESP_LOGW(TAG, "%s: the full handshake went through, so openHAB (or a proxy before it) did not take the resumed "
+                  "TLS session", path.c_str());
   if (err != ESP_OK) {
     ESP_LOGW(TAG, "%s %s failed: %s", method == HTTP_METHOD_PUT ? "PUT" : "POST", path.c_str(),
              esp_err_to_name(err));
-    close_keep();
+    if (err == ESP_ERR_HTTP_CONNECT)
+      drop_keep();   // the next command without the session that failed
+    else
+      close_keep();
   }
   return status;
 }
