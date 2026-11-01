@@ -343,6 +343,7 @@ void Engine::set_config(const std::string &json) {
     open_item_ = open_item;
     open_known_ = false;
   }
+  page_item_ = str(member(member(config_, "display"), "current_page"), "item");
   update_theme();
   if (status_.openhab)
     prefetch_at_ = now_ms_ + kPrefetchDelayMs;   // a catalogue the new configuration names
@@ -965,6 +966,22 @@ void Engine::show_physical(const std::string &wanted) {
   }
   send("page " + std::to_string(it->second.id));
   note_drawn_ = false;
+  report_page(name);
+}
+
+/* display.current_page: the page now on screen to openHAB, as a command (a rule's "received command" sees each
+   opening), only when it is another one than last time: drawn again (a configuration saved) it is not sent. The
+   screen off (the black page) sends nothing; woken, the page is sent again. The boot and setup pages are none. */
+void Engine::report_page(const std::string &shown) {
+  if (shown == "blank") {
+    page_sent_.clear();
+    return;
+  }
+  if (!started_ || shown == "boot" || current_ == page_sent_)
+    return;
+  page_sent_ = current_;
+  if (!page_item_.empty() && cb_.command && status_.openhab)
+    cb_.command(page_item_, current_);
 }
 
 void Engine::open(const std::string &id, bool remember, bool last_sheet) {

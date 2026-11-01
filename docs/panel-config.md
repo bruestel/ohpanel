@@ -95,6 +95,7 @@ with a `format` it shows the whole text instead.
 | `screen` | object | the screen's brightness, see below |
 | `notifications` | `{"item"}` | a String item whose new states show as notifications, see below |
 | `open_page` | `{"item"}` | a String item: a page id set on it opens that page, see below |
+| `current_page` | `{"item"}` | a String item the id of each page that opens is sent to, see below |
 | `background` | background id | the picture behind every page: `aurora` (default), `candy`, `dunes`, `forest`, `black`: the backgrounds of the display design, listed in `boards/nspanel/nextion/display-manifest-<variant>.json` |
 | `theme` | `{"accent", "text", "dim"}`, each a colour (see above) | the colours the panel draws with; each one left out is the background's own (Aurora: a light blue accent, white text, light grey dim). `accent` marks what is active or chosen: lit buttons and icons, sliders, the chosen pill, the thermostat's ring, the QR code; `text` is the texts' colour; `dim` the quieter ones: the date, small labels, inactive icons. The web interface's *Display* card picks them, and resets one to the background's |
 | `texts` | object | overrides single texts of the language: `on`, `off`, `undefined` (shown for NULL/UNDEF states), the name lists `weekdays`, `weekdays_short` (7, starting with Sunday), `months`, `months_short` (12), and the settings page's `settings_title`, `settings` (its 3 slider labels), `never`, `restart`, `restart_confirm` |
@@ -142,6 +143,24 @@ for while the panel was away: it is set to NULL and opens nothing.
 ```
 // an openHAB rule (DSL): the alarm's keypad when the door opens while it is armed
 Panel_Page.sendCommand("alarm")
+```
+
+`display.current_page.item` names a String item; the id of each page that
+opens (a configured page, `home`, `info` or `settings`) is sent to it as a
+command: by a touch, a swipe, `open_page` or going back to the start page
+after `home_after`. A rule triggered by *received command* sees
+every opening; the same page drawn again (a configuration saved) is not sent.
+While the screen is off (the black page) nothing is sent; woken, the page it
+shows is sent again. The boot and setup pages are not sent.
+
+```
+// an openHAB rule (DSL): the amplifier on when the media page "speaker" opens
+rule "Amplifier on with the panel's media page"
+when
+    Item Panel_CurrentPage received command
+then
+    if (receivedCommand.toString == "speaker") Amplifier_Power.sendCommand(ON)
+end
 ```
 
 The formats use these placeholders: `%a`/`%A` weekday short/long, `%b`/`%B`

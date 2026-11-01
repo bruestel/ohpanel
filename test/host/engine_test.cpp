@@ -1990,6 +1990,50 @@ int main(int argc, char **argv) {
     CHECK(e.current() == "home" && updates.size() == 4);
     e.on_message(loaded("home"));
 
+    // display.current_page: each page that opens sent to the item as a command; drawn again or off, nothing
+    {
+      cJSON *doc = cJSON_Parse(with_screen(R"({"idle_brightness": 0, "idle_after": 30})").c_str());
+      cJSON *d = cJSON_GetObjectItem(doc, "display");
+      cJSON_AddItemToObject(d, "open_page", cJSON_Parse(R"({"item": "Panel_Page"})"));
+      cJSON_AddItemToObject(d, "current_page", cJSON_Parse(R"({"item": "Panel_Shown"})"));
+      char *json = cJSON_PrintUnformatted(doc);
+      const std::string config = json;
+      cJSON_free(json);
+      cJSON_Delete(doc);
+      const auto shown = [&] {
+        std::vector<std::string> v;
+        for (const auto &c : commands)
+          if (c.first == "Panel_Shown")
+            v.push_back(c.second);
+        return v;
+      };
+      PanelStatus up = st;
+      up.openhab = true;                               // commands only go out with openHAB there
+      e.set_status(up);
+      commands.clear();
+      e.set_config(config);
+      e.idle(t += 100);
+      CHECK(shown().empty());                          // home drawn again for the configuration: not sent
+      set_state("Panel_Page", "plants-covers", "String");
+      e.on_state("Panel_Page");
+      CHECK((shown() == std::vector<std::string>{"plants-covers"}));
+      e.on_message(loaded("buttons"));
+      e.on_message(event("buttons", "close", "release"));
+      e.on_message(loaded("home"));
+      CHECK((shown() == std::vector<std::string>{"plants-covers", "home"}));
+      e.set_config(config);                            // saved again: the same page, not sent
+      e.idle(t += 100);
+      CHECK(shown().size() == 2);
+      e.idle(t += 30000);                              // off: nothing
+      CHECK(e.asleep() && shown().size() == 2);
+      e.on_message(loaded("blank"));
+      e.on_message(event("blank", "wake", "release"));
+      e.idle(t += 100);
+      CHECK(!e.asleep() && (shown() == std::vector<std::string>{"plants-covers", "home", "home"}));   // woken: again
+      e.on_message(loaded("home"));
+      e.set_status(st);
+    }
+
     e.set_config(read("test/host/data/office.json"));
     e.on_message(event("home", "swipe", "none"));
     e.idle(t += 100);

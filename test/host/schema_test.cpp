@@ -242,6 +242,10 @@ int main() {
   expect_valid("open page", doc("\"display\":{\"open_page\":{\"item\":\"Panel_Page\"}}"));
   expect_issue("open page without item", doc("\"display\":{\"open_page\":{}}"), "display.open_page.item");
   expect_issue("open page bad item", doc("\"display\":{\"open_page\":{\"item\":\"a b\"}}"), "display.open_page.item");
+  expect_valid("current page", doc("\"display\":{\"current_page\":{\"item\":\"Panel_Shown\"}}"));
+  expect_issue("current page without item", doc("\"display\":{\"current_page\":{}}"), "display.current_page.item");
+  expect_issue("current page unknown member", doc("\"display\":{\"current_page\":{\"item\":\"X\",\"y\":1}}"),
+               "display.current_page.y");
   expect_valid("format pattern", doc("\"home\":{\"values\":[{\"item\":\"P\",\"format\":\"%,.2f kW (%%)\",\"factor\":0.001},"
                                      "{\"item\":\"T\",\"format\":\"%d %unit%\"}]}"));
   expect_issue("format unknown placeholder", doc("\"home\":{\"values\":[{\"item\":\"P\",\"format\":\"%x W\"}]}"),

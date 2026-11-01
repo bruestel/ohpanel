@@ -369,6 +369,11 @@ class Engine {
   std::string open_item_;
   bool open_known_ = false;  // the item's state was seen once
   void open_state();
+  /* display.current_page.item: the id of each page that opens is sent to it as a command (a rule turns on an
+     amplifier with the media page); the same page again only after the screen was off. */
+  std::string page_item_;
+  std::string page_sent_;   // the page last sent; empty while the screen is off
+  void report_page(const std::string &shown);
   bool stays(const cJSON *page) const;
   /* Drawing on the screen, as the firmware draws its own shapes (lost when the page is drawn again). `over_note`:
      sent while a notification card is up too (the card's own drawing). */
