@@ -7,7 +7,9 @@ have to go with every copy of them (the fonts' licences ask for that; see THIRD-
     pio run $(python3 tools/variant.py)       # the firmware images, a set per variant
     boards/nspanel/nextion/build.sh <variant> # the display design (Nextion Editor under wine), kept in
                                               # boards/nspanel/nextion/display/ -- committed: CI cannot build it
-    tools/make_release.py                     # dist/ohpanel-<board>-<version>.zip, one per variant
+    tools/make_release.py                     # dist/ohpanel-<board>-<version>.zip, one per variant, and
+                                              # dist/elf-ohpanel-<version>.zip: the firmware's .elf of each,
+                                              # to decode a core dump (docs/crash-analysis.md)
 
 A tag v<version> does all but the display design on GitHub (.github/workflows/release.yml) and publishes the release.
 
@@ -17,6 +19,7 @@ firmware expects (display-manifest-<variant>.json). Refused when a part is missi
 """
 
 import glob
+import hashlib
 import json
 import pathlib
 import sys
@@ -106,6 +109,31 @@ def main():
                 z.write(path, f"{top}/licences/{lic}")
             z.writestr(f"{top}/README.txt", readme)
         print(f"release: {out.relative_to(ROOT)} ({out.stat().st_size // 1024} KB)")
+    elfs(sets, version)
+
+
+def elfs(sets, version):
+    """dist/elf-ohpanel-<version>.zip: the firmware.elf of each variant, named after the start of its SHA-256 as a core
+    dump names it (crash.elf_sha256, tools/archive_elf.py). Not named ohpanel-*.zip: the Pages site takes those apart
+    (tools/pages_updates.py), and needs none of this."""
+    out = ROOT / "dist" / f"elf-ohpanel-{version}.zip"
+    top = f"elf-ohpanel-{version}"
+    with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED) as z:
+        for name in sets:
+            elf = variant.build_dir(name) / "firmware.elf"
+            if not elf.exists():
+                sys.exit(f"make_release: {elf.relative_to(ROOT)} is missing")
+            sha = hashlib.sha256(elf.read_bytes()).hexdigest()[:9]
+            z.write(elf, f"{top}/ohpanel-{variant.board(name)}-{version}-{sha}.elf")
+        for path in (ROOT / "LICENSE", ROOT / "THIRD-PARTY-NOTICES.md"):
+            z.write(path, f"{top}/{path.name}")
+        for path, lic in LICENCES:
+            z.write(path, f"{top}/licences/{lic}")
+        z.writestr(f"{top}/README.txt",
+                   f"OHpanel {version}: the firmware's .elf of each panel variant, to decode a core dump "
+                   "(docs/crash-analysis.md).\nThe name ends in the start of the ELF's SHA-256, as the web "
+                   "interface's crash line names it (crash.elf_sha256).\n")
+    print(f"release: {out.relative_to(ROOT)} ({out.stat().st_size // 1024} KB)")
 
 
 if __name__ == "__main__":

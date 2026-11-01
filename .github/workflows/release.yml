@@ -38,7 +38,7 @@ jobs:
       - name: Host tests
         run: test/host/run.sh
       - name: Release zips
-        run: python3 tools/make_release.py   # dist/ohpanel-<board>-<version>.zip, one per panel variant
+        run: python3 tools/make_release.py   # dist/ohpanel-<board>-<version>.zip, one per panel variant; the .elf files
       - name: Publish
         env:
           GH_TOKEN: ${{ github.token }}
@@ -47,7 +47,8 @@ jobs:
           notes="docs/releases/$version.md"
           if [ -f "$notes" ]; then set -- --notes-file "$notes"; else set -- --generate-notes; fi
           case "$version" in *-*) set -- "$@" --prerelease ;; esac   # v0.9.1-rc1: a test build, not the latest
-          gh release create "$GITHUB_REF_NAME" dist/ohpanel-*-"$version".zip --title "OHpanel $version" "$@"
+          gh release create "$GITHUB_REF_NAME" dist/ohpanel-*-"$version".zip dist/elf-ohpanel-"$version".zip \
+            --title "OHpanel $version" "$@"
       - name: Pages   # the latest release and the latest test build (tools/pages_updates.py)
         env:
           GH_TOKEN: ${{ github.token }}

@@ -35,6 +35,10 @@ dump records, so `crash.elf_sha256` points at exactly one file. Keep the files
 of every build you put on a panel. `build/` is not under version control, so
 they are lost with the checkout.
 
+A release's firmware is built on GitHub: its `.elf` files are in the release's
+`elf-ohpanel-<version>.zip` (from 0.15.1 on), one per panel variant, named
+`ohpanel-<board>-<version>-<elf sha256>.elf`.
+
 ## Decoding
 
 The backtrace alone, from the line above:
