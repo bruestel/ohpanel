@@ -132,6 +132,7 @@ std::shared_ptr<Cover> load(const Request &r) {
     ESP_LOGW(TAG, "%.80s: %s", r.source.c_str(), error.c_str());
     return nullptr;
   }
+  const size_t fetched = bytes.size();
   Jpeg j;
   const bool ok = decode(bytes, r.size, j);
   std::string().swap(bytes);
@@ -139,7 +140,8 @@ std::shared_ptr<Cover> load(const Request &r) {
   if (ok) {
     const std::vector<uint8_t> pixels = square(j, r.size);
     cover = std::make_shared<Cover>(cover_rects(pixels.data(), r.size, r.scale, r.radius, r.reveal));
-    ESP_LOGI(TAG, "%dx%d px, %u rectangles", j.w, j.h, static_cast<unsigned>(cover->rects.size()));
+    ESP_LOGI(TAG, "%dx%d px, %u rectangles, from %u bytes of %.48s", j.w, j.h,
+             static_cast<unsigned>(cover->rects.size()), static_cast<unsigned>(fetched), r.source.c_str());
   } else {
     ESP_LOGW(TAG, "%.80s: not a JPEG the decoder reads", r.source.c_str());
   }

@@ -2,8 +2,6 @@
 
 #include <algorithm>
 #include <cmath>
-#include <map>
-#include <tuple>
 
 namespace appdisplay {
 
@@ -56,25 +54,31 @@ std::vector<Cover::Rect> rects_of(const uint8_t *rgb, int size, int scale, int r
     int x, y, w, h;
     uint16_t colour;
   };
+  /* The runs of the row above and of this one, by x: two vectors, not a map: a map's nodes are 32 bytes, kept
+     in internal RAM (only larger blocks go to PSRAM), and an 80 px cover's thousands of them took ~80 KB of it. */
   std::vector<Run> runs;
-  std::map<std::tuple<int, int, uint16_t>, size_t> open;   // (x, w, colour) -> the run ending in the row above
+  std::vector<size_t> above, here;
   for (int y = 0; y < size; y++) {
     const uint8_t *row = rgb + static_cast<size_t>(y) * size * 3;
+    size_t a = 0;
+    here.clear();
     for (int x = 0; x < size;) {
       const uint16_t c = quantize(row + x * 3);
       int end = x + 1;
       while (end < size && quantize(row + end * 3) == c)
         end++;
-      const auto key = std::make_tuple(x, end - x, c);
-      const auto it = open.find(key);
-      if (it != open.end() && runs[it->second].y + runs[it->second].h == y) {
-        runs[it->second].h++;
+      while (a < above.size() && runs[above[a]].x < x)
+        a++;
+      if (a < above.size() && runs[above[a]].x == x && runs[above[a]].w == end - x && runs[above[a]].colour == c) {
+        runs[above[a]].h++;
+        here.push_back(above[a]);
       } else {
-        open[key] = runs.size();
+        here.push_back(runs.size());
         runs.push_back({x, y, end - x, 1, c});
       }
       x = end;
     }
+    above.swap(here);
   }
 
   // the corners: how far a display row near the top or bottom starts inside (a quarter circle)
