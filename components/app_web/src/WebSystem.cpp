@@ -13,10 +13,12 @@ esp_err_t get_log(httpd_req_t *req) {
   if (!check_auth(req))
     return deny(req);
   uint32_t next = 0;
+  bool more = false;
   const uint32_t since = strtoul(query_param(req, "since").c_str(), nullptr, 10);
-  const std::string text = g_diag.read_log ? g_diag.read_log(since, &next) : "";
+  const std::string text = g_diag.read_log ? g_diag.read_log(since, &next, &more) : "";
   cJSON *r = cJSON_CreateObject();
   cJSON_AddNumberToObject(r, "next", next);
+  cJSON_AddBoolToObject(r, "more", more);
   cJSON_AddStringToObject(r, "text", text.c_str());
   return send_json(req, r);
 }

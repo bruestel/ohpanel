@@ -52,8 +52,8 @@ struct DiagnosticsApi {
   std::function<size_t()> coredump_size;
   std::function<bool(size_t offset, void *buf, size_t len)> read_coredump;
   std::function<bool()> erase_coredump;
-  /* The log since a position (a running byte count); *next: where to go on. */
-  std::function<std::string(uint32_t since, uint32_t *next)> read_log;
+  /* The log since a position (a running byte count), a part of it; *next: where to go on, *more: there is more. */
+  std::function<std::string(uint32_t since, uint32_t *next, bool *more)> read_log;
   /* Adds what only the application knows to GET /info (temperature sensor,
      display), as members of the root object. */
   std::function<void(cJSON *info)> info_extra;

@@ -14,9 +14,10 @@ namespace logbuf {
 void begin();
 
 /* The text logged since position `since` (a running count of bytes), as far
-   as the buffer still holds it; *next is the position to ask from next time.
-   Lines older than the buffer are gone (the text then starts at the oldest
-   whole line). */
-std::string read(uint32_t since, uint32_t *next);
+   as the buffer still holds it, at most 16 KB of it; *next is the position to
+   ask from next time, *more says there is more to fetch from there. Lines
+   older than the buffer are gone (the text then starts at the oldest whole
+   line); 0 asks for all it holds. */
+std::string read(uint32_t since, uint32_t *next, bool *more);
 
 }  // namespace logbuf

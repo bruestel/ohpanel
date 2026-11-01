@@ -9130,7 +9130,8 @@ $('hRefresh').addEventListener('click', loadHealth);
 
 /* ---- log ----
    Followed while the diagnostics page shows: every two seconds what came
-   since the last look (/api/v1/log?since=). W and E lines in colour. */
+   since the last look (/api/v1/log?since=), on the first all the panel holds,
+   16 KB a request while it says there is more. W and E lines in colour. */
 const LOG = {next: 0, text: '', paused: false, timer: 0};
 
 function showLog() {
@@ -9146,11 +9147,15 @@ async function followLog() {
   if (document.querySelector('[data-page="diagnostics"]').hidden) return;
   if (!LOG.paused) {
     try {
-      const r = await api('/log?since=' + LOG.next);
-      if (r.next < LOG.next) LOG.text = '';   // the panel restarted
-      LOG.next = r.next;
-      if (r.text) {
-        LOG.text = (LOG.text + r.text).slice(-200000);
+      let text = '', r;
+      do {
+        r = await api('/log?since=' + LOG.next);
+        if (r.next < LOG.next) LOG.text = text = '';   // the panel restarted
+        LOG.next = r.next;
+        text += r.text;
+      } while (r.more);
+      if (text) {
+        LOG.text = (LOG.text + text).slice(-300000);   // the panel holds 256 KB
         showLog();
       }
     } catch (e) { /* restarting: try again */ }

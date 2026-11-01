@@ -382,6 +382,8 @@ extern "C" void app_main() {
     ESP_LOGW(TAG, "Restarted by the network watch (%u in a row)", static_cast<unsigned>(netwatch::restarts()));
 
   int64_t next_stats = 0;
+  int64_t next_stats_full = 0;
+  std::string last_net, last_oh;   // the status lines last logged
   int64_t next_status = 0;
   int64_t next_dns = 0;
   bool display_started = false;
@@ -457,19 +459,34 @@ extern "C" void app_main() {
       esp_ota_mark_app_invalid_rollback_and_reboot();
     }
 
+    /* Checked every minute; the network and openHAB lines are logged when they change, all three every 15 minutes:
+       the same lines every minute filled the web interface's log, an hour of it. */
     if (now > next_stats) {
       next_stats = now + 60000000;
-      ESP_LOGI(TAG, "net: %s%s%s", appnet::to_string(g_net), appnet::ip().empty() ? "" : " ",
+      const bool full = now > next_stats_full;
+      if (full)
+        next_stats_full = now + 15 * 60000000LL;
+      char line[200];
+      snprintf(line, sizeof(line), "net: %s%s%s", appnet::to_string(g_net), appnet::ip().empty() ? "" : " ",
                appnet::ip().c_str());
+      if (full || last_net != line) {
+        ESP_LOGI(TAG, "%s", line);
+        last_net = line;
+      }
       const appoh::Status oh = appoh::status();
-      ESP_LOGI(TAG, "openHAB: %s, %u/%u items, %u reconnects%s%s", oh.connected ? "connected" : "not connected",
-               static_cast<unsigned>(oh.received), static_cast<unsigned>(oh.subscribed),
-               static_cast<unsigned>(oh.reconnects), oh.last_error.empty() ? "" : ", last error: ",
-               oh.last_error.c_str());
-      ESP_LOGI(TAG, "health: heap %u (min %u), psram free %u, boot: %s",
-               static_cast<unsigned>(heap_caps_get_free_size(MALLOC_CAP_INTERNAL)),
-               static_cast<unsigned>(heap_caps_get_minimum_free_size(MALLOC_CAP_INTERNAL)),
-               static_cast<unsigned>(heap_caps_get_free_size(MALLOC_CAP_SPIRAM)), diagnostics::boot_reason());
+      snprintf(line, sizeof(line), "openHAB: %s, %u/%u items, %u reconnects%s%s",
+               oh.connected ? "connected" : "not connected", static_cast<unsigned>(oh.received),
+               static_cast<unsigned>(oh.subscribed), static_cast<unsigned>(oh.reconnects),
+               oh.last_error.empty() ? "" : ", last error: ", oh.last_error.c_str());
+      if (full || last_oh != line) {
+        ESP_LOGI(TAG, "%s", line);
+        last_oh = line;
+      }
+      if (full)
+        ESP_LOGI(TAG, "health: heap %u (min %u), psram free %u, boot: %s",
+                 static_cast<unsigned>(heap_caps_get_free_size(MALLOC_CAP_INTERNAL)),
+                 static_cast<unsigned>(heap_caps_get_minimum_free_size(MALLOC_CAP_INTERNAL)),
+                 static_cast<unsigned>(heap_caps_get_free_size(MALLOC_CAP_SPIRAM)), diagnostics::boot_reason());
       diagnostics::check_stacks();
     }
 
