@@ -1212,6 +1212,14 @@ int main(int argc, char **argv) {
     rec.out.clear();
     e.on_message(loaded("media"));
     CHECK(rec.has("track.txt=\"Radio One live\"") && rec.has("artist.txt=\"\""));
+    // its logo in the art's box instead of the icon, twice its size (as the cover), in the box's middle, from idle()
+    CHECK(rec.has("art_icon.txt=\"\"") && !rec.has("fill 92,128,4,2,65535") && e.pending());   // the page first
+    e.idle(1300);
+    CHECK(rec.has("fill 92,128,4,2,65535") && rec.has("fill 92,130,4,2,37026") && !rec.has_prefix("fill 24,60,"));
+    rec.out.clear();
+    e.on_state("officeSpeakerControl");                     // drawn: not again
+    e.idle(1350);
+    CHECK(!rec.has_prefix("fill ") && !rec.has("ref art_pic"));
     set_state("officeSpeakerTrackUri", "x-rincon-mp3radio://http://cdn.example/eins.mp3?token=1", "String");
     e.on_state("officeSpeakerTrackUri");
     // a stream telling only its address, later and long after: the station's name stays
@@ -1220,8 +1228,11 @@ int main(int argc, char **argv) {
     e.on_state("officeSpeakerCurrentTitle");
     CHECK(!rec.has("track.txt=\"\"") && !rec.has_prefix("track.txt=\"live"));
     set_state("officeSpeakerCurrentTitle", "Die Sendung", "String");
+    rec.out.clear();
     e.on_state("officeSpeakerCurrentTitle");
     CHECK(rec.has("track.txt=\"Die Sendung\"") && rec.has("artist.txt=\"Studio One\""));
+    // a title of its own: no longer the station, the logo goes, the icon again
+    CHECK(rec.has("ref art_pic") && rec.has(std::string("art_icon.txt=\"") + icon_glyph("music") + "\""));
     // learnt: the stream that came after the tap (its address without parameters) -- whenever it plays
     // without a title again, after a pause too, the station's name shows
     set_state("officeSpeakerCurrentTitle", "stream.mp3?cid=9", "String");

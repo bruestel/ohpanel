@@ -591,7 +591,9 @@ changes, decodes it (JPEG; not progressive), takes the square in its middle
 and draws it 70 x 70 points large, each point 2 x 2 pixels, with rounded
 corners: a few thousand rectangles, after everything else on the page, from
 the middle outwards, in under a second. Until then, and without a cover, the
-icon shows.
+icon shows; while a favourite with a logo plays (the player shows the
+station's name, see `uri`), its logo shows instead, twice its tiles' size. A
+cover the speaker sends wins over the logo.
 
 ```json
 {"id": "speaker", "type": "media", "title": "Kitchen",

@@ -634,7 +634,8 @@ class Engine {
     std::string icon, image;        // from the catalogue item's "ohpanel" metadata (image: a logo's code)
   };
   const Logo *logo_of(const std::string &code);   // a logo, null without (or for a broken code)
-  void queue_logo(const std::string &field, const std::string &code, int under, const std::string &key);
+  void queue_logo(const std::string &field, const std::string &code, int under, const std::string &key,
+                  int scale = 1);
   void draw_next_logo();
   std::map<std::string, Logo> logos_;            // code -> logo, decoded once
   std::map<std::string, std::string> drawn_;   // field -> what is drawn in it (key), until the page goes
@@ -642,6 +643,7 @@ class Engine {
     std::string page, field, key, code;
     int under;
     size_t at = 0;   // the next rectangle
+    int scale = 1;   // each pixel scale x scale (the media page's art: 2, as its cover); over a cleared field then
   };
   bool draw_logo(LogoJob &job, const Logo &logo);
   std::vector<LogoJob> logo_queue_;              // logos to draw, a part per idle(): after the page has shown
@@ -664,6 +666,7 @@ class Engine {
   };
   static std::string stream_key(const std::string &uri);
   std::map<std::string, std::string> stations_heard_;   // stream_key -> a favourite's name (learnt after a tap)
+  std::map<std::string, std::string> station_logos_;    // a tapped favourite's name -> its logo's code
   std::optional<Hint> hint_;
   // the cover: asked for, loaded, being drawn (in parts, from idle())
   void draw_art(const cJSON *page);

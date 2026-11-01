@@ -145,8 +145,29 @@ void Engine::media_refresh(const cJSON *page) {
   for (const auto &[obj, slot] : {std::pair{"art_pic", "art"}, {"volume_pic", "vol"}, {"fav_pic", "fav"}})
     if (const int pic = picture(slot, "box"); pic >= 0)
       num(obj, "pic", pic);
-  // the art: what plays as a large icon on its box -- left alone while a cover is drawn over it
-  if (const auto c = drawn_.find("art_pic"); c == drawn_.end() || c->second.empty()) {
+  // a favourite's logo in the art's box, twice its size, while that station plays -- unless a cover is there
+  // (the speaker's own picture wins); drawn_["art_pic"] then holds "logo|...", a cover's address otherwise
+  const auto logo_code = station.empty() ? station_logos_.end() : station_logos_.find(station);
+  const cJSON *art = member(page, "art");
+  const bool cover = has_state(art) && cover_source(state_of(art).state);
+  const Logo *logo = logo_code != station_logos_.end() && !cover ? logo_of(logo_code->second) : nullptr;
+  std::string &art_drawn = drawn_["art_pic"];
+  const std::string logo_key = logo ? "logo|" + std::to_string(std::hash<std::string>{}(logo_code->second)) : "";
+  if (!logo)   // one still to come is out of date
+    logo_queue_.erase(std::remove_if(logo_queue_.begin(), logo_queue_.end(),
+                                     [](const LogoJob &j) { return j.field == "art_pic"; }),
+                      logo_queue_.end());
+  if (art_drawn.rfind("logo|", 0) == 0 && art_drawn != logo_key) {   // another station's, or none now: the box again
+    send("ref art_pic");
+    send("ref art_icon");
+    art_drawn.clear();
+  }
+  if (logo && art_drawn != logo_key) {
+    txt("art_icon", "");
+    queue_logo("art_pic", logo_code->second, kDarkGrey, logo_key, kCoverScale);
+  }
+  // the art: what plays as a large icon on its box -- left alone while a cover or a logo is drawn over it
+  if (!logo && art_drawn.empty()) {
     const std::string what = playing || !track.empty() ? "music" : str(page, "icon", "speaker");
     txt("art_icon", icon_glyph(what.c_str()));
     num("art_icon", "pco", theme_.accent);
@@ -211,9 +232,14 @@ void Engine::draw_art(const cJSON *page) {
   const std::string source = has_state(art) ? state_of(art).state : "";
   const bool wanted = cover_source(source);
   std::string &drawn = drawn_["art_pic"];
+  const bool logo = drawn.rfind("logo|", 0) == 0;   // a favourite's logo (media_refresh): stays without a cover
+  if (wanted)   // a logo still to come: the cover wins
+    logo_queue_.erase(std::remove_if(logo_queue_.begin(), logo_queue_.end(),
+                                     [](const LogoJob &j) { return j.field == "art_pic"; }),
+                      logo_queue_.end());
   if (!wanted || drawn != source) {
     cover_job_.reset();
-    if (!drawn.empty()) {   // the cover shown is not the one wanted: the box and its icon again
+    if (!drawn.empty() && (wanted || !logo)) {   // the cover shown is not the one wanted: the box and its icon again
       send("ref art_pic");
       send("ref art_icon");
       drawn.clear();
@@ -285,7 +311,8 @@ const Logo *Engine::logo_of(const std::string &code) {
   return logo.w ? &logo : nullptr;
 }
 
-void Engine::queue_logo(const std::string &field, const std::string &code, int under, const std::string &key) {
+void Engine::queue_logo(const std::string &field, const std::string &code, int under, const std::string &key,
+                        int scale) {
   for (auto it = logo_queue_.begin(); it != logo_queue_.end(); ++it)
     if (it->field == field) {
       if (it->key == key)
@@ -296,7 +323,7 @@ void Engine::queue_logo(const std::string &field, const std::string &code, int u
   const auto drawn = drawn_.find(field);
   if (drawn != drawn_.end() && drawn->second == key)
     return;
-  logo_queue_.push_back({shown_, field, key, code, under, 0});
+  logo_queue_.push_back({shown_, field, key, code, under, 0, scale});
 }
 
 /* The logo at the front of the queue (queue_logo), a part of it per call
@@ -327,14 +354,18 @@ bool Engine::draw_logo(LogoJob &job, const Logo &logo) {
     if (drawn == job.key)
       return false;
     drawn = job.key;
-    // the field's icon away first (the field's own colour), then the logo, the large rectangles first
-    fill(b.x, b.y, b.w, b.h, job.under);
+    // the field's icon away first (the field's own colour; scaled: the field was cleared, its corners are
+    // round), then the logo, the large rectangles first
+    if (job.scale == 1)
+      fill(b.x, b.y, b.w, b.h, job.under);
   }
-  const int x0 = b.x + (b.w - logo.w) / 2, y0 = b.y + (b.h - logo.h) / 2;
+  const int s = job.scale;
+  const int x0 = b.x + (b.w - logo.w * s) / 2, y0 = b.y + (b.h - logo.h * s) / 2;
   const size_t end = std::min(logo.rects.size(), job.at + kLogoFillsPerCall);
   for (size_t i = job.at; i < end; i++) {
     const Logo::Rect &r = logo.rects[i];
-    fill(x0 + r.x, y0 + r.y, r.w, r.h, blend565(logo.palette[r.colour], static_cast<uint16_t>(job.under)));
+    fill(x0 + r.x * s, y0 + r.y * s, r.w * s, r.h * s,
+         blend565(logo.palette[r.colour], static_cast<uint16_t>(job.under)));
   }
   job.at = end;
   return end < logo.rects.size();
@@ -456,6 +487,12 @@ void Engine::favorites_event(const cJSON *page, int index) {
   if (const std::string control = str(member(player, "control"), "item"); !control.empty() && cb_.expect)
     cb_.expect(control, "PLAY");
   const std::string track = value_of(member(player, "track"));
+  if (station_logos_.size() >= 32)
+    station_logos_.clear();
+  if (list[i].image.empty())
+    station_logos_.erase(list[i].name);
+  else
+    station_logos_[list[i].name] = list[i].image;
   hint_ = Hint{str(player, "id"), list[i].name, cryptic(track) ? "" : track,
                member(player, "uri") ? value_of(member(player, "uri")) : cryptic(track) ? track : ""};
   const std::string id = str(player, "id");
