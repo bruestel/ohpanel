@@ -1441,9 +1441,9 @@ void Engine::on_message(const nextion::Message &m) {
     }
     if (!load) {
       if ((m.kind == Kind::Point || m.kind == Kind::Touch) && !m.press)
-        close_note();
+        close_note(true);
       else if (m.kind == Kind::Event && m.text.find("release") != std::string::npos)
-        close_note();
+        close_note(true);
       return;
     }
   }
@@ -1821,9 +1821,13 @@ void Engine::draw_note() {
   note_drawn_ = true;
 }
 
-/* A touch on the card, or the item emptied: the page as it is now. */
-void Engine::close_note() {
+/* A touch on the card (`dismissed`), or the item emptied: the page as it is now. Dismissed, the item goes to NULL:
+   a rule sees the notification read (and may send the next one), and every panel showing it takes it away. Its
+   echo (NULL) changes nothing here; the same text sent again after it shows again. */
+void Engine::close_note(bool dismissed) {
   note_.reset();
+  if (dismissed && !notify_item_.empty() && cb_.update)
+    cb_.update(notify_item_, "NULL");
   if (!note_drawn_)
     return;
   note_drawn_ = false;

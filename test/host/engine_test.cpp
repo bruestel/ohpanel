@@ -1715,11 +1715,13 @@ int main(int argc, char **argv) {
     e.on_message(touch);
     CHECK(!rec.has("sendxy=0"));
     touch.press = false;
-    e.on_message(touch);                             // released: closed, the page again
+    updates.clear();
+    e.on_message(touch);                             // released: closed, the page again, the item to NULL (read)
     CHECK(rec.has("sendxy=0") && rec.has(page_cmd("home")));
+    CHECK(updates.size() == 1 && updates.back() == std::make_pair(std::string("Panel_Notify"), std::string("NULL")));
     e.on_message(loaded("home"));
     rec.out.clear();
-    e.on_state("Panel_Notify");                      // the same state again: nothing
+    e.on_state("Panel_Notify");                      // the same state again (no NULL came back): nothing
     CHECK(!rec.has_prefix("xstr"));
     set_state("Panel_Notify", "NULL", "UnDef");
     e.on_state("Panel_Notify");
@@ -1734,9 +1736,10 @@ int main(int argc, char **argv) {
       cut = cut || (c.find(",4,63488,") != std::string::npos && c.find("...\"") != std::string::npos);
     CHECK(cut);
     rec.out.clear();
-    set_state("Panel_Notify", "", "String");         // emptied: the card goes
+    updates.clear();
+    set_state("Panel_Notify", "", "String");         // emptied: the card goes, nothing sent back
     e.on_state("Panel_Notify");
-    CHECK(rec.has("sendxy=0") && rec.has(page_cmd("home")));
+    CHECK(rec.has("sendxy=0") && rec.has(page_cmd("home")) && updates.empty());
     e.on_message(loaded("home"));
     e.set_config(read("test/host/data/office.json"));
   }
@@ -2065,6 +2068,44 @@ int main(int argc, char **argv) {
       CHECK(!e.asleep() && (shown() == std::vector<std::string>{"plants-covers", "home", "home"}));   // woken: again
       e.on_message(loaded("home"));
       e.set_status(st);
+    }
+
+    // a notification and the screen off: it wakes the screen, the card comes once the page is there; off again with
+    // the card up, woken, the card again; only a touch on it (not the one that woke the screen) sends NULL
+    {
+      cJSON *doc = cJSON_Parse(with_screen(R"({"idle_brightness": 0, "idle_after": 30})").c_str());
+      cJSON_AddItemToObject(cJSON_GetObjectItem(doc, "display"), "notifications", cJSON_Parse(R"({"item": "Panel_Note"})"));
+      char *json = cJSON_PrintUnformatted(doc);
+      e.set_config(json);
+      cJSON_free(json);
+      cJSON_Delete(doc);
+      set_state("Panel_Note", "NULL", "UnDef");
+      e.on_state("Panel_Note");                        // seen once: what comes now is new
+      e.idle(t += 31000);
+      CHECK(e.asleep());
+      e.on_message(loaded("blank"));
+      rec.out.clear();
+      updates.clear();
+      set_state("Panel_Note", "alert|Fridge|The fridge door is open", "String");
+      e.on_state("Panel_Note");
+      e.idle(t += 100);
+      CHECK(!e.asleep() && rec.has(page_cmd("home")) && !rec.has_prefix("xstr"));   // the page first
+      e.on_message(loaded("home"));
+      CHECK(rec.has_prefix("xstr ") && rec.has("sendxy=1"));
+      e.idle(t += 31000);                              // off with the card up
+      CHECK(e.asleep());
+      e.on_message(loaded("blank"));
+      rec.out.clear();
+      e.on_message(event("blank", "wake", "release"));   // the touch that wakes: no dismissal
+      e.idle(t += 100);
+      e.on_message(loaded("home"));
+      CHECK(!e.asleep() && rec.has_prefix("xstr ") && updates.empty());
+      nextion::Message tap;
+      tap.kind = nextion::Message::Kind::Point;
+      tap.press = false;
+      e.on_message(tap);
+      CHECK(updates.size() == 1 && updates.back() == std::make_pair(std::string("Panel_Note"), std::string("NULL")));
+      e.on_message(loaded("home"));
     }
 
     e.set_config(read("test/host/data/office.json"));

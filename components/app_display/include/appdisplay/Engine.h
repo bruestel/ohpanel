@@ -386,7 +386,7 @@ class Engine {
   void pill_shape(const Box &b, int colour);   // its round shape alone
   void relay_label(const Box &b, const std::string &side, const std::string &text, int colour);   // upright
   void restore(int x, int y, int w, int h);   // the page's background back (bg_pic)
-  void close_note();
+  void close_note(bool dismissed = false);
   std::vector<std::string> wrap(int font, const std::string &text, int width) const;
   std::string shorten(int font, const std::string &text, int width, bool cut) const;
 

@@ -123,13 +123,33 @@ touch anywhere closes it; the touch does nothing else. The state is
 `info` (blue, default), `warning` (yellow) or `alert` (red), colours the
 card's bar and title. The text wraps; a written `\n` breaks the line. A new
 notification wakes the screen; an empty state or NULL takes the card away.
-The state the item has when the panel starts shows nothing, and openHAB only
-reports changes: to show the same text again, set the item to NULL before.
+A touch that closes the card sets the item to NULL: a rule sees it read (and
+may send the next one), every panel showing it takes it away, and the same
+text can be sent again. The state the item has when the panel starts shows
+nothing.
 
 ```
 // an openHAB rule (DSL)
-Panel_Notify.postUpdate(NULL)
 Panel_Notify.sendCommand("warning|Window open|The bathroom window has been open for 30 minutes.")
+```
+
+Several sources, one after the other: each keeps its text in an item of its
+own, and a rule passes the next one on whenever the panel's item is free.
+
+```
+// String Notify_Fridge, Notify_Door: a source's text, empty when it is over
+rule "Notifications to the panel, one at a time"
+when
+    Item Notify_Fridge changed or Item Notify_Door changed or Item Panel_Notify changed to NULL
+then
+    if (Panel_Notify.state != NULL && Panel_Notify.state.toString != "") return;   // one shows
+    val next = if (Notify_Fridge.state.toString != "" && Notify_Fridge.state != NULL) Notify_Fridge
+               else if (Notify_Door.state.toString != "" && Notify_Door.state != NULL) Notify_Door
+               else null
+    if (next === null) return;
+    Panel_Notify.sendCommand(next.state.toString)
+    next.postUpdate("")   // passed on: read once it is closed
+end
 ```
 
 `display.open_page.item` names a String item; a page id set on it (a

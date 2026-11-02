@@ -1010,8 +1010,8 @@ pre.box{margin:0;padding:.6rem .7rem;max-height:18rem;overflow:auto;background:v
         <h3 class="screenh">Notifications</h3>
         <p class="sub">A String item: each new state shows as a card over the page, until it is touched.
           <code>level|title|text</code>, the level <code>info</code> (blue), <code>warning</code> (yellow) or
-          <code>alert</code> (red); empty or NULL takes it away. The same text twice shows once: set the item to NULL
-          before.</p>
+          <code>alert</code> (red); empty or NULL takes it away. A touch that closes it sets the item to NULL: a
+          rule sees it read and may send the next one.</p>
         <div id="vNotify"></div>
         <div class="row"><label>Try one in the preview<input type="text" id="vNoteTry"
           value="warning|Window open|The bathroom window has been open for 30 minutes."></label></div>
