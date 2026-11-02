@@ -964,6 +964,8 @@ void Engine::show_physical(const std::string &wanted) {
     no_close_sent_ = no_close;
     send(std::string("no_close=") + (no_close ? "1" : "0"));
   }
+  if (note_drawn_ && link_)
+    sink_.send("sendxy=0");   // the card goes with the page: touches report as the next page's again (the black page too)
   send("page " + std::to_string(it->second.id));
   note_drawn_ = false;
   report_page(name);
@@ -1427,6 +1429,10 @@ void Engine::on_message(const nextion::Message &m) {
   const bool loaded = m.kind == Kind::Event && m.text.find("\"currentpage\"") != std::string::npos;
   if ((m.kind == Kind::Event && !loaded) || m.kind == Kind::Touch || m.kind == Kind::Point || m.kind == Kind::Value)
     touched_ms_ = now_ms_;
+  // a finger down on the black page wakes the screen: the card is there again before it lifts, and lifting it must
+  // not close the card (a touch on it does); any later touch down starts a touch of its own
+  if ((m.kind == Kind::Touch || m.kind == Kind::Point) && m.press)
+    wake_touch_ = asleep_;
   if (m.kind == Kind::Value && shown_ == "volpage" && (m.name == "vols" || m.name == "volu")) {
     volume_slider(m.name == "volu", static_cast<int>(m.value));
     return;
@@ -1440,9 +1446,11 @@ void Engine::on_message(const nextion::Message &m) {
       cJSON_Delete(e);
     }
     if (!load) {
-      if ((m.kind == Kind::Point || m.kind == Kind::Touch) && !m.press)
-        close_note(true);
-      else if (m.kind == Kind::Event && m.text.find("release") != std::string::npos)
+      const bool lifted = ((m.kind == Kind::Point || m.kind == Kind::Touch) && !m.press) ||
+                          (m.kind == Kind::Event && m.text.find("release") != std::string::npos);
+      if (lifted && wake_touch_)
+        wake_touch_ = false;   // the touch that woke the screen
+      else if (lifted)
         close_note(true);
       return;
     }

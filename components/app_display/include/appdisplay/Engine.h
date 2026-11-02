@@ -387,6 +387,7 @@ class Engine {
   void relay_label(const Box &b, const std::string &side, const std::string &text, int colour);   // upright
   void restore(int x, int y, int w, int h);   // the page's background back (bg_pic)
   void close_note(bool dismissed = false);
+  bool wake_touch_ = false;   // the touch going on began on the black page: lifted, it closes no card
   std::vector<std::string> wrap(int font, const std::string &text, int width) const;
   std::string shorten(int font, const std::string &text, int width, bool cut) const;
 

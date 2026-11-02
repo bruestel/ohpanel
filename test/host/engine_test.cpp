@@ -2092,16 +2092,34 @@ int main(int argc, char **argv) {
       CHECK(!e.asleep() && rec.has(page_cmd("home")) && !rec.has_prefix("xstr"));   // the page first
       e.on_message(loaded("home"));
       CHECK(rec.has_prefix("xstr ") && rec.has("sendxy=1"));
-      e.idle(t += 31000);                              // off with the card up
+      rec.out.clear();
+      e.idle(t += 31000);                              // off with the card up: touches report as the black page's
+      CHECK(e.asleep() && rec.has("sendxy=0"));
+      e.on_message(loaded("blank"));
+      rec.out.clear();
+      // the touch that wakes, as the display reports it: the finger down (the screen wakes at once, the card comes
+      // before the finger lifts), then up -- no dismissal
+      nextion::Message tap;
+      tap.kind = nextion::Message::Kind::Point;
+      tap.press = true;
+      e.on_message(tap);
+      e.idle(t += 100);
+      e.on_message(loaded("home"));
+      CHECK(!e.asleep() && rec.has_prefix("xstr "));
+      tap.press = false;
+      e.on_message(tap);
+      CHECK(updates.empty() && !rec.has("sendxy=0"));
+      // off again; this time as the black page reports with sendxy off: only its own "wake" when the finger lifts
+      e.idle(t += 31000);
       CHECK(e.asleep());
       e.on_message(loaded("blank"));
       rec.out.clear();
-      e.on_message(event("blank", "wake", "release"));   // the touch that wakes: no dismissal
+      e.on_message(event("blank", "wake", "release"));
       e.idle(t += 100);
       e.on_message(loaded("home"));
       CHECK(!e.asleep() && rec.has_prefix("xstr ") && updates.empty());
-      nextion::Message tap;
-      tap.kind = nextion::Message::Kind::Point;
+      tap.press = true;                                  // a touch of its own: closes it
+      e.on_message(tap);
       tap.press = false;
       e.on_message(tap);
       CHECK(updates.size() == 1 && updates.back() == std::make_pair(std::string("Panel_Note"), std::string("NULL")));
