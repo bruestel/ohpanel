@@ -29,7 +29,7 @@ jobs:
           key: pio-${{ hashFiles('platformio.ini', 'dependencies.lock', 'sdkconfig.defaults') }}
       - name: PlatformIO, and rsvg-convert for OHpanel's own icons
         run: |
-          sudo apt-get install -y librsvg2-bin
+          sudo apt-get install -y librsvg2-bin zlib1g-dev   # zlib: the host test of the PNG decoder
           pip install platformio pillow numpy "esptool>=4.8,<5"   # esptool: the factory image (tools/merge_factory.py)
       - name: Firmware
         run: |

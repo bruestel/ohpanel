@@ -587,7 +587,8 @@ as a `data:image/jpeg;base64,...` address (an Image item linked to
 `currentalbumart`). The address is the lighter choice: openHAB sends an
 Image item's every new picture through the state stream, 50 to 150 KB as
 text, whether a panel shows it or not. The panel loads the picture when it
-changes, decodes it (JPEG; not progressive), takes the square in its middle
+changes, decodes it (JPEG, not progressive; or PNG, not interlaced: Sonos sends a radio station's logo as
+one, transparent parts on the box's grey), takes the square in its middle
 and draws it 70 x 70 points large, each point 2 x 2 pixels, with rounded
 corners: a few thousand rectangles, after everything else on the page, from
 the middle outwards, in under a second. Until then, and without a cover, the

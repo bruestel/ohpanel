@@ -32,9 +32,14 @@ g++ $FLAGS -Icomponents/app_display/include -Icomponents/app_openhab/include -Ic
     components/app_display/src/Icons.cpp components/nextion/src/Protocol.cpp test/host/build/cJSON.o test/host/build/qrcodegen.o \
     -o test/host/build/engine_test
 
+g++ $FLAGS -Icomponents/app_display/include -Icomponents/app_display/src \
+    test/host/png_test.cpp components/app_display/src/Png.cpp components/app_display/src/Cover.cpp \
+    -lz -o test/host/build/png_test
+
 test/host/build/openhab_test > /dev/null && echo "openhab: all checks passed"
 test/host/build/format_test test/host/build/icons.bin
 test/host/build/engine_test test/host/build/icons.bin
+test/host/build/png_test
 test/host/build/nextion_test
 test/host/build/schema_test
 python3 tools/check_names.py

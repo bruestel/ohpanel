@@ -1,14 +1,15 @@
 /*
    Loading a cover picture on the device (Engine draws it, Cover.h): the
    picture fetched (or taken from a data: address) in parts of 16 KB (Chunks: no large block in one piece), anything
-   but a JPEG left at its first bytes, decoded by the ESP32's
-   own JPEG decoder in ROM -- scaled down by it already, 1/2 to 1/8 --, cut
+   but a JPEG or a PNG left at its first bytes, a JPEG decoded by the ESP32's
+   own JPEG decoder in ROM -- scaled down by it already, 1/2 to 1/8 --, a PNG row by row (Png.h), cut
    to a square in its middle, averaged down to the size asked for and turned
    into rectangles. In a task of its own: the display task must not wait for
    the network. Only the latest request counts.
 */
 
 #include "CoverLoad.h"
+#include "Png.h"
 
 #include "appoh/OpenHab.h"
 
@@ -105,9 +106,9 @@ std::string decode(const Chunks &bytes, int size, Jpeg &j) {
 }
 
 /* The square in the picture's middle, averaged down (or repeated up) to size x size. */
-std::vector<uint8_t> square(const Jpeg &j, int size) {
+std::vector<uint8_t> square(const uint8_t *pixels, int w, int h, int size) {
   std::vector<uint8_t> out(static_cast<size_t>(size) * size * 3);
-  const int side = std::min(j.w, j.h), ox = (j.w - side) / 2, oy = (j.h - side) / 2;
+  const int side = std::min(w, h), ox = (w - side) / 2, oy = (h - side) / 2;
   for (int y = 0; y < size; y++) {
     const int y0 = oy + y * side / size, y1 = std::max(y0 + 1, oy + (y + 1) * side / size);
     for (int x = 0; x < size; x++) {
@@ -115,7 +116,7 @@ std::vector<uint8_t> square(const Jpeg &j, int size) {
       uint32_t sum[3] = {0, 0, 0}, n = 0;
       for (int yy = y0; yy < y1; yy++)
         for (int xx = x0; xx < x1; xx++) {
-          const uint8_t *p = j.pixels + (static_cast<size_t>(yy) * j.w + xx) * 3;
+          const uint8_t *p = pixels + (static_cast<size_t>(yy) * w + xx) * 3;
           sum[0] += p[0];
           sum[1] += p[1];
           sum[2] += p[2];
@@ -138,29 +139,40 @@ std::shared_ptr<Cover> load(const Request &r) {
     }
   } else if (!appoh::fetch(r.source, kMaxBytes, [&](const char *data, size_t n) {
                // its first bytes say what it is: anything but a JPEG goes no further
-               if (bytes.size == 0 && n >= 4 && !(what = not_jpeg(reinterpret_cast<const uint8_t *>(data), n)).empty())
+               if (bytes.size == 0 && n >= 4 && !(what = not_jpeg(reinterpret_cast<const uint8_t *>(data), n)).empty() &&
+                   what != "a PNG")
                  return false;
                bytes.append(data, n);
                return true;
              }, &error)) {
     ESP_LOGW(TAG, "%.80s: %s", r.source.c_str(),
-             what.empty() ? error.c_str() : (what + ", the panel decodes only JPEG").c_str());
+             what.empty() ? error.c_str() : (what + ", the panel decodes JPEG and PNG").c_str());
     return nullptr;
   }
   uint8_t head[12] = {};
-  if (const std::string kind = not_jpeg(head, bytes.read(0, head, sizeof(head))); !kind.empty()) {
-    ESP_LOGW(TAG, "%.80s: %s, the panel decodes only JPEG", r.source.c_str(), kind.c_str());
+  const std::string kind = not_jpeg(head, bytes.read(0, head, sizeof(head)));
+  if (!kind.empty() && kind != "a PNG") {
+    ESP_LOGW(TAG, "%.80s: %s, the panel decodes JPEG and PNG", r.source.c_str(), kind.c_str());
     return nullptr;
   }
+  // the picture at a scale still at least `size` on its shorter side: a JPEG by the ROM's decoder, a PNG row by row
   Jpeg j;
-  const std::string why = decode(bytes, r.size, j);
+  PngPicture png;
+  std::string why;
+  if (kind.empty()) {
+    why = decode(bytes, r.size, j);
+  } else {
+    static constexpr uint8_t kArtBox[3] = {44, 44, 44};   // what shows through: the art box (compose.py "art")
+    why = decode_png(bytes, r.size, kArtBox, png);
+  }
   const size_t fetched = bytes.size;
   bytes = Chunks{};
   std::shared_ptr<Cover> cover;
   if (why.empty()) {
-    const std::vector<uint8_t> pixels = square(j, r.size);
+    const int w = kind.empty() ? j.w : png.w, h = kind.empty() ? j.h : png.h;
+    const std::vector<uint8_t> pixels = square(kind.empty() ? j.pixels : png.pixels.data(), w, h, r.size);
     cover = std::make_shared<Cover>(cover_rects(pixels.data(), r.size, r.scale, r.radius, r.reveal));
-    ESP_LOGI(TAG, "%dx%d px, %u rectangles, from %u bytes of %.48s", j.w, j.h,
+    ESP_LOGI(TAG, "%dx%d px%s, %u rectangles, from %u bytes of %.48s", w, h, kind.empty() ? "" : " (PNG)",
              static_cast<unsigned>(cover->rects.size()), static_cast<unsigned>(fetched), r.source.c_str());
   } else {
     ESP_LOGW(TAG, "%.80s: %s", r.source.c_str(), why.c_str());
