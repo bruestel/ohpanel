@@ -3704,8 +3704,22 @@ function browserCapTop(size) {   // where the browser's font has the top of "H" 
   }
   return capTops.get(size);
 }
+/* The size at which the browser's font draws "H" `rows` px high. */
+let capRatio;
+function browserCapSize(rows) {
+  if (capRatio === undefined) {
+    const c = document.createElement('canvas').getContext('2d');
+    c.font = '100px ' + PV_FONT;
+    capRatio = c.measureText('H').actualBoundingBoxAscent / 100 || null;
+  }
+  return capRatio ? Math.round(rows / capRatio * 10) / 10 : null;
+}
 function standOnCaps(el, node, o, font) {
   if (!font.cap) return;
+  /* its capitals as high as the display's (font.cap: the first and last row of "H"): the usual size, smaller,
+     left them a pixel or two short at the bottom, so a centred text looked top-aligned */
+  const size = browserCapSize(font.cap[1] - font.cap[0] + 1);
+  if (size && browserCapTop(size) !== null) el.style.fontSize = size + 'px';
   const have = browserCapTop(parseFloat(el.style.fontSize));
   if (have === null) return;
   const cell = o.yc === 1 ? Math.floor((o.h - font.height) / 2) : o.yc === 2 ? o.h - font.height : 0;
