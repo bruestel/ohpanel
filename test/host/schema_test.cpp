@@ -360,6 +360,12 @@ int main() {
                doc("\"display\":{\"notifications\":{\"item\":\"N\",\"wake_and_keep_on\":\"alert\"}}"));
   expect_issue("a level that is none", doc("\"display\":{\"notifications\":{\"item\":\"N\",\"wake_and_keep_on\":\"error\"}}"),
                "display.notifications.wake_and_keep_on");
+  expect_valid("on above a limit", doc("\"home\":{\"shortcuts\":[{\"item\":\"P\",\"icon\":\"cog\",\"on\":{\"above\":7}}]}"));
+  expect_issue("a limit that is no number",
+               doc("\"home\":{\"shortcuts\":[{\"item\":\"P\",\"icon\":\"cog\",\"on\":{\"above\":\"7\"}}]}"),
+               "home.shortcuts[0].on");
+  expect_issue("a limit of no kind", doc("\"home\":{\"shortcuts\":[{\"item\":\"P\",\"icon\":\"cog\",\"on\":{\"over\":7}}]}"),
+               "home.shortcuts[0].on");
   {  // twelve shortcuts, three rows of four
     std::string twelve;
     for (int i = 0; i < 12; i++)

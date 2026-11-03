@@ -786,13 +786,27 @@ std::string Engine::degrees_only(const std::string &unit) {
 }
 
 /* Whether ref's item is on: the states its "on" names (a state or a list,
-   e.g. "PLAYING" of a player's String item), or else ON, OPEN, PLAY or a
+   e.g. "PLAYING" of a player's String item), a number beyond a limit
+   ({"above": 7}, "below", "at_least", "at_most"), or else ON, OPEN, PLAY or a
    number above 0. */
 bool Engine::on(const cJSON *ref) const {
   if (!has_state(ref))
     return false;
   const appoh::ItemState s = state_of(ref);
   const cJSON *want = member(ref, "on");
+  if (cJSON_IsObject(want)) {
+    for (const char *op : {"above", "below", "at_least", "at_most"}) {
+      const cJSON *n = cJSON_GetObjectItem(want, op);
+      if (!cJSON_IsNumber(n))
+        continue;
+      if (!s.has_numeric || s.undefined())
+        return false;   // no number: not on
+      const double v = s.numeric, t = n->valuedouble;
+      const std::string o = op;
+      return o == "above" ? v > t : o == "below" ? v < t : o == "at_least" ? v >= t : v <= t;
+    }
+    return false;
+  }
   if (cJSON_IsString(want))
     return s.state == want->valuestring;
   if (cJSON_IsArray(want)) {

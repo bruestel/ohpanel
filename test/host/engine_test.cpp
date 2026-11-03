@@ -395,6 +395,35 @@ int main(int argc, char **argv) {
     e.set_config(read("test/host/data/office.json"));
   }
 
+  {  // "on" as a limit: a number above 7 W counts as on, so the shortcut shows and opens only then
+    cJSON *doc = cJSON_Parse(read("test/host/data/office.json").c_str());
+    cJSON *list = cJSON_GetObjectItem(cJSON_GetObjectItem(doc, "home"), "shortcuts");
+    cJSON_ReplaceItemInArray(list, 0, cJSON_Parse(
+        R"({"item": "Battery_Power", "icon": "home-battery", "on": {"above": 7}, "open": "guest-wifi"})"));
+    char *text = cJSON_PrintUnformatted(doc);
+    set_state("Battery_Power", "5 W", "Quantity", nullptr, 5, true);
+    e.set_config(text);
+    cJSON_free(text);
+    cJSON_Delete(doc);
+    rec.out.clear();
+    e.on_message(loaded("home"));
+    CHECK(rec.has("short1_icon.txt=\"\""));                // 5 W: off, hidden
+    e.on_message(event("home", "short1", "release"));
+    CHECK(e.current() == "home");
+    set_state("Battery_Power", "12 W", "Quantity", nullptr, 12, true);
+    rec.out.clear();
+    e.on_state("Battery_Power");
+    CHECK(rec.has_prefix("short1_icon.txt=") && !rec.has("short1_icon.txt=\"\""));   // 12 W: on
+    e.on_message(event("home", "short1", "release"));
+    CHECK(e.current() == "guest-wifi");
+    e.on_message(event("guest-wifi", "close", "release"));
+    set_state("Battery_Power", "7 W", "Quantity", nullptr, 7, true);
+    rec.out.clear();
+    e.on_state("Battery_Power");
+    CHECK(rec.has("short1_icon.txt=\"\""));                // 7 W: not above 7
+    e.set_config(read("test/host/data/office.json"));
+  }
+
   {  // a shortcut with an item opens its page only while the item is on; one without always
     e.on_message(loaded("home"));
     set_state("officeSpeakerState", "OFF", "OnOff");

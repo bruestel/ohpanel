@@ -619,6 +619,8 @@ dialog.confirm label.drop b{font:600 14px/1.3 inherit;font-family:inherit;color:
 .onfield .chips{display:flex;flex-wrap:wrap;gap:.3rem;align-items:center;padding:.25rem;border:1px solid var(--line);
   border-radius:.5rem;background:var(--surface2)}
 .onfield .chips[hidden]{display:none}
+.onfield .onnum{display:flex;gap:.5rem;min-width:0}.onfield .onnum[hidden]{display:none}
+.onfield .onnum>*{flex:1;min-width:0}
 .onfield .chip{display:inline-flex;align-items:center;gap:.15rem;padding:.1rem .15rem .1rem .55rem;border-radius:999px;
   background:var(--surface);border:1px solid var(--line);font:13px ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--fg)}
 .onfield .chip button{border:0;background:transparent;color:var(--dim);font-size:16px;line-height:1;width:1.3rem;height:1.3rem;
@@ -3018,6 +3020,11 @@ function isOn(ref) {
   if (!st) return false;
   if (typeof ref.on === 'string') return st.state === ref.on;
   if (Array.isArray(ref.on)) return ref.on.includes(st.state);
+  if (ref.on && typeof ref.on === 'object') {   // a number beyond a limit (Engine::on)
+    const [op, t] = Object.entries(ref.on)[0] || [], v = st.numeric;
+    if (v === undefined || typeof t !== 'number') return false;
+    return op === 'above' ? v > t : op === 'below' ? v < t : op === 'at_least' ? v >= t : op === 'at_most' ? v <= t : false;
+  }
   return st.state === 'ON' || st.state === 'OPEN' || st.state === 'PLAY' || (st.numeric !== undefined && st.numeric > 0);
 }
 
@@ -5336,13 +5343,30 @@ function formatField(ref, onChange) {
    it counts, with the state to take over in one click. */
 const ON_USUAL = 'ON, OPEN, PLAY or a number above 0';
 
+const ON_LIMITS = [['above', 'above'], ['at_least', 'at least'], ['below', 'below'], ['at_most', 'at most']];
 function onField(value, item, onChange) {
-  const list = Array.isArray(value) ? [...value] : value ? [value] : [];
-  let own = list.length > 0;
+  // a number beyond a limit ({"above": 7}), states of its own, or the usual ones
+  const limit = value && typeof value === 'object' && !Array.isArray(value)
+    ? Object.entries(value).find(([k]) => ON_LIMITS.some(([o]) => o === k)) : null;
+  let op = limit ? limit[0] : 'above', num = limit ? String(limit[1]) : '';
+  const list = Array.isArray(value) ? [...value] : typeof value === 'string' && value ? [value] : [];
+  let kind = limit ? 'number' : list.length ? 'own' : '';
+  let own = kind === 'own';
   const box = document.createElement('div');
   box.className = 'onfield';
-  const mode = selectInput([['', 'the usual states: ' + ON_USUAL], ['own', 'one of these states']],
-                           own ? 'own' : '', v => { own = v === 'own'; draw(); store(); if (own) add.focus(); });
+  const mode = selectInput([['', 'the usual states: ' + ON_USUAL], ['own', 'one of these states'],
+                            ['number', 'a number beyond a limit']],
+                           kind, v => { kind = v; own = v === 'own'; draw(); store(); if (own) add.focus(); if (v === 'number') numIn.focus(); });
+  const numRow = document.createElement('div');
+  numRow.className = 'onnum';
+  const opIn = selectInput(ON_LIMITS, op, v => { op = v; draw(); store(); });
+  const numIn = document.createElement('input');
+  numIn.type = 'number'; numIn.step = 'any'; numIn.value = num; numIn.placeholder = 'e.g. 7';
+  numIn.setAttribute('aria-label', 'The limit');
+  numIn.addEventListener('input', () => { num = numIn.value; draw(); store(); });
+  numRow.append(opIn, numIn);
+  const current = () => kind === 'number' ? (num !== '' && isFinite(+num) ? {[op]: +num} : undefined)
+                                          : own && list.length ? (list.length === 1 ? list[0] : [...list]) : undefined;
   const chips = document.createElement('div');
   chips.className = 'chips';
   const add = document.createElement('input');
@@ -5350,9 +5374,9 @@ function onField(value, item, onChange) {
   add.setAttribute('aria-label', 'Add a state');
   const hint = document.createElement('div');
   hint.className = 'sub onhint';
-  box.append(mode, chips, hint);
+  box.append(mode, chips, numRow, hint);
 
-  const store = () => onChange(!own || !list.length ? '' : list.length === 1 ? list[0] : [...list]);
+  const store = () => onChange(current() === undefined ? '' : current());
   const take = text => {
     text.split(',').map(x => x.trim()).filter(Boolean).forEach(x => { if (!list.includes(x)) list.push(x); });
     add.value = '';
@@ -5366,6 +5390,7 @@ function onField(value, item, onChange) {
 
   function draw() {
     chips.hidden = !own;
+    numRow.hidden = kind !== 'number';
     chips.innerHTML = '';
     list.forEach((x, k) => {
       const c = document.createElement('span');
@@ -5382,11 +5407,12 @@ function onField(value, item, onChange) {
     const st = item && liveStates[item];
     if (!item) { hint.textContent = 'Without an item it counts as on always.'; return; }
     if (!st) {
-      hint.textContent = own ? 'As openHAB has the state, e.g. PLAYING.'
+      hint.textContent = kind === 'number' ? 'A Number item\'s value, in its unit: e.g. above 7 for more than 7 W.'
+                       : own ? 'As openHAB has the state, e.g. PLAYING.'
                              : 'Right for a Switch, Contact, Dimmer or Player; a String item needs its own states.';
       return;
     }
-    const on = isOn({item, on: !own || !list.length ? undefined : list});
+    const on = isOn({item, on: current()});
     const now = document.createElement('span');
     now.append('Now ', Object.assign(document.createElement('code'), {textContent: st.state}), ': counts as ',
                Object.assign(document.createElement('b'), {textContent: on ? 'on' : 'off'}));

@@ -652,12 +652,21 @@ class Validator {
     }
   }
 
-  /* "on": the state that counts as on, or a list of them. */
+  /* "on": the state that counts as on, a list of them, or a number beyond a limit ({"above": 7}). */
   void on_states(const cJSON *e, const std::string &path) {
     const cJSON *v = cJSON_GetObjectItem(e, "on");
     if (!v)
       return;
     const std::string p = member(path, "on");
+    if (cJSON_IsObject(v)) {
+      const int n = cJSON_GetArraySize(v);
+      const cJSON *k = v->child;
+      const bool known = k && (!std::strcmp(k->string, "above") || !std::strcmp(k->string, "below") ||
+                               !std::strcmp(k->string, "at_least") || !std::strcmp(k->string, "at_most"));
+      if (n != 1 || !known || !cJSON_IsNumber(k))
+        fail(p, "must be one of \"above\", \"below\", \"at_least\" or \"at_most\" with a number, e.g. {\"above\": 7}");
+      return;
+    }
     const auto ok = [](const cJSON *s) {
       return cJSON_IsString(s) && s->valuestring[0] && std::strlen(s->valuestring) <= 32;
     };
@@ -669,7 +678,7 @@ class Validator {
       if (!all)
         fail(p, "must be a state or a list of 1 to 8 states (up to 32 characters each)");
     } else if (!ok(v)) {
-      fail(p, "must be a state (up to 32 characters) or a list of them");
+      fail(p, "must be a state (up to 32 characters), a list of them or a limit such as {\"above\": 7}");
     }
   }
 

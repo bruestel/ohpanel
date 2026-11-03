@@ -260,8 +260,12 @@ playing speaker, `["ohpanel-speaker-wave-1", "ohpanel-speaker-wave-2",
 visible while the item is on). The item is on when its state is ON, OPEN, PLAY
 or a number above 0, or, with `on`, when it is the state given there or one
 of a list (`"on": "PLAYING"` for a player's String item, `["PLAYING",
-"BUFFERING"]`), which then replace the usual ones. The editor offers both, the
-states as chips, and shows how the item's state counts right now. A shortcut with an item opens its page only while the item is
+"BUFFERING"]`), which then replace the usual ones; or with a limit, when its
+number is beyond it: `{"above": 7}` (`below`, `at_least`, `at_most`), in the
+item's unit, e.g. an icon only while more than 7 W flow. The editor offers all
+three, the states as chips, and shows how the item's state counts right now;
+it shows the field only where it does something (shown while on, or a shortcut
+that opens its page only then). A shortcut with an item opens its page only while the item is
 on; with `"open_when_off": true` while it is off too (default `false`).
 
 ## Pages
