@@ -81,15 +81,15 @@ WEATHER_HOME = (MARGIN, 36, 116, 116)        # x, y, w, h
 # the status row: up to ten icons (24 px font) from the left, 29 px apart
 STATUS_ICONS = [(MARGIN + 1 + 29 * k, 5) for k in range(10)]   # x, y of each 25x25 field
 # Baselines as the display draws them (measured in the simulator): the
-# clock's digits end at y=105, the date's at 134; a 48 px number centred in
+# clock's digits end at y=99, the date's at 128; a 48 px number centred in
 # its field ends 15 px below the field's middle.
-CLOCK_BASELINE, DATE_BASELINE = 105, 134
+CLOCK_BASELINE, DATE_BASELINE = 99, 128
 # AM/PM small above the clock's minutes, right-aligned with them: its field
-# reaches into the top of the clock's (y=45..107), where the clock draws
-# nothing -- its digits begin at y=60. The clock repaints its whole field, so
+# reaches into the top of the clock's (y=39..101), where the clock draws
+# nothing -- its digits begin at y=54. The clock repaints its whole field, so
 # the firmware redraws both together, AM/PM after it (Engine::draw_clock);
 # a smaller clock field cuts the digits off (the display crops to the field).
-MERIDIEM = (36, 40, 22)        # y, w, h: font 2, bottom-aligned: its letters at y=41..53
+MERIDIEM = (30, 40, 22)        # y, w, h: font 2, bottom-aligned: its letters at y=35..47, under the WiFi icon
 # The weather block ends where the weather icon does: the icons stand on their
 # field's bottom (boards/nspanel/nextion/assets/compose.py), 2 px above its edge; today's low
 # and high on that line, the outdoor temperature above them.
@@ -138,7 +138,7 @@ INFO_ICON_UP, INFO_ICON_H = 4, 24
 INFO_LEFT = (MARGIN, 26)  # x, w: even, so a two-digit number has as much room left as right
 BADGE_RADIUS = 5
 # the right field (a time, mostly) clear of the main text by INFO_GAP
-INFO_RIGHT = (204, 52)    # x, w: clear of the lower shortcuts (from 263)
+INFO_RIGHT = (182, 74)    # x, w: "11:11 AM" (74 px), to x=256, clear of the lower shortcuts (from 263)
 INFO_GAP = 8
 INFO_MAIN_X = 44          # the main text: 6 px clear of the left field (12..38)
 # the vertical centres of the two value rows: one group, the number fields
@@ -166,18 +166,15 @@ RELAYS = [(VISIBLE_W - RELAY_STRIP + 2, 172, 20, 132), (VISIBLE_W - RELAY_STRIP 
 RELAY_BARS = [(VISIBLE_W - 6, y, 3, h) for _, y, _, h in RELAYS]                                  # beside each
 HOME_RIGHT = VISIBLE_W - RELAY_STRIP - 12  # 438: home's right edge, well clear of them
 WIFI_ICON = (HOME_RIGHT - 24, 5, 25, 25)   # the 24 px glyph in a 25 px box
-# beside the WiFi icon, right-aligned: a value and its icon (32 px font)
-STATUS_VALUE = (HOME_RIGHT - 124, 5, 100, 25)
-STATUS_VALUE_ICON = (HOME_RIGHT - 22, 5, 25, 25)
-CLOCK = (HOME_RIGHT - 160, 45, 160, 62)    # font 6, right-aligned
+CLOCK = (HOME_RIGHT - 160, 39, 160, 62)    # font 6, right-aligned
 CLOCK_XCEN = 2
-DATE = (HOME_RIGHT - 165, 110, 165, 30)    # font 3, right-aligned, on the field's bottom
+DATE = (HOME_RIGHT - 165, 104, 165, 30)    # font 3, right-aligned, on the field's bottom
 DATE_XCEN = 2
 RANGE_END = DATE[0]                   # today's low and high end before the date
-# the shortcut icons (32 px font) in 35 px fields 47 px apart, right-aligned in two rows: three, then four
+# the shortcut icons (32 px font) in 35 px fields 47 px apart, right-aligned in three rows of four, numbered as read:
+# the top one under the low and high, the lowest 8 px above the second info line's text
 SHORTCUT, SHORTCUT_STEP = 35, 47
-SHORTCUTS = [(HOME_RIGHT + 1 - SHORTCUT - k * SHORTCUT_STEP, y) for y, n in ((186, 3), (238, 4))
-             for k in reversed(range(n))]
+SHORTCUTS = [(HOME_RIGHT + 1 - SHORTCUT - k * SHORTCUT_STEP, y) for y in (172, 219, 266) for k in reversed(range(4))]
 
 
 # The weather page (page type "weather", the days of the forecast as sheets):

@@ -356,6 +356,14 @@ int main() {
   expect_issue("home after: text", doc("\"display\":{\"home_after\":\"60\"}"), "display.home_after");
   expect_issue("weekday count", doc("\"display\":{\"texts\":{\"weekdays\":[\"a\"]}}"), "display.texts.weekdays");
   expect_issue("too many relays", doc("\"home\":{\"relays\":[{},{},{}]}"), "home.relays");
+  {  // twelve shortcuts, three rows of four
+    std::string twelve;
+    for (int i = 0; i < 12; i++)
+      twelve += std::string(i ? "," : "") + "{\"icon\":\"cog\"}";
+    expect_valid("twelve shortcuts", doc("\"home\":{\"shortcuts\":[" + twelve + "]}"));
+    expect_issue("thirteen shortcuts", doc("\"home\":{\"shortcuts\":[" + twelve + ",{\"icon\":\"cog\"}]}"),
+                 "home.shortcuts");
+  }
   expect_issue("relay flag", doc("\"home\":{\"relays\":[{\"label\":\"x\",\"relay\":\"no\"}]}"), "home.relays[0].relay");
   expect_issue("info field item and text",
                doc("\"home\":{\"info\":[{\"main\":{\"item\":\"A\",\"text\":\"b\"}}]}"), "home.info[0].main");

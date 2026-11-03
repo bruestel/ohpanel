@@ -71,8 +71,6 @@
     "top8",
     "top9",
     "top10",
-    "top_value",
-    "top_icon",
     "wifi",
     "outdoor",
     "outdoor_n1",
@@ -175,13 +173,18 @@
     "info2_tagicon",
     "relay1_text",
     "relay2_text",
-    "shortcut1_icon",
-    "shortcut2_icon",
-    "shortcut3_icon",
-    "shortcut4_icon",
-    "shortcut5_icon",
-    "shortcut6_icon",
-    "shortcut7_icon",
+    "short1_icon",
+    "short2_icon",
+    "short3_icon",
+    "short4_icon",
+    "short5_icon",
+    "short6_icon",
+    "short7_icon",
+    "short8_icon",
+    "short9_icon",
+    "short10_icon",
+    "short11_icon",
+    "short12_icon",
     "busy1",
     "busy2",
     "busy3"
@@ -2489,11 +2492,6 @@
     40,
     10
    ],
-   "top_value": [
-    3,
-    100,
-    16
-   ],
    "outdoor": [
     5,
     130,
@@ -2896,8 +2894,8 @@
    ],
    "info1_text": [
     1,
-    152,
-    32
+    130,
+    28
    ],
    "info1_tag": [
     1,
@@ -2906,8 +2904,8 @@
    ],
    "info1_right": [
     1,
-    52,
-    5
+    74,
+    8
    ],
    "info1_badge": [
     1,
@@ -2916,8 +2914,8 @@
    ],
    "info2_text": [
     1,
-    152,
-    32
+    130,
+    28
    ],
    "info2_tag": [
     1,
@@ -2926,8 +2924,8 @@
    ],
    "info2_right": [
     1,
-    52,
-    5
+    74,
+    8
    ],
    "info2_badge": [
     1,
@@ -15436,8 +15434,6 @@
    "top8",
    "top9",
    "top10",
-   "top_value",
-   "top_icon",
    "wifi",
    "weather_pic",
    "outdoor",
@@ -15549,21 +15545,31 @@
    "relay2_text",
    "relay2_bar",
    "relay2_label",
-   "shortcut1_icon",
-   "shortcut2_icon",
-   "shortcut3_icon",
-   "shortcut4_icon",
-   "shortcut5_icon",
-   "shortcut6_icon",
-   "shortcut7_icon",
+   "short1_icon",
+   "short2_icon",
+   "short3_icon",
+   "short4_icon",
+   "short5_icon",
+   "short6_icon",
+   "short7_icon",
+   "short8_icon",
+   "short9_icon",
+   "short10_icon",
+   "short11_icon",
+   "short12_icon",
    "weather_hs",
-   "shortcut1_hs",
-   "shortcut2_hs",
-   "shortcut3_hs",
-   "shortcut4_hs",
-   "shortcut5_hs",
-   "shortcut6_hs",
-   "shortcut7_hs",
+   "short1_hs",
+   "short2_hs",
+   "short3_hs",
+   "short4_hs",
+   "short5_hs",
+   "short6_hs",
+   "short7_hs",
+   "short8_hs",
+   "short9_hs",
+   "short10_hs",
+   "short11_hs",
+   "short12_hs",
    "busy1",
    "busy2",
    "busy3",
@@ -16293,5 +16299,5 @@
    "close"
   ]
  },
- "design": "26f73ca8"
+ "design": "61bfd2ee"
 }

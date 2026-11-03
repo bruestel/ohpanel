@@ -75,10 +75,10 @@ CLOSE_ICON = (VISIBLE_W - MARGIN - CLOSE_DISC, 8, CLOSE_DISC, CLOSE_DISC)   # x 
 # shortcuts beside them on the right, the two info lines, the relays' labels and bars over the two buttons.
 STATUS_ICONS = [(MARGIN + 1 + 27 * k, 5) for k in range(10)]   # up to ten, 27 px apart: clear of the WiFi icon
 WIFI_ICON = (RIGHT - 24, 5, 25, 25)
-STATUS_VALUE = (RIGHT - 124, 5, 100, 25)
-STATUS_VALUE_ICON = (RIGHT - 22, 5, 25, 25)
-WEATHER_HOME = (56, 140, 104, 104)                               # the block's left: centred for "14°" 
-WEATHER_BOTTOM = WEATHER_HOME[1] + WEATHER_HOME[3] - 2           # 136
+# the block's left: centred for "14°"; its top right under the date's field (to y=130): the date repaints its box,
+# and some weather pictures draw from their second row
+WEATHER_HOME = (56, 131, 104, 104)
+WEATHER_BOTTOM = WEATHER_HOME[1] + WEATHER_HOME[3] - 2           # 233
 # the clock (font 6) centred, its digits from y=51, in a field as wide as "00:00" (its digits all 37 px, the colon
 # 16): AM/PM stands small above its minutes (with a gap after "9:23"); the date under it (font 3) centred across the
 # screen, 65 px below the clock's top
@@ -100,7 +100,7 @@ OUTDOOR_UNIT_STEP = 13
 FONT_OUTDOOR, FONT_OUTDOOR_UNIT = 5, 2
 OUTDOOR_UNIT_STEPS = 7
 FONT_RANGE = 2
-RANGE_BASELINE = OUTDOOR_BASELINE + 29      # the outdoor field (to y=194) clear of the arrows' (from 195)
+RANGE_BASELINE = OUTDOOR_BASELINE + 29      # the outdoor field (to y=210) clear of the arrows' (from 211)
 RANGE_Y, RANGE_H = RANGE_BASELINE + 5 - 22, 22
 RANGE_ARROW_Y = (RANGE_BASELINE - 8) - 12
 RANGE_ARROW_W = 24
@@ -121,21 +121,23 @@ INFO_Y = (386, 410)
 INFO_ICON_UP, INFO_ICON_H = 4, 24
 INFO_LEFT = (MARGIN, 26)
 BADGE_RADIUS = 5
-INFO_RIGHT = (RIGHT - 52, 52)
+INFO_RIGHT = (RIGHT - 74, 74)   # "11:11 AM" (74 px)
 INFO_GAP = 8
 INFO_MAIN_X = 44
 # the two value rows above the info lines, the number fields touching
 VALUE_ROWS = (334, 363)   # 29 apart: the icons' fields (32 px) overlap only where neither has ink
 VALUE_NUMBER_H = 28
 VALUE_ICON_CX = MARGIN + 11.5
-VALUE_NUMBER = (40, 100)
-VALUE_UNIT_W, VALUE_DIGIT, VALUE_UNIT_STEPS = 36, 13, 12
+# the number and its unit end before the shortcuts' left column (x=133): a number with a unit up to 56 px
+# ("1013", "-12,5"), a unit up to 35 ("kWh"); a longer one is shortened
+VALUE_NUMBER = (40, 92)
+VALUE_UNIT_W, VALUE_DIGIT, VALUE_UNIT_STEPS = 35, 13, 8
 VALUE_UNIT_STEP = 7
 FONT_VALUE, FONT_VALUE_UNIT = 3, 1
-# the shortcuts (32 px font) in 35 px fields 47 px apart, right-aligned: the first three beside the value rows,
-# the other four in a row above them
+# the shortcuts (32 px font) in 35 px fields 47 px apart, right-aligned in three rows of four, numbered as read: the
+# top one under the weather block, the lower two beside the value rows
 SHORTCUT, SHORTCUT_STEP = 35, 47
-SHORTCUTS = [(RIGHT + 1 - SHORTCUT - k * SHORTCUT_STEP, y) for y, n in ((331, 3), (284, 4)) for k in reversed(range(n))]
+SHORTCUTS = [(RIGHT + 1 - SHORTCUT - k * SHORTCUT_STEP, y) for y in (243, 290, 337) for k in reversed(range(4))]
 
 
 # The weather page: the icon left, the high large beside it, the low under that -- or the high smaller with the

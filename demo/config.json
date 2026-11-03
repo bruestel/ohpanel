@@ -66,7 +66,7 @@
         "on": "OPEN"
       }
     ],
-    "shortcuts": [
+    "shortcuts": [null, null, null, null, null, null, null, null, 
       {
         "item": "Speaker_State",
         "icon": [

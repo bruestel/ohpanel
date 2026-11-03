@@ -27,7 +27,7 @@ value, "_icon" a field on an icon font, "_pic" a picture, "_hs" a touch area,
 "_tm" a timer, "_slider" -- and a single object without a part (clock, date,
 dots). On every page alike: title, close and close_hs (the close cross),
 swipe and swipe_tm, busy1..3 and busy_tm. An event names what was touched as
-its touch area without "_hs" (tile3, shortcut2, close).
+its touch area without "_hs" (tile3, short2, close).
 
 The design in short:
 
@@ -345,8 +345,8 @@ def home_page(p: Project) -> None:
     the status icons, the weather icon (and a hotspot over it) with the
     outdoor temperature beside it and today's low and high under that, two
     value rows (an icon and a value each), the info lines. The right half:
-    a value and the WiFi icon at the end of the status row, the clock, the date
-    and the shortcuts right-aligned at the right margin. At the bottom the
+    the WiFi icon at the end of the status row, the clock, the date and the
+    shortcuts (three rows of four) right-aligned at the right margin. At the bottom the
     relays' labels with a bar each.
 
     The left field of an info line also comes as an icon (suffix "_ico", the
@@ -363,8 +363,6 @@ def home_page(p: Project) -> None:
 
     for k, (sx, sy) in enumerate(layout.STATUS_ICONS, start=1):
         text(home, f"top{k}", (sx, sy, 25, 25), ICON_FONT, xcen=1, maxl=10, pco=LIGHT_GREY)
-    text(home, "top_value", layout.STATUS_VALUE, TEXT_FONT, xcen=2, maxl=10, pco=LIGHT_GREY)
-    text(home, "top_icon", layout.STATUS_VALUE_ICON, ICON_FONT_LARGE, xcen=1, maxl=10, pco=LIGHT_GREY)
     text(home, "wifi", layout.WIFI_ICON, ICON_FONT, xcen=1, maxl=5, pco=WIFI_GREY)
 
     weather_pics = PICTURES["weather_home"]
@@ -429,7 +427,7 @@ def home_page(p: Project) -> None:
         text(home, f"info{line}_text", (layout.INFO_MAIN_X, y, rx - layout.INFO_GAP - layout.INFO_MAIN_X,
                                           layout.INFO_H), 1, maxl=20, pco=LIGHT_GREY)
         text(home, f"info{line}_tag", (lx, y, lw, layout.INFO_H), 1, xcen=1, maxl=5)
-        text(home, f"info{line}_right", (rx, y, rw, layout.INFO_H), 1, xcen=1, maxl=5, pco=LIGHT_GREY)
+        text(home, f"info{line}_right", (rx, y, rw, layout.INFO_H), 1, xcen=1, maxl=8, pco=LIGHT_GREY)   # "12:41 PM"
         # an icon in a field as high as its font, up where it shows centred on the line (layout.INFO_ICON_UP)
         icon_box = (lx, y - layout.INFO_ICON_UP, lw, layout.INFO_ICON_H)
         text(home, f"info{line}_tagicon", icon_box, ICON_FONT, xcen=1, maxl=5)
@@ -450,13 +448,13 @@ def home_page(p: Project) -> None:
 
     # the shortcuts, and the touch areas over them and the weather icon
     for n, (x, y) in enumerate(layout.SHORTCUTS, start=1):
-        text(home, f"shortcut{n}_icon", (x, y, layout.SHORTCUT, layout.SHORTCUT), ICON_FONT_LARGE, xcen=1, maxl=10,
+        text(home, f"short{n}_icon", (x, y, layout.SHORTCUT, layout.SHORTCUT), ICON_FONT_LARGE, xcen=1, maxl=10,
              pco=LIGHT_GREY)
     hotspot(home, "weather_hs", layout.WEATHER_HOME, event("home", "weather", "release"),
             event("home", "weather", "press"))
     for n, (x, y) in enumerate(layout.SHORTCUTS, start=1):
-        hotspot(home, f"shortcut{n}_hs", (x, y, layout.SHORTCUT, layout.SHORTCUT),
-                event("home", f"shortcut{n}", "release"))
+        hotspot(home, f"short{n}_hs", (x, y, layout.SHORTCUT, layout.SHORTCUT),
+                event("home", f"short{n}", "release"))
     # everything hidden while the page loads: the firmware shows what is configured
     on_load(home, loaded(home) + ["vis 255,0"])
 

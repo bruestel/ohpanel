@@ -32,7 +32,7 @@ bool clock_time(const char *t) {
 constexpr int kMaxButtons = 8;
 constexpr int kMaxStatusIcons = 10;
 constexpr int kMaxValueRows = 2;
-constexpr int kMaxShortcuts = 7;
+constexpr int kMaxShortcuts = 12;   // three rows of four
 constexpr int kMaxInfoLines = 2;
 constexpr int kMaxRelays = 2;
 constexpr int kMaxExtras = 6;   // the weather page's cards

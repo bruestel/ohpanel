@@ -323,7 +323,7 @@ int main(int argc, char **argv) {
     CHECK(main.size() > 4 && main.compare(main.size() - 4, 4, "...\"") == 0);
     CHECK(main.find("Old Town") == std::string::npos);
   }
-  CHECK(rec.has_prefix("shortcut3_icon.txt="));           // guest wifi shortcut (always shown)
+  CHECK(rec.has_prefix("short3_icon.txt="));           // guest wifi shortcut (always shown)
   if (g_failures) rec.dump();
 
   {  // what counts as on: the states "on" names (a player's String item says PLAYING)
@@ -337,10 +337,10 @@ int main(int argc, char **argv) {
     set_state("officeSpeakerState", "PLAYING", "String");
     rec.out.clear();
     e.on_message(loaded("home"));
-    CHECK(rec.has_prefix("shortcut1_icon.txt=") && !rec.has("shortcut1_icon.txt=\"\""));   // shown
+    CHECK(rec.has_prefix("short1_icon.txt=") && !rec.has("short1_icon.txt=\"\""));   // shown
     set_state("officeSpeakerState", "STOPPED", "String");
     e.on_state("officeSpeakerState");
-    CHECK(rec.has("shortcut1_icon.txt=\"\""));                                          // hidden again
+    CHECK(rec.has("short1_icon.txt=\"\""));                                          // hidden again
     e.set_config(read("test/host/data/office.json"));
     e.on_message(loaded("home"));
   }
@@ -357,8 +357,8 @@ int main(int argc, char **argv) {
     cJSON_Delete(doc);
     set_state("officeSpeakerState", "PLAYING", "String");
     e.on_message(loaded("home"));
-    const std::string eq = "shortcut1_icon.txt=\"" + nextion::quote(icon_glyph("equalizer")) + "\"",
-                      poll = "shortcut1_icon.txt=\"" + nextion::quote(icon_glyph("poll")) + "\"";
+    const std::string eq = "short1_icon.txt=\"" + nextion::quote(icon_glyph("equalizer")) + "\"",
+                      poll = "short1_icon.txt=\"" + nextion::quote(icon_glyph("poll")) + "\"";
     CHECK(e.animating() && rec.has(eq));
     rec.out.clear();
     e.animate(1000);   // starts its clock
@@ -370,20 +370,40 @@ int main(int argc, char **argv) {
     CHECK(rec.has(eq));
     set_state("officeSpeakerState", "STOPPED", "String");
     e.on_state("officeSpeakerState");
-    CHECK(!e.animating() && rec.has("shortcut1_icon.txt=\"\""));
+    CHECK(!e.animating() && rec.has("short1_icon.txt=\"\""));
     e.set_config(read("test/host/data/office.json"));
     e.on_message(loaded("home"));
+  }
+
+  {  // twelve shortcuts, three rows of four: the twelfth shows and opens its page, not the first's
+    cJSON *doc = cJSON_Parse(read("test/host/data/office.json").c_str());
+    cJSON *list = cJSON_GetObjectItem(cJSON_GetObjectItem(doc, "home"), "shortcuts");
+    while (cJSON_GetArraySize(list) < 11)
+      cJSON_AddItemToArray(list, cJSON_CreateNull());
+    cJSON_AddItemToArray(list, cJSON_Parse("{\"icon\":\"wifi\",\"open\":\"guest-wifi\"}"));
+    char *text = cJSON_PrintUnformatted(doc);
+    e.set_config(text);
+    cJSON_free(text);
+    cJSON_Delete(doc);
+    rec.out.clear();
+    e.on_message(loaded("home"));
+    CHECK(rec.has_prefix("short12_icon.txt=") && !rec.has("short12_icon.txt=\"\""));
+    CHECK(rec.has("short11_icon.txt=\"\""));   // a gap: empty
+    e.on_message(event("home", "short12", "release"));
+    CHECK(e.current() == "guest-wifi");
+    e.on_message(event("guest-wifi", "close", "release"));
+    e.set_config(read("test/host/data/office.json"));
   }
 
   {  // a shortcut with an item opens its page only while the item is on; one without always
     e.on_message(loaded("home"));
     set_state("officeSpeakerState", "OFF", "OnOff");
     e.on_state("officeSpeakerState");
-    e.on_message(event("home", "shortcut1", "release"));
+    e.on_message(event("home", "short1", "release"));
     CHECK(e.current() == "home");                       // off: not followed
     set_state("officeSpeakerState", "ON", "OnOff");
     e.on_state("officeSpeakerState");
-    e.on_message(event("home", "shortcut1", "release"));
+    e.on_message(event("home", "short1", "release"));
     CHECK(e.current() == "speaker");
     {  // with "open_when_off" it opens while the item is off too
       e.on_message(loaded("home"));
@@ -397,7 +417,7 @@ int main(int argc, char **argv) {
       cJSON_free(text);
       cJSON_Delete(doc);
       e.on_message(loaded("home"));
-      e.on_message(event("home", "shortcut1", "release"));
+      e.on_message(event("home", "short1", "release"));
       CHECK(e.current() == "speaker");
       e.set_config(read("test/host/data/office.json"));
     }
@@ -419,7 +439,7 @@ int main(int argc, char **argv) {
     }
     e.on_message(event("media", "close", "release"));
     e.on_message(loaded("home"));
-    e.on_message(event("home", "shortcut3", "release"));
+    e.on_message(event("home", "short3", "release"));
     CHECK(e.current() == "guest-wifi");                 // no item: always
     rec.out.clear();
     e.on_message(loaded("qr"));
@@ -458,7 +478,7 @@ int main(int argc, char **argv) {
     cJSON_free(text);
     cJSON_Delete(doc);
     e.idle(1000000);
-    e.on_message(event("home", "shortcut3", "release"));   // guest wifi page, touched at 1000 s
+    e.on_message(event("home", "short3", "release"));   // guest wifi page, touched at 1000 s
     e.on_message(loaded("qr"));
     e.idle(1029000);
     CHECK(e.current() == "guest-wifi");                     // 29 s: stays
@@ -466,7 +486,7 @@ int main(int argc, char **argv) {
     CHECK(e.current() == "home");                           // 30 s: home
     e.on_message(loaded("home"));
     e.idle(1049000);
-    e.on_message(event("home", "shortcut3", "release"));     // the page again, touched at 1049 s
+    e.on_message(event("home", "short3", "release"));     // the page again, touched at 1049 s
     e.on_message(loaded("qr"));
     e.idle(1049000 + 10000);
     e.on_message(event("qr", "qrcode_value", "press"));     // any touch there starts it again, at 1059 s
@@ -479,7 +499,7 @@ int main(int argc, char **argv) {
     CHECK(e.current() == "home");                           // on home nothing happens
     // without the setting: a minute
     e.set_config(read("test/host/data/office.json"));
-    e.on_message(event("home", "shortcut3", "release"));
+    e.on_message(event("home", "short3", "release"));
     e.on_message(loaded("qr"));
     e.idle(1149000 + 59000);
     CHECK(e.current() == "guest-wifi");
@@ -490,7 +510,7 @@ int main(int argc, char **argv) {
     set_state("officeSpeakerState", "ON", "OnOff");
     e.on_state("officeSpeakerState");
     set_state("officeSpeakerControl", "PLAY", "Player");
-    e.on_message(event("home", "shortcut1", "release"));
+    e.on_message(event("home", "short1", "release"));
     e.on_message(loaded("media"));
     e.idle(1209000 + 300000);
     CHECK(e.current() == "speaker");
@@ -511,7 +531,7 @@ int main(int argc, char **argv) {
     e.set_config(text);
     cJSON_free(text);
     cJSON_Delete(doc);
-    e.on_message(event("home", "shortcut3", "release"));
+    e.on_message(event("home", "short3", "release"));
     e.on_message(loaded("qr"));
     e.idle(1149000 + 999000);
     CHECK(e.current() == "guest-wifi");
@@ -1172,7 +1192,7 @@ int main(int argc, char **argv) {
     e.on_message(loaded("home"));
     set_state("officeSpeakerState", "ON", "OnOff");
     e.on_state("officeSpeakerState");
-    e.on_message(event("home", "shortcut1", "release"));
+    e.on_message(event("home", "short1", "release"));
     CHECK(e.current() == "speaker");
     set_state("officeSpeakerControl", "PAUSE", "Player");
     set_state("officeSpeakerCurrentTitle", "Nachrichten", "String");
@@ -1390,7 +1410,7 @@ int main(int argc, char **argv) {
     e.on_message(loaded("home"));
     set_state("officeSpeakerState", "ON", "OnOff");
     e.on_state("officeSpeakerState");
-    e.on_message(event("home", "shortcut1", "release"));
+    e.on_message(event("home", "short1", "release"));
     CHECK(e.current() == "speaker");
     e.on_message(loaded("media"));
     e.on_message(event("media", "favorites", "release"));
@@ -1435,7 +1455,7 @@ int main(int argc, char **argv) {
     e.on_state("officeSpeakerState");
     set_state("officeSpeakerCurrentTitle", "Ein Lied", "String");
     const auto tap = [&](const char *button) {
-      e.on_message(event("home", "shortcut1", "release"));
+      e.on_message(event("home", "short1", "release"));
       e.on_message(loaded("media"));
       e.on_message(event("media", "favorites", "release"));
       e.on_message(loaded("buttons"));
@@ -1924,7 +1944,7 @@ int main(int argc, char **argv) {
     CHECK(e.asleep() && rec.has("dim=0") && rec.has(page_cmd("blank")));
     e.on_message(loaded("blank"));
     commands.clear();
-    e.on_message(event("home", "shortcut1", "release"));   // a press from the page before: nothing
+    e.on_message(event("home", "short1", "release"));   // a press from the page before: nothing
     CHECK(commands.empty() && e.current() == "home");
     e.on_message(event("blank", "wake", "release"));
     rec.out.clear();
@@ -2181,7 +2201,7 @@ int main(int argc, char **argv) {
     CHECK(s.current() == "home");
     s.on_message(event("home", "swipe", "left"));   // "settings" in the row is skipped: no page to go to
     CHECK(s.current() == "home");
-    s.on_message(event("home", "shortcut1", "release"));
+    s.on_message(event("home", "short1", "release"));
     CHECK(s.current() == "settings" && r2.has(page_cmd("settings")));
     r2.out.clear();
     s.on_message(loaded("settings"));
@@ -2850,13 +2870,13 @@ int main(int argc, char **argv) {
     set_state("BinDate", "1791298800", "Decimal", nullptr, 1791298800, true);
     e.tick(monday_1659);
     e.on_message(loaded("home"));
-    CHECK(rec.has_prefix("shortcut2_icon.txt=") && !rec.has("shortcut2_icon.pco=65472"));   // not yet
+    CHECK(rec.has_prefix("short2_icon.txt=") && !rec.has("short2_icon.pco=65472"));   // not yet
     rec.out.clear();
     e.tick(monday_1659 + 60);                                                                  // 17:00
-    CHECK(rec.has("shortcut2_icon.pco=65472"));                                                // yellow now
+    CHECK(rec.has("short2_icon.pco=65472"));                                                // yellow now
     rec.out.clear();
     e.tick(monday_1659 + 120);                                                                 // 17:01: unchanged
-    CHECK(!rec.has_prefix("shortcut2_icon"));
+    CHECK(!rec.has_prefix("short2_icon"));
     e.set_config(read("test/host/data/office.json"));
   }
 

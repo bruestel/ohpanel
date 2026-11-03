@@ -71,8 +71,6 @@
     "top8",
     "top9",
     "top10",
-    "top_value",
-    "top_icon",
     "wifi",
     "outdoor",
     "outdoor_n1",
@@ -131,14 +129,6 @@
     "row1_u7",
     "row1_n8",
     "row1_u8",
-    "row1_n9",
-    "row1_u9",
-    "row1_n10",
-    "row1_u10",
-    "row1_n11",
-    "row1_u11",
-    "row1_n12",
-    "row1_u12",
     "row2_icon",
     "row2",
     "row2_n1",
@@ -157,14 +147,6 @@
     "row2_u7",
     "row2_n8",
     "row2_u8",
-    "row2_n9",
-    "row2_u9",
-    "row2_n10",
-    "row2_u10",
-    "row2_n11",
-    "row2_u11",
-    "row2_n12",
-    "row2_u12",
     "info1_text",
     "info1_tag",
     "info1_right",
@@ -175,13 +157,18 @@
     "info2_tagicon",
     "relay1_text",
     "relay2_text",
-    "shortcut1_icon",
-    "shortcut2_icon",
-    "shortcut3_icon",
-    "shortcut4_icon",
-    "shortcut5_icon",
-    "shortcut6_icon",
-    "shortcut7_icon",
+    "short1_icon",
+    "short2_icon",
+    "short3_icon",
+    "short4_icon",
+    "short5_icon",
+    "short6_icon",
+    "short7_icon",
+    "short8_icon",
+    "short9_icon",
+    "short10_icon",
+    "short11_icon",
+    "short12_icon",
     "busy1",
     "busy2",
     "busy3"
@@ -2481,11 +2468,6 @@
     40,
     10
    ],
-   "top_value": [
-    3,
-    100,
-    16
-   ],
    "outdoor": [
     5,
     130,
@@ -2638,7 +2620,7 @@
    ],
    "row1": [
     3,
-    100,
+    92,
     8
    ],
    "row1_n1": [
@@ -2648,7 +2630,7 @@
    ],
    "row1_u1": [
     1,
-    36,
+    35,
     8
    ],
    "row1_n2": [
@@ -2658,7 +2640,7 @@
    ],
    "row1_u2": [
     1,
-    36,
+    35,
     8
    ],
    "row1_n3": [
@@ -2668,7 +2650,7 @@
    ],
    "row1_u3": [
     1,
-    36,
+    35,
     8
    ],
    "row1_n4": [
@@ -2678,7 +2660,7 @@
    ],
    "row1_u4": [
     1,
-    36,
+    35,
     8
    ],
    "row1_n5": [
@@ -2688,7 +2670,7 @@
    ],
    "row1_u5": [
     1,
-    36,
+    35,
     8
    ],
    "row1_n6": [
@@ -2698,7 +2680,7 @@
    ],
    "row1_u6": [
     1,
-    36,
+    35,
     8
    ],
    "row1_n7": [
@@ -2708,7 +2690,7 @@
    ],
    "row1_u7": [
     1,
-    36,
+    35,
     8
    ],
    "row1_n8": [
@@ -2718,52 +2700,12 @@
    ],
    "row1_u8": [
     1,
-    36,
-    8
-   ],
-   "row1_n9": [
-    3,
-    65,
-    8
-   ],
-   "row1_u9": [
-    1,
-    36,
-    8
-   ],
-   "row1_n10": [
-    3,
-    72,
-    8
-   ],
-   "row1_u10": [
-    1,
-    36,
-    8
-   ],
-   "row1_n11": [
-    3,
-    79,
-    8
-   ],
-   "row1_u11": [
-    1,
-    36,
-    8
-   ],
-   "row1_n12": [
-    3,
-    86,
-    8
-   ],
-   "row1_u12": [
-    1,
-    36,
+    35,
     8
    ],
    "row2": [
     3,
-    100,
+    92,
     8
    ],
    "row2_n1": [
@@ -2773,7 +2715,7 @@
    ],
    "row2_u1": [
     1,
-    36,
+    35,
     8
    ],
    "row2_n2": [
@@ -2783,7 +2725,7 @@
    ],
    "row2_u2": [
     1,
-    36,
+    35,
     8
    ],
    "row2_n3": [
@@ -2793,7 +2735,7 @@
    ],
    "row2_u3": [
     1,
-    36,
+    35,
     8
    ],
    "row2_n4": [
@@ -2803,7 +2745,7 @@
    ],
    "row2_u4": [
     1,
-    36,
+    35,
     8
    ],
    "row2_n5": [
@@ -2813,7 +2755,7 @@
    ],
    "row2_u5": [
     1,
-    36,
+    35,
     8
    ],
    "row2_n6": [
@@ -2823,7 +2765,7 @@
    ],
    "row2_u6": [
     1,
-    36,
+    35,
     8
    ],
    "row2_n7": [
@@ -2833,7 +2775,7 @@
    ],
    "row2_u7": [
     1,
-    36,
+    35,
     8
    ],
    "row2_n8": [
@@ -2843,53 +2785,13 @@
    ],
    "row2_u8": [
     1,
-    36,
-    8
-   ],
-   "row2_n9": [
-    3,
-    65,
-    8
-   ],
-   "row2_u9": [
-    1,
-    36,
-    8
-   ],
-   "row2_n10": [
-    3,
-    72,
-    8
-   ],
-   "row2_u10": [
-    1,
-    36,
-    8
-   ],
-   "row2_n11": [
-    3,
-    79,
-    8
-   ],
-   "row2_u11": [
-    1,
-    36,
-    8
-   ],
-   "row2_n12": [
-    3,
-    86,
-    8
-   ],
-   "row2_u12": [
-    1,
-    36,
+    35,
     8
    ],
    "info1_text": [
     1,
-    204,
-    43
+    182,
+    39
    ],
    "info1_tag": [
     1,
@@ -2898,8 +2800,8 @@
    ],
    "info1_right": [
     1,
-    52,
-    5
+    74,
+    8
    ],
    "info1_badge": [
     1,
@@ -2908,8 +2810,8 @@
    ],
    "info2_text": [
     1,
-    204,
-    43
+    182,
+    39
    ],
    "info2_tag": [
     1,
@@ -2918,8 +2820,8 @@
    ],
    "info2_right": [
     1,
-    52,
-    5
+    74,
+    8
    ],
    "info2_badge": [
     1,
@@ -14874,7 +14776,7 @@
   "row1_u": {
    "x": 40,
    "step": 7,
-   "n": 12,
+   "n": 8,
    "font": 3,
    "field": "row1",
    "numbers": "row1_n"
@@ -14882,7 +14784,7 @@
   "row2_u": {
    "x": 40,
    "step": 7,
-   "n": 12,
+   "n": 8,
    "font": 3,
    "field": "row2",
    "numbers": "row2_n"
@@ -15395,8 +15297,6 @@
    "top8",
    "top9",
    "top10",
-   "top_value",
-   "top_icon",
    "wifi",
    "weather_pic",
    "outdoor",
@@ -15456,14 +15356,6 @@
    "row1_u7",
    "row1_n8",
    "row1_u8",
-   "row1_n9",
-   "row1_u9",
-   "row1_n10",
-   "row1_u10",
-   "row1_n11",
-   "row1_u11",
-   "row1_n12",
-   "row1_u12",
    "row2_icon",
    "row2",
    "row2_n1",
@@ -15482,14 +15374,6 @@
    "row2_u7",
    "row2_n8",
    "row2_u8",
-   "row2_n9",
-   "row2_u9",
-   "row2_n10",
-   "row2_u10",
-   "row2_n11",
-   "row2_u11",
-   "row2_n12",
-   "row2_u12",
    "info1_text",
    "info1_tag",
    "info1_right",
@@ -15506,21 +15390,31 @@
    "relay1_bar",
    "relay2_text",
    "relay2_bar",
-   "shortcut1_icon",
-   "shortcut2_icon",
-   "shortcut3_icon",
-   "shortcut4_icon",
-   "shortcut5_icon",
-   "shortcut6_icon",
-   "shortcut7_icon",
+   "short1_icon",
+   "short2_icon",
+   "short3_icon",
+   "short4_icon",
+   "short5_icon",
+   "short6_icon",
+   "short7_icon",
+   "short8_icon",
+   "short9_icon",
+   "short10_icon",
+   "short11_icon",
+   "short12_icon",
    "weather_hs",
-   "shortcut1_hs",
-   "shortcut2_hs",
-   "shortcut3_hs",
-   "shortcut4_hs",
-   "shortcut5_hs",
-   "shortcut6_hs",
-   "shortcut7_hs",
+   "short1_hs",
+   "short2_hs",
+   "short3_hs",
+   "short4_hs",
+   "short5_hs",
+   "short6_hs",
+   "short7_hs",
+   "short8_hs",
+   "short9_hs",
+   "short10_hs",
+   "short11_hs",
+   "short12_hs",
    "busy1",
    "busy2",
    "busy3",
@@ -16242,5 +16136,5 @@
    "close"
   ]
  },
- "design": "67c9b1ac"
+ "design": "926cd92d"
 }

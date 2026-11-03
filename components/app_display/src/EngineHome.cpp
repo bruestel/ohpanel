@@ -243,10 +243,10 @@ void Engine::draw_home() {
     });
   }
 
-  // shortcuts: shortcut1_icon .. shortcut7_icon
-  for (int i = 0; i < 7; i++) {
+  // shortcuts: short1_icon .. short12_icon, three rows of four numbered as read
+  for (int i = 0; i < 12; i++) {
     const cJSON *s = slot(h, "shortcuts", i);
-    const std::string obj = "shortcut" + std::to_string(i + 1) + "_icon";
+    const std::string obj = "short" + std::to_string(i + 1) + "_icon";
     if (!s) {
       txt(obj, "");
       continue;
@@ -311,8 +311,6 @@ void Engine::draw_home() {
       });
     }
   }
-  txt("top_icon", "");
-  txt("top_value", "");
 }
 
 

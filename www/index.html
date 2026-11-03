@@ -3182,8 +3182,8 @@ function fillHome(cfg) {
     const visible = s && (s.show === 'always' || (!s.item && s.show !== 'when_on') || isOn(s));
     f[key] = visible ? indicatorLook(s) : {text: ''};
   }
-  for (let i = 0; i < 7; i++) {
-    const s = (h.shortcuts || [])[i], key = 'shortcut' + (i + 1) + '_icon';
+  for (let i = 0; i < SHORTCUTS; i++) {
+    const s = (h.shortcuts || [])[i], key = 'short' + (i + 1) + '_icon';
     const visible = s && (s.show === 'always' || (!s.item && s.show !== 'when_on') || isOn(s) || !stateOf(s));
     f[key] = visible ? indicatorLook(s) : {text: ''};
   }
@@ -3210,7 +3210,6 @@ function fillHome(cfg) {
       f[obj] = !ref ? {text: ''} : isIcon ? Object.assign({icon: ref.icon}, look) : Object.assign({text}, look);
     });
   });
-  f.top_icon = {text: ''}; f.top_value = {text: ''};
   return f;
 }
 
@@ -4529,6 +4528,9 @@ function pvShowEditing() {
   $('vWrap').classList.toggle('editing', !!PV.edit);
 }
 
+/* Home's shortcuts: three rows of four, numbered as read (Schema kMaxShortcuts). */
+const SHORTCUTS = 12;
+
 /* Lists whose entries keep their place (null = empty place), what a new
    entry starts as, and where they live. */
 const SLOTS = {
@@ -4583,7 +4585,7 @@ function pvTargets(template) {
     around('outdoor', ['outdoor', 'outdoor_u' + lastUnit, 'low_arrow', 'high' + lastHigh]);
     around('clock', ['clock', 'date', 'ampm']);
     for (let i = 0; i < 10; i++) at('status:' + i, 'top' + (i + 1));
-    for (let i = 0; i < 7; i++) at('shortcut:' + i, 'shortcut' + (i + 1) + '_icon');
+    for (let i = 0; i < SHORTCUTS; i++) at('shortcut:' + i, 'short' + (i + 1) + '_icon');
     for (let i = 0; i < 2; i++) {  // a line: its three fields
       const parts = ['_tag', '_text', '_right'].map(p => objects.find(o => o.n === 'info' + (i + 1) + p)).filter(Boolean);
       if (!parts.length) continue;
@@ -8471,7 +8473,7 @@ function pvTouchAt(x, y) {
 /* What touching `component` does on the current page: a function, or null. */
 function pvAction(component) {
   if (component === 'close') return PV.page === 'home' ? null : pvBack;
-  const page = pvPage(PV.page), n = /^(?:shortcut|tile)(\d)$/.exec(component);
+  const page = pvPage(PV.page), n = /^(?:short|tile)(\d+)$/.exec(component);
   if (!page) {
     const home = (PV.cfg && PV.cfg.home) || {};
     if (component === 'weather' && home.weather_page && home.weather_icon) return () => pvOpen(home.weather_page);

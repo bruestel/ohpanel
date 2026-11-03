@@ -1550,8 +1550,8 @@ void Engine::act(const std::string &page, const std::string &component, const st
   const cJSON *cfg = current_ == "home" ? nullptr : page_config(current_);
 
   if (page == "home") {
-    if (component.rfind("shortcut", 0) == 0 && value == "release")
-      act_shortcut(component[8] - '1');
+    if (component.rfind("short", 0) == 0 && value == "release")   // short1 .. short12
+      act_shortcut(atoi(component.c_str() + 5) - 1);
     else if (component == "weather" && value == "release") {
       const std::string target = str(member(config_, "home"), "weather_page");
       if (!target.empty())
