@@ -1027,12 +1027,12 @@ pre.box{margin:0;padding:.6rem .7rem;max-height:18rem;overflow:auto;background:v
         <p class="sub">A String item: a page id set on it (or <code>home</code>, <code>info</code>,
           <code>settings</code>) opens that page and wakes the screen. The panel then sets the item to NULL, so a
           rule sees it done and can ask for the same page again. An id the panel does not know is left as it is.</p>
-        <div id="vOpenPage"></div>
+        <div class="screen"><div class="field">Item<div id="vOpenPage"></div></div></div>
         <h3 class="screenh">The page on screen</h3>
         <p class="sub">A String item: the id of each page that opens (<code>home</code> for home) is sent to it as a
           command, so a rule can act on it, such as turning on an amplifier when the media page opens. The same page
           again is sent once the screen was off; nothing is sent while it is off.</p>
-        <div id="vCurPage"></div>
+        <div class="screen"><div class="field">Item<div id="vCurPage"></div></div></div>
       </div>
     </div>
     <div class="card">
