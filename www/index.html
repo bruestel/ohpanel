@@ -5867,6 +5867,15 @@ function pvEditor() {
                                                    v => set('blink', v === '' ? '' : +v))));
     style.hidden = several(e.icon);
     const onStates = onField(e.on, e.item, v => set('on', v));
+    /* "On when" only where it does something: shown while the item is on, or a shortcut that opens its page only
+       then (Engine::act_shortcut); shown always, it changes nothing (the rules below set its look) */
+    const now = {show: e.show, item: e.item, open: e.open, offToo: !!e.open_when_off};
+    const onRow = pvRow(field('On when', onStates));
+    const onCounts = () => {
+      const shown = now.show || (now.item ? 'when_on' : 'always');
+      onRow.hidden = !(shown === 'when_on' || (slot.kind === 'shortcut' && now.item && now.open && !now.offToo));
+    };
+    onCounts();
     let itemSet = () => {};
     const rows = [
       pvRow(field('Icon (several: shown in turn)', iconsField(e.icon, v => {
@@ -5880,9 +5889,10 @@ function pvEditor() {
       style,
       pvRow(field('Color', colorField(e.color, v => set('color', v), 'theme', THEME.text))),
       pvRow(field('Shown', selectInput([['', 'automatic (' + (e.item ? 'while on' : 'always') + ')'], ['always', 'always'],
-                                        ['when_on', 'while the item is on']], e.show, v => set('show', v)))),
-      pvRow(field('Item', itemField(e.item, v => { set('item', v); onStates.setItem(v); itemSet(v); }))),
-      pvRow(field('On when', onStates)),
+                                        ['when_on', 'while the item is on']], e.show,
+                                       v => { set('show', v); now.show = v; onCounts(); }))),
+      pvRow(field('Item', itemField(e.item, v => { set('item', v); onStates.setItem(v); itemSet(v); now.item = v; onCounts(); }))),
+      onRow,
       pvRow(field('Depending on the state (rules, the first that matches counts)',
                   rulesField(e.value_style, v => set('value_style', v), true))),
     ];
@@ -5892,7 +5902,7 @@ function pvEditor() {
       off.className = 'check';
       const cb = document.createElement('input');
       cb.type = 'checkbox'; cb.setAttribute('role', 'switch'); cb.checked = !!e.open_when_off;
-      cb.addEventListener('change', () => set('open_when_off', cb.checked, false));
+      cb.addEventListener('change', () => { set('open_when_off', cb.checked, false); now.offToo = cb.checked; onCounts(); });
       off.append(cb, 'Opens it while the item is off too');
       const offRow = pvRow(off);
       offRow.hidden = !e.item || !e.open;
@@ -5902,9 +5912,11 @@ function pvEditor() {
         set('open', v);
         target = v;
         offRow.hidden = !item || !target;
+        now.open = v;
+        onCounts();
       }))), offRow);
     }
-    box.append(...rows, pvSlotButtons(slot, slot.kind === 'status' ? 10 : 7));
+    box.append(...rows, pvSlotButtons(slot, slot.kind === 'status' ? 10 : SHORTCUTS));
   } else if (slot && slot.kind === 'relay') {
     const e = slot.entry || {}, set = (k, v, d) => pvSlotSet(slot, k, v, d);
     head.textContent = (slot.i ? 'Right' : 'Left') + ' button and relay';
