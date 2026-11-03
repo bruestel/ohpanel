@@ -1012,15 +1012,17 @@ pre.box{margin:0;padding:.6rem .7rem;max-height:18rem;overflow:auto;background:v
           <code>level|title|text</code>, the level <code>info</code> (blue), <code>warning</code> (yellow) or
           <code>alert</code> (red); empty or NULL takes it away. A touch that closes it sets the item to NULL: a
           rule sees it read and may send the next one.</p>
-        <div id="vNotify"></div>
-        <div class="row"><label>Wakes the screen<select id="vNoteWake">
-          <option value="">never: shown at the next touch (default)</option>
-          <option value="info">every notification, until it is closed</option>
-          <option value="warning">warnings and alerts, until closed</option>
-          <option value="alert">alerts only, until closed</option></select></label></div>
-        <div class="row"><label>Try one in the preview<input type="text" id="vNoteTry"
-          value="warning|Window open|The bathroom window has been open for 30 minutes."></label></div>
-        <div class="actions" style="margin-top:.6rem"><button type="button" class="b sec" id="vNoteShow">Show in the preview</button></div>
+        <div class="screen">
+          <div class="field">Item<div id="vNotify"></div></div>
+          <label>Wakes the screen<select id="vNoteWake">
+            <option value="">never: shown at the next touch (default)</option>
+            <option value="info">every notification, until it is closed</option>
+            <option value="warning">warnings and alerts, until closed</option>
+            <option value="alert">alerts only, until closed</option></select></label>
+          <label>Try one in the preview<input type="text" id="vNoteTry"
+            value="warning|Window open|The bathroom window has been open for 30 minutes."></label>
+          <div class="actions"><button type="button" class="b sec" id="vNoteShow">Show in the preview</button></div>
+        </div>
         <h3 class="screenh">Open a page</h3>
         <p class="sub">A String item: a page id set on it (or <code>home</code>, <code>info</code>,
           <code>settings</code>) opens that page and wakes the screen. The panel then sets the item to NULL, so a
