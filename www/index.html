@@ -1014,14 +1014,14 @@ pre.box{margin:0;padding:.6rem .7rem;max-height:18rem;overflow:auto;background:v
           rule sees it read and may send the next one.</p>
         <div id="vNotify"></div>
         <div class="row"><label>Wakes the screen<select id="vNoteWake">
-          <option value="">every one, till the screen goes idle or off as after a touch (default)</option>
-          <option value="info">every one, and keeps it on until it is closed</option>
-          <option value="warning">a warning or an alert, and keeps it on until it is closed</option>
-          <option value="alert">an alert, and keeps it on until it is closed</option>
-          <option value="never">none: the card shows once a touch wakes the screen</option></select></label></div>
+          <option value="">every notification, briefly (default)</option>
+          <option value="info">every notification, until it is closed</option>
+          <option value="warning">warnings and alerts, until closed</option>
+          <option value="alert">alerts only, until closed</option>
+          <option value="never">never: shown at the next touch</option></select></label></div>
         <div class="row"><label>Try one in the preview<input type="text" id="vNoteTry"
           value="warning|Window open|The bathroom window has been open for 30 minutes."></label></div>
-        <div class="actions"><button type="button" class="b" id="vNoteShow">Show in the preview</button></div>
+        <div class="actions" style="margin-top:.6rem"><button type="button" class="b sec" id="vNoteShow">Show in the preview</button></div>
         <h3 class="screenh">Open a page</h3>
         <p class="sub">A String item: a page id set on it (or <code>home</code>, <code>info</code>,
           <code>settings</code>) opens that page and wakes the screen. The panel then sets the item to NULL, so a
