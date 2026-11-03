@@ -1995,6 +1995,51 @@ int main(int argc, char **argv) {
     e.idle(t += 30000);
     CHECK(!e.asleep() && e.brightness() == 60);
 
+    // display.notifications.wake_and_keep_on: a warning wakes nothing, an alert wakes the screen and keeps it on
+    // until its card is closed
+    {
+      cJSON *doc = cJSON_Parse(with_screen(R"({"idle_brightness": 0, "idle_after": 30})").c_str());
+      cJSON_AddItemToObject(cJSON_GetObjectItem(doc, "display"), "notifications",
+                            cJSON_Parse(R"({"item": "Panel_Notify", "wake_and_keep_on": "alert"})"));
+      char *text = cJSON_PrintUnformatted(doc);
+      e.set_config(text);
+      cJSON_free(text);
+      cJSON_Delete(doc);
+    }
+    set_state("Panel_Notify", "", "String");
+    e.on_state("Panel_Notify");                        // the state at the start
+    e.on_message(event("home", "swipe", "none"));
+    e.idle(t += 100);
+    e.idle(t += 30000);
+    CHECK(e.asleep());
+    e.on_message(loaded("blank"));
+    set_state("Panel_Notify", "warning|Fridge|The door is open", "String");
+    e.on_state("Panel_Notify");
+    e.idle(t += 100);
+    CHECK(e.asleep());                                 // below the level: the screen stays off
+    set_state("Panel_Notify", "alert|Water|A leak under the sink", "String");
+    e.on_state("Panel_Notify");
+    e.idle(t += 100);
+    CHECK(!e.asleep() && e.brightness() == 85);        // woken
+    e.on_message(loaded("home"));
+    e.idle(t += 600000);
+    CHECK(!e.asleep() && e.brightness() == 85);        // ten minutes on: still on, as bright as in use
+    {
+      nextion::Message touch;
+      touch.kind = nextion::Message::Kind::Point;
+      touch.press = true;
+      e.on_message(touch);
+      touch.press = false;
+      e.on_message(touch);                             // closed
+    }
+    e.on_message(loaded("home"));
+    e.idle(t += 30000);
+    CHECK(e.asleep());                                 // off again as after a touch
+    e.on_message(loaded("blank"));
+    e.on_message(event("blank", "wake", "release"));
+    e.idle(t += 100);
+    e.on_message(loaded("home"));
+
     // display.open_page: a page id on the item opens that page, the item set to NULL after
     {
       cJSON *doc = cJSON_Parse(with_screen(R"({"idle_brightness": 0, "idle_after": 30})").c_str());

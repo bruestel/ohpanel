@@ -411,8 +411,10 @@ class Validator {
     if (const cJSON *n = cJSON_GetObjectItem(d, "notifications")) {
       const std::string p = member(path, "notifications");
       if (object(n, p)) {
-        allowed(n, p, {"item"});
+        allowed(n, p, {"item", "wake_and_keep_on"});
         item_name(cJSON_GetObjectItem(n, "item"), member(p, "item"));
+        // the least level that wakes the screen and keeps it on until the card is closed
+        one_of(n, "wake_and_keep_on", p, {"info", "warning", "alert", "never"});
       }
     }
     // an item whose state, a page id, opens that page; the panel sets it to NULL after

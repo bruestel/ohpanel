@@ -1013,6 +1013,12 @@ pre.box{margin:0;padding:.6rem .7rem;max-height:18rem;overflow:auto;background:v
           <code>alert</code> (red); empty or NULL takes it away. A touch that closes it sets the item to NULL: a
           rule sees it read and may send the next one.</p>
         <div id="vNotify"></div>
+        <div class="row"><label>Wakes the screen<select id="vNoteWake">
+          <option value="">every one, till the screen goes idle or off as after a touch (default)</option>
+          <option value="info">every one, and keeps it on until it is closed</option>
+          <option value="warning">a warning or an alert, and keeps it on until it is closed</option>
+          <option value="alert">an alert, and keeps it on until it is closed</option>
+          <option value="never">none: the card shows once a touch wakes the screen</option></select></label></div>
         <div class="row"><label>Try one in the preview<input type="text" id="vNoteTry"
           value="warning|Window open|The bathroom window has been open for 30 minutes."></label></div>
         <div class="actions"><button type="button" class="b" id="vNoteShow">Show in the preview</button></div>
@@ -4342,9 +4348,9 @@ function syncDisplaySelects(cfg) {
   // not while someone types in it
   if (!$('vNotify').contains(document.activeElement)) {
     $('vNotify').innerHTML = '';
-    $('vNotify').appendChild(itemField((d.notifications || {}).item || '',
-                                       v => editDisplay('notifications', v.trim() ? {item: v.trim()} : '', ''), 'String'));
+    $('vNotify').appendChild(itemField((d.notifications || {}).item || '', v => editNotify('item', v.trim()), 'String'));
   }
+  $('vNoteWake').value = (d.notifications || {}).wake_and_keep_on || '';
   if (!$('vOpenPage').contains(document.activeElement)) {
     $('vOpenPage').innerHTML = '';
     $('vOpenPage').appendChild(itemField((d.open_page || {}).item || '',
@@ -4372,7 +4378,17 @@ function editDisplay(key, value, fallback) {
   $('pJson').value = JSON.stringify(cfg, null, 2);
   renderPreview();
 }
+/* A member of display.notifications, the others kept; without an item there is none. */
+function editNotify(key, value) {
+  let cfg;
+  try { cfg = JSON.parse($('pJson').value); } catch (e) { return; }
+  const n = Object.assign({}, (cfg.display || {}).notifications);
+  if (value) n[key] = value;
+  else delete n[key];
+  editDisplay('notifications', n.item ? n : '', '');
+}
 $('vLang').addEventListener('change', () => editDisplay('language', $('vLang').value, 'en'));
+$('vNoteWake').addEventListener('change', () => editNotify('wake_and_keep_on', $('vNoteWake').value));
 $('vHomeAfter').addEventListener('change', () => editDisplay('home_after', +$('vHomeAfter').value, HOME_AFTER_DEFAULT));
 $('vFade').addEventListener('change', () => editDisplay('page_fade', +$('vFade').value, 0));
 $('vReveal').addEventListener('change', () => editDisplay('cover_reveal', $('vReveal').value, ''));

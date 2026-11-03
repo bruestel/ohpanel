@@ -334,6 +334,8 @@ void Engine::set_config(const std::string &json) {
   make_swipe_row();
   screen_config(before);
   const std::string notify = str(member(member(config_, "display"), "notifications"), "item");
+  const std::string wake = str(member(member(config_, "display"), "notifications"), "wake_and_keep_on");
+  wake_level_ = wake == "info" ? 0 : wake == "warning" ? 1 : wake == "alert" ? 2 : wake == "never" ? 3 : -1;
   if (notify != notify_item_) {
     notify_item_ = notify;
     notify_known_ = false;
@@ -1685,8 +1687,11 @@ void Engine::notify_state() {
   n.what = parse_notification(value);
   n.colour = n.what.level == "alert" ? color565("red") : n.what.level == "warning" ? color565("yellow")
                                                                                    : color565("blue");
+  const int level = n.what.level == "alert" ? 2 : n.what.level == "warning" ? 1 : 0;
+  n.keep = wake_level_ >= 0 && level >= wake_level_;
   note_ = n;
-  touched_ms_ = now_ms_;  // wakes the screen (idle())
+  if (wake_level_ < 0 || n.keep)
+    touched_ms_ = now_ms_;  // wakes the screen (screen_tick)
   if (was_drawn) {        // another one: the page again, then the new card
     note_drawn_ = false;
     show_physical(shown_);
@@ -1995,7 +2000,8 @@ void Engine::screen_tick() {
   if (!started_ || shown_.empty())
     return;
   const ScreenSettings &s = screen_;
-  const int64_t quiet = now_ms_ - touched_ms_;
+  // a card that keeps the screen on (wake_and_keep_on): as if just touched until it is closed
+  const int64_t quiet = note_ && note_->keep ? 0 : now_ms_ - touched_ms_;
   const bool idle = s.idle_after > 0 && quiet >= s.idle_after * 1000LL;
   bool off = false;
   int level = s.brightness;

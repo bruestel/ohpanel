@@ -356,6 +356,10 @@ int main() {
   expect_issue("home after: text", doc("\"display\":{\"home_after\":\"60\"}"), "display.home_after");
   expect_issue("weekday count", doc("\"display\":{\"texts\":{\"weekdays\":[\"a\"]}}"), "display.texts.weekdays");
   expect_issue("too many relays", doc("\"home\":{\"relays\":[{},{},{}]}"), "home.relays");
+  expect_valid("notifications that wake from a level",
+               doc("\"display\":{\"notifications\":{\"item\":\"N\",\"wake_and_keep_on\":\"alert\"}}"));
+  expect_issue("a level that is none", doc("\"display\":{\"notifications\":{\"item\":\"N\",\"wake_and_keep_on\":\"error\"}}"),
+               "display.notifications.wake_and_keep_on");
   {  // twelve shortcuts, three rows of four
     std::string twelve;
     for (int i = 0; i < 12; i++)

@@ -93,7 +93,7 @@ with a `format` it shows the whole text instead.
 | `page_fade` | number | a swipe to another page fades the screen out and in again, that many ms each way (in 4 steps), hiding how the display draws the new page; default 0 (not), at most 1000 |
 | `cover_reveal` | string | how the media page's cover appears: `dissolve` (in a random order, the default), `center` (from the middle outwards), `sharpen` (blurred first, 8 x 8 and then 4 x 4 points averaged, then sharp; a third more to draw), `wipe` (row by row from the top) |
 | `screen` | object | the screen's brightness, see below |
-| `notifications` | `{"item"}` | a String item whose new states show as notifications, see below |
+| `notifications` | `{"item", "wake_and_keep_on"?}` | a String item whose new states show as notifications, see below |
 | `open_page` | `{"item"}` | a String item: a page id set on it opens that page, see below |
 | `current_page` | `{"item"}` | a String item the id of each page that opens is sent to, see below |
 | `background` | background id | the picture behind every page: `aurora` (default), `candy`, `dunes`, `forest`, `black`: the backgrounds of the display design, listed in `boards/nspanel/nextion/display-manifest-<variant>.json` |
@@ -123,6 +123,17 @@ touch anywhere closes it; the touch does nothing else. The state is
 `info` (blue, default), `warning` (yellow) or `alert` (red), colours the
 card's bar and title. The text wraps; a written `\n` breaks the line. A new
 notification wakes the screen; an empty state or NULL takes the card away.
+
+`wake_and_keep_on` sets which ones wake the screen (off at night, or idle):
+`info`, `warning` or `alert`, that level and higher, or `never`. One that wakes
+it keeps it on, at its brightness in use, until the card is closed; one below
+wakes nothing, and its card shows once a touch wakes the screen (that touch
+closes nothing). Not set, every one wakes the screen, which goes idle and off
+again as after a touch.
+
+```json
+"notifications": {"item": "Panel_Notify", "wake_and_keep_on": "alert"}
+```
 A touch that closes the card sets the item to NULL: a rule sees it read (and
 may send the next one), every panel showing it takes it away, and the same
 text can be sent again. The state the item has when the panel starts shows
