@@ -1014,11 +1014,10 @@ pre.box{margin:0;padding:.6rem .7rem;max-height:18rem;overflow:auto;background:v
           rule sees it read and may send the next one.</p>
         <div id="vNotify"></div>
         <div class="row"><label>Wakes the screen<select id="vNoteWake">
-          <option value="">every notification, briefly (default)</option>
+          <option value="">never: shown at the next touch (default)</option>
           <option value="info">every notification, until it is closed</option>
           <option value="warning">warnings and alerts, until closed</option>
-          <option value="alert">alerts only, until closed</option>
-          <option value="never">never: shown at the next touch</option></select></label></div>
+          <option value="alert">alerts only, until closed</option></select></label></div>
         <div class="row"><label>Try one in the preview<input type="text" id="vNoteTry"
           value="warning|Window open|The bathroom window has been open for 30 minutes."></label></div>
         <div class="actions" style="margin-top:.6rem"><button type="button" class="b sec" id="vNoteShow">Show in the preview</button></div>
@@ -4350,7 +4349,8 @@ function syncDisplaySelects(cfg) {
     $('vNotify').innerHTML = '';
     $('vNotify').appendChild(itemField((d.notifications || {}).item || '', v => editNotify('item', v.trim()), 'String'));
   }
-  $('vNoteWake').value = (d.notifications || {}).wake_and_keep_on || '';
+  const wake = (d.notifications || {}).wake_and_keep_on;
+  $('vNoteWake').value = wake && wake !== 'never' ? wake : '';
   if (!$('vOpenPage').contains(document.activeElement)) {
     $('vOpenPage').innerHTML = '';
     $('vOpenPage').appendChild(itemField((d.open_page || {}).item || '',

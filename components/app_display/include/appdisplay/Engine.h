@@ -360,10 +360,10 @@ class Engine {
   std::optional<Note> note_;
   bool note_drawn_ = false;
   std::string notify_item_;
-  /* display.notifications.wake_and_keep_on: the least level (0 info, 1 warning, 2 alert, 3 never) that wakes the
-     screen and keeps it on until the card is closed; one below wakes nothing, its card shows once a touch wakes
-     the screen. -1, not set: every one wakes the screen, which goes idle and off as after a touch. */
-  int wake_level_ = -1;
+  /* display.notifications.wake_and_keep_on: the least level (0 info, 1 warning, 2 alert, 3 never, the default)
+     that wakes the screen and keeps it on until the card is closed; one below wakes nothing, its card shows once
+     a touch wakes the screen. */
+  int wake_level_ = 3;
   bool notify_known_ = false;  // the item's state was seen once
   std::string notify_last_;
   void notify_state();

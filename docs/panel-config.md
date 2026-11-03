@@ -121,15 +121,14 @@ as a card over the page on screen (the page stands still under it) until a
 touch anywhere closes it; the touch does nothing else. The state is
 `level|title|text`, `level|text`, `title|text` or just `text`; the level,
 `info` (blue, default), `warning` (yellow) or `alert` (red), colours the
-card's bar and title. The text wraps; a written `\n` breaks the line. A new
-notification wakes the screen; an empty state or NULL takes the card away.
+card's bar and title. The text wraps; a written `\n` breaks the line. An
+empty state or NULL takes the card away.
 
 `wake_and_keep_on` sets which ones wake the screen (off at night, or idle):
-`info`, `warning` or `alert`, that level and higher, or `never`. One that wakes
-it keeps it on, at its brightness in use, until the card is closed; one below
-wakes nothing, and its card shows once a touch wakes the screen (that touch
-closes nothing). Not set, every one wakes the screen, which goes idle and off
-again as after a touch.
+`info`, `warning` or `alert`, that level and higher, or `never` (the default).
+One that wakes it keeps it on, at its brightness in use, until the card is
+closed; one below wakes nothing, and its card shows once a touch wakes the
+screen (that touch closes nothing).
 
 ```json
 "notifications": {"item": "Panel_Notify", "wake_and_keep_on": "alert"}

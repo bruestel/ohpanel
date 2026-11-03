@@ -2135,8 +2135,8 @@ int main(int argc, char **argv) {
       e.set_status(st);
     }
 
-    // a notification and the screen off: it wakes the screen, the card comes once the page is there; off again with
-    // the card up, woken, the card again; only a touch on it (not the one that woke the screen) sends NULL
+    // a notification and the screen off (wake_and_keep_on not set: never): it stays off; woken, the card comes once
+    // the page is there; only a touch on it (not the one that woke the screen) sends NULL
     {
       cJSON *doc = cJSON_Parse(with_screen(R"({"idle_brightness": 0, "idle_after": 30})").c_str());
       cJSON_AddItemToObject(cJSON_GetObjectItem(doc, "display"), "notifications", cJSON_Parse(R"({"item": "Panel_Note"})"));
@@ -2154,13 +2154,7 @@ int main(int argc, char **argv) {
       set_state("Panel_Note", "alert|Fridge|The fridge door is open", "String");
       e.on_state("Panel_Note");
       e.idle(t += 100);
-      CHECK(!e.asleep() && rec.has(page_cmd("home")) && !rec.has_prefix("xstr"));   // the page first
-      e.on_message(loaded("home"));
-      CHECK(rec.has_prefix("xstr ") && rec.has("sendxy=1"));
-      rec.out.clear();
-      e.idle(t += 31000);                              // off with the card up: touches report as the black page's
-      CHECK(e.asleep() && rec.has("sendxy=0"));
-      e.on_message(loaded("blank"));
+      CHECK(e.asleep() && !rec.has_prefix("xstr"));   // not woken, nothing drawn on the black page
       rec.out.clear();
       // the touch that wakes, as the display reports it: the finger down (the screen wakes at once, the card comes
       // before the finger lifts), then up -- no dismissal
