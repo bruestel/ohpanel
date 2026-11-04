@@ -291,7 +291,7 @@ int main() {
                    "\"stations\":{}}]"),
                "pages[0].stations");
   expect_valid("settings page opened", doc("\"home\":{\"shortcuts\":[{\"icon\":\"cog\",\"open\":\"settings\"}]}"));
-  expect_valid("a shortcut opening while off too",
+  expect_valid("the older open_when_off still accepted",
                doc("\"home\":{\"shortcuts\":[{\"item\":\"S\",\"icon\":\"cog\",\"open\":\"settings\",\"open_when_off\":true}]}"));
   expect_issue("open_when_off not a boolean",
                doc("\"home\":{\"shortcuts\":[{\"icon\":\"cog\",\"open_when_off\":1}]}"), "home.shortcuts[0].open_when_off");

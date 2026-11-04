@@ -702,7 +702,7 @@ class Validator {
     color(e, p);
     one_of(e, "show", p, {"always", "when_on"});
     open(e, p);
-    boolean(e, "open_when_off", p);   // a shortcut's page opens while its item is off too
+    boolean(e, "open_when_off", p);   // older: a shortcut opens whenever it is shown now, this does nothing
   }
 
   void home(const cJSON *h, const std::string &path) {

@@ -215,7 +215,7 @@ weather, status icons and info lines do not show; the hardware buttons still swi
 | `weather_icon` | `{item, codes}` | an item holding a weather condition code; `codes` names the code set of the openHAB channel the item is linked to (`boards/nspanel/nextion/weather-icons.json`): `openweathermap` (default; OpenWeatherMap and Open-Meteo `icon-id`: `01d`, `10n`, ...), `openweathermap-condition` (OpenWeatherMap `condition-id`, 200 ... 804), `weathercompany` (`iconCode` 0 ... 47), `meteoblue` (`condition`, pictocode 1 ... 17), `smhi` (`symbol_code`), `fmi` (FMI `weather-id`), `wmo` (Open-Meteo `weather-code`), `darksky` (Pirate Weather `icon-id`, Visual Crossing `icon`). The icons are [Meteocons](https://github.com/basmilius/weather-icons) (fill). |
 | `weather_page` | page id | opened by tapping the weather icon |
 | `status_icons` | up to 10 indicators | the small icons in the top row |
-| `shortcuts` | up to 12 indicators | the large icons, three rows of four, numbered as read (the first four the top row, right-aligned); each may `open` a page (`open_when_off`: while its item is off too) |
+| `shortcuts` | up to 12 indicators | the large icons, three rows of four, numbered as read (the first four the top row, right-aligned); each may `open` a page, tapped while it is shown |
 | `info` | up to 2 lines | two text lines below the value rows, see below |
 
 A **relay** is `{"label", "item"?, "relay"?}` and describes one of the two
@@ -264,9 +264,10 @@ of a list (`"on": "PLAYING"` for a player's String item, `["PLAYING",
 number is beyond it: `{"above": 7}` (`below`, `at_least`, `at_most`), in the
 item's unit, e.g. an icon only while more than 7 W flow. The editor offers all
 three, the states as chips, and shows how the item's state counts right now;
-it shows the field only where it does something (shown while on, or a shortcut
-that opens its page only then). A shortcut with an item opens its page only while the item is
-on; with `"open_when_off": true` while it is off too (default `false`).
+it shows the field only where it does something (shown while on). A shortcut
+opens its page whenever it is shown: with `"show": "always"` always, with
+`"when_on"` while its item is on. `open_when_off` from older configurations is
+still accepted and does nothing.
 
 ## Pages
 

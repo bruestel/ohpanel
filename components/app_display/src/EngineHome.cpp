@@ -233,8 +233,7 @@ void Engine::draw_home() {
       continue;
     }
     bind(s, [this, s, obj] {
-      const std::string show = str(s, "show", member(s, "item") ? "when_on" : "always");
-      if (show == "always" || on(s)) {
+      if (shown(s)) {
         show_icon(obj, s, color_of(s, "color", theme_.text));
       } else {
         anims_.erase(obj);
@@ -252,8 +251,7 @@ void Engine::draw_home() {
       continue;
     }
     bind(s, [this, s, obj] {
-      const std::string show = str(s, "show", member(s, "item") ? "when_on" : "always");
-      if (show == "always" || on(s)) {
+      if (shown(s)) {
         show_icon(obj, s, color_of(s, "color", theme_.text));
       } else {
         anims_.erase(obj);

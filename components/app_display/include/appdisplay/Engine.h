@@ -415,6 +415,7 @@ class Engine {
      instead, with its own factor. */
   std::string value_of(const cJSON *ref, const cJSON *dflt = nullptr, const RuleStyle *style = nullptr) const;
   bool on(const cJSON *ref) const;
+  bool shown(const cJSON *indicator) const;
   std::string toggle_command(const cJSON *ref) const;
   int picture(const std::string &slot, const std::string &name) const;
   int weather_pic(const cJSON *ref, const char *slot) const;

@@ -823,6 +823,12 @@ bool Engine::on(const cJSON *ref) const {
    so it also works on an item without a binding, where openHAB has nothing
    to resolve a TOGGLE against. TOGGLE only when the state is unknown or the
    type takes neither. */
+/* Whether a status icon or shortcut shows: "show" says when, by default while
+   its item is on, always without one. */
+bool Engine::shown(const cJSON *indicator) const {
+  return str(indicator, "show", member(indicator, "item") ? "when_on" : "always") == "always" || on(indicator);
+}
+
 std::string Engine::toggle_command(const cJSON *ref) const {
   if (!has_state(ref))
     return "TOGGLE";
@@ -1602,16 +1608,14 @@ void Engine::act(const std::string &page, const std::string &component, const st
   }
 }
 
-/* A shortcut with an item follows its link only while the item is on --
-   hidden while it is off (the usual), it is no target to touch by chance;
-   one without an item always, as one with "open_when_off". */
+/* A shortcut follows its link whenever it is shown; hidden, it is no target
+   to touch by chance. */
 void Engine::act_shortcut(int index) {
   const cJSON *s = slot(member(config_, "home"), "shortcuts", index);
   if (!s || !member(s, "open"))
     return;
-  if (member(s, "item") && !on(s) && !flag(s, "open_when_off"))
-    return;
-  open(str(s, "open"));
+  if (shown(s))
+    open(str(s, "open"));
 }
 
 void Engine::act_button(const cJSON *page, int index) {

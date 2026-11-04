@@ -424,7 +424,7 @@ int main(int argc, char **argv) {
     e.set_config(read("test/host/data/office.json"));
   }
 
-  {  // a shortcut with an item opens its page only while the item is on; one without always
+  {  // a shortcut opens its page whenever it is shown: with an item by default only while the item is on
     e.on_message(loaded("home"));
     set_state("officeSpeakerState", "OFF", "OnOff");
     e.on_state("officeSpeakerState");
@@ -434,19 +434,24 @@ int main(int argc, char **argv) {
     e.on_state("officeSpeakerState");
     e.on_message(event("home", "short1", "release"));
     CHECK(e.current() == "speaker");
-    {  // with "open_when_off" it opens while the item is off too
+    {  // shown always, it opens while the item is off too; the older "open_when_off" opens nothing hidden
       e.on_message(loaded("home"));
       set_state("officeSpeakerState", "OFF", "OnOff");
       e.on_state("officeSpeakerState");
-      cJSON *doc = cJSON_Parse(read("test/host/data/office.json").c_str());
-      cJSON *sc = cJSON_GetArrayItem(cJSON_GetObjectItem(cJSON_GetObjectItem(doc, "home"), "shortcuts"), 0);
-      cJSON_AddTrueToObject(sc, "open_when_off");
-      char *text = cJSON_PrintUnformatted(doc);
-      e.set_config(text);
-      cJSON_free(text);
-      cJSON_Delete(doc);
-      e.on_message(loaded("home"));
-      e.on_message(event("home", "short1", "release"));
+      const auto with = [&](const char *name, cJSON *value) {
+        cJSON *doc = cJSON_Parse(read("test/host/data/office.json").c_str());
+        cJSON *sc = cJSON_GetArrayItem(cJSON_GetObjectItem(cJSON_GetObjectItem(doc, "home"), "shortcuts"), 0);
+        cJSON_AddItemToObject(sc, name, value);
+        char *text = cJSON_PrintUnformatted(doc);
+        e.set_config(text);
+        cJSON_free(text);
+        cJSON_Delete(doc);
+        e.on_message(loaded("home"));
+        e.on_message(event("home", "short1", "release"));
+      };
+      with("open_when_off", cJSON_CreateTrue());
+      CHECK(e.current() == "home");
+      with("show", cJSON_CreateString("always"));
       CHECK(e.current() == "speaker");
       e.set_config(read("test/host/data/office.json"));
     }
