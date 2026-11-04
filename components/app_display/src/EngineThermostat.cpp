@@ -112,12 +112,12 @@ double Engine::thermo_target(const cJSON *page) const {
   return has_state(page) && s.has_numeric && !s.undefined() ? s.numeric : NAN;
 }
 
-/* "21,5 °C": as many decimals as the step has, the item's unit (else °). */
+/* "21,5 °C": as many decimals as the step has, the page's "unit", else the item's (else °). */
 std::string Engine::thermo_text(const cJSON *page, double v) const {
   const ThermoRange r = thermo_range(page);
   const int decimals = std::fabs(r.step - std::round(r.step)) < 1e-6 ? 0 : std::fabs(r.step * 10 - std::round(r.step * 10)) < 1e-6 ? 1 : 2;
-  const std::string unit = unit_of(state_of(page));
-  return format_number(v, decimals, false, settings_.decimal) + (unit.empty() ? "°" : " " + unit);
+  const std::string own = str(page, "unit"), unit = own.empty() ? unit_of(state_of(page)) : own;
+  return format_number(v, decimals, false, settings_.decimal) + (unit.empty() || unit == "°" ? "°" : " " + unit);
 }
 
 std::string Engine::thermo_key(const cJSON *page) const {
@@ -177,16 +177,24 @@ void Engine::draw_thermostat(const cJSON *page) {
 void Engine::thermo_refresh(const cJSON *page) {
   const Texts &t = settings_.texts;
   const ThermoRange r = thermo_range(page);
-  // the temperature now: its number large, with a degree sign
+  // the temperature now: its number large, with a degree sign or the page's "unit"
   const cJSON *current = member(page, "current");
   const appoh::ItemState now = state_of(current);
-  if (!str(current, "item").empty())
-    // a space in front: the number centred as if the degree sign were not there (in font 6 a space is 15 px, the
-    // degree sign 22)
-    txt("now", has_state(current) && now.has_numeric && !now.undefined()
-                   ? " " + format_number(now.numeric, 1, false, settings_.decimal) + "°" : t.undefined);
-  else
+  if (!str(current, "item").empty()) {
+    const bool known = has_state(current) && now.has_numeric && !now.undefined();
+    const std::string number = known ? format_number(now.numeric, 1, false, settings_.decimal) : "";
+    const std::string unit = str(page, "unit");
+    // a space in front of a degree sign: the number centred as if the sign were not there (in font 6 a space is
+    // 15 px, the degree sign 22)
+    const std::string text = !known ? t.undefined : unit.empty() || unit == "°" ? " " + number + "°" : number + unit;
+    // a unit wider than that ("56,7%"): in font 5 rather than cut; the page's own font is 6
+    const bool wide = known && !fits("thermostat", "now", text);
+    if (wide || sent_.count("now.font"))
+      num("now", "font", wide ? 5 : 6);
+    txt("now", text, wide ? 5 : -1);
+  } else {
     txt("now", "");
+  }
   // off: "off" for the target, the ring grey (as without a target)
   const bool off = thermo_off(page);
   const double target = thermo_target(page);

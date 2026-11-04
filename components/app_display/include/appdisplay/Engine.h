@@ -249,7 +249,7 @@ class Engine {
     int x, y, w, h;
   };
   std::map<std::string, std::map<std::string, Box>> boxes_;   // page -> field -> where the firmware draws (a logo, the QR code)
-  std::string fitted(const std::string &page, const std::string &obj, const std::string &text) const;
+  std::string fitted(const std::string &page, const std::string &obj, const std::string &text, int font = -1) const;
   static std::string within_bytes(const std::string &text, int maxl);
   int text_width(int font, const std::string &text) const;
   /* Whether `text` fits field `obj` of page `page` (its font and width, the manifest's "fit"). */
@@ -400,7 +400,7 @@ class Engine {
   void send(const std::string &command);
   void batch_refresh(const std::function<void()> &draw);   // what `draw` changes shown in one go
   int hold_refresh_ = 0;   // batch_refresh: 1 paused before the next command, 2 paused
-  void txt(const std::string &obj, const std::string &text);
+  void txt(const std::string &obj, const std::string &text, int font = -1);   // font: not the field's own
   void num(const std::string &obj, const char *attr, int value);
   void vis(const std::string &obj, bool visible);
 

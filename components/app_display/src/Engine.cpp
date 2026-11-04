@@ -42,14 +42,14 @@ Engine::~Engine() {
    outside the known range counts as "?". What counts is the ink: the blank
    columns of the first character before it and of the last after it may
    stick out (a 72 px "12:33" is 164 px of advances, its ink fits 160). */
-std::string Engine::fitted(const std::string &page, const std::string &obj, const std::string &text) const {
+std::string Engine::fitted(const std::string &page, const std::string &obj, const std::string &text, int font) const {
   const auto p = fit_.find(page);
   if (p == fit_.end())
     return text;
   const auto o = p->second.find(obj);
   if (o == p->second.end())
     return text;
-  const auto f = fonts_.find(o->second.font);
+  const auto f = fonts_.find(font < 0 ? o->second.font : font);
   if (f == fonts_.end() || f->second.widths.empty())
     return within_bytes(text, o->second.maxl);
   const FontWidths &fw = f->second;
@@ -568,8 +568,8 @@ void Engine::restore(int x, int y, int w, int h) {
    display outliving a restart of the panel) -- so that one is always sent,
    an empty text too. A text too wide for its field is shortened with "..."
    (the fields the manifest lists, of the page on screen), whoever writes it. */
-void Engine::txt(const std::string &obj, const std::string &whole) {
-  const std::string text = fitted(shown_, obj, whole);
+void Engine::txt(const std::string &obj, const std::string &whole, int font) {
+  const std::string text = fitted(shown_, obj, whole, font);
   const std::string key = obj + ".txt";
   const auto it = sent_.find(key);
   if (it != sent_.end() && it->second == text)

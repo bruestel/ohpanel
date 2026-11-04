@@ -4070,7 +4070,7 @@ function drawPage(box, cfg, id) {
       box.appendChild(el);
       continue;
     }
-    const font = LAYOUT.fonts[o.f] || {height: 18};
+    const fontId = want.font !== undefined ? want.font : o.f, font = LAYOUT.fonts[fontId] || {height: 18};
     el.style.fontSize = Math.round(font.height * 0.85) + 'px';
     el.style.color = want.color || rgb565(o.pco || 65535);
     if (want.tile && LAYOUT.pictures[want.tile]) {   // a button on a tile picture (the settings page's restart)
@@ -4114,13 +4114,16 @@ function drawPage(box, cfg, id) {
       }
     } else {
       let text = want.text !== undefined ? want.text : (o.txt || '');
-      if (LAYOUT.fit && LAYOUT.fit[template] && LAYOUT.fit[template][o.n]) text = fitted(text, ...LAYOUT.fit[template][o.n]);
+      if (LAYOUT.fit && LAYOUT.fit[template] && LAYOUT.fit[template][o.n]) {
+        const [fitFont, ...room] = LAYOUT.fit[template][o.n];
+        text = fitted(text, want.font !== undefined ? want.font : fitFont, ...room);
+      }
       /* The browser lacks the display's font: the text is drawn in another
          and squeezed (or stretched) to the width it has on the display. */
       const span = document.createElement('span');
       span.className = 'tw';
       span.textContent = text;
-      const tw = textWidth(text, o.f);
+      const tw = textWidth(text, fontId);
       span.dataset.w = tw || '';
       span.style.transformOrigin = o.xc === 1 ? 'center' : o.xc === 2 ? 'right' : 'left';
       let node = span;
@@ -6454,12 +6457,18 @@ function fillThermostat(page) {
   if (page.mode && page.mode.item && !page.modes && !OPTS[page.mode.item]) loadOptions(page.mode.item);
   const f = {title: {text: page.title || ''}};
   const now = stateOf(page.current), set = stateOf(page);
-  f.now = page.current && page.current.item
-    ? {text: now && now.numeric !== undefined ? ' ' + fmtNumber(now.numeric, 1) + '°' : t.undefined} : {text: ''};   // centred as without the °
+  f.now = {text: ''};
+  if (page.current && page.current.item) {
+    const known = now && now.numeric !== undefined, sign = !page.unit || page.unit === '°';
+    const text = !known ? t.undefined : sign ? ' ' + fmtNumber(now.numeric, 1) + '°' : fmtNumber(now.numeric, 1) + page.unit;   // centred as without the °
+    const fit = LAYOUT.fit && LAYOUT.fit.thermostat && LAYOUT.fit.thermostat.now, w = fit ? textWidth(text, fit[0]) : null;
+    f.now = {text};
+    if (known && w !== null && w > fit[1]) f.now.font = 5;   // too wide for font 6: in font 5, not cut
+  }
   const target = set && set.numeric !== undefined ? set.numeric : null;
   const decimals = Math.abs(r.step - Math.round(r.step)) < 1e-6 ? 0 : Math.abs(r.step * 10 - Math.round(r.step * 10)) < 1e-6 ? 1 : 2;
-  const unit = set ? unitOf(set) : '';
-  f.target = {text: t.thermostat_target + ' ' + (target === null ? t.undefined : fmtNumber(target, decimals) + (unit ? ' ' + unit : '°'))};
+  const unit = page.unit || (set ? unitOf(set) : '');
+  f.target = {text: t.thermostat_target + ' ' + (target === null ? t.undefined : fmtNumber(target, decimals) + (unit && unit !== '°' ? ' ' + unit : '°'))};
   // on / off ("switch"): its pill; off and "locked" (Engine::thermo_off), "off" for the target, the ring grey, no modes lit
   const sw = page.switch, swSt = sw && sw.item ? stateOf(sw) : null;
   const lit = !swSt || swSt.type === 'UnDef' || isOn(sw), off = !!(sw && sw.locked) && !lit;
@@ -6893,8 +6902,10 @@ function pvThermostatEditor(box, head, hint, page) {
       field('Its icon', iconField(page.switch.icon || 'power',
             v => pvEdit((c, p) => { if (!p.switch) return; if (v && v !== 'power') p.switch.icon = v; else delete p.switch.icon; }))))] : []),
     note('"Heats" and "cools": an item that is ON (OPEN, above 0) while it does. It shows under the target.'),
-    pvRow(field('Lowest', num('min', 5)), field('Highest', num('max', 30)), field('Step', num('step', 0.5))),
-    note('The target\'s range and step: empty takes the item\'s in openHAB (its state description), else 5 to 30 by 0.5.'),
+    pvRow(field('Lowest', num('min', 5)), field('Highest', num('max', 30)), field('Step', num('step', 0.5)),
+          field('Unit', textInput(page.unit, v => pvEdit((c, p) => { if (v) p.unit = v; else delete p.unit; }), {maxLength: 6, placeholder: '°'}))),
+    note('The target\'s range and step: empty takes the item\'s in openHAB (its state description), else 5 to 30 by 0.5. '
+         + 'The unit, "%" on a dehumidifier, say: empty is a degree sign for the value now and the item\'s for the target.'),
     two(field('Ring', selectInput([['', 'in the theme\'s accent'], ['gradient', 'blue to red']], page.style === 'gradient' ? 'gradient' : '',
                                   v => pvEdit((c, p) => { if (v) p.style = v; else { delete p.style; delete p.curve; } PV.edKey = null; }))),
         page.style === 'gradient'

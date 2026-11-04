@@ -531,6 +531,7 @@ A room's heating (or cooling): its target temperature set on a ring.
 | `mode` | `{item, value_style?}` | its mode (a String, say), chosen with the pills under the ring; `value_style`: rules on its state with `"locked": true`: the target is not to be set in that mode (no minus and plus, the ring not dragged), e.g. `[{"equals": "schedule", "locked": true}]` |
 | `modes` | up to 4 `{"label", "value"}` | the pills: what each is called and what it sends to `mode`; without them the mode item's options in openHAB |
 | `min`, `max`, `step` | numbers | the target's range and step; by default the item's in openHAB (its state description), else 5, 30, 0.5 |
+| `unit` | up to 6 bytes | what follows the numbers instead of the degree sign and the item's unit: `%` on a dehumidifier, `°F`. Only what is shown: a command keeps the item's unit. A value now too wide with it for the large text is written smaller |
 | `style` | `accent` (default), `gradient` | the ring filled in the theme's accent, or from blue to red |
 | `curve` | `0.25`, `0.5` (default), `0.75`, `1`, `1.5`, `2` | the gradient: the colour at a point is its share of the ring to this power: below 1 red comes the sooner, 1 evenly, above 1 the later |
 

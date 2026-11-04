@@ -2374,6 +2374,7 @@ int main(int argc, char **argv) {
     rec.out.clear();
     e.on_message(loaded("thermostat"));
     CHECK(rec.has("title.txt=\"Kitchen\"") && rec.has("now.txt=\" 20,5°\"") && rec.has("target.txt=\"Ziel 21,0 °C\""));
+    CHECK(!rec.has_prefix("now.font="));   // the page's own font
     const bool heats = std::any_of(rec.out.begin(), rec.out.end(), [](const std::string &c) {
       return c.rfind("xstr ", 0) == 0 && c.find("\"heizt\"") != std::string::npos; });
     CHECK(heats && rec.has("vis m31_hs,1") && !rec.has("vis m41_hs,1"));   // heating: its icon and word drawn
@@ -2479,6 +2480,36 @@ int main(int argc, char **argv) {
     const size_t sent2 = commands.size();
     e.on_message(event("thermostat", "plus", "release"));
     CHECK(commands.size() == sent2 + 1 && commands.back().first == "Hp_Setpoint");
+    e.on_message(event("thermostat", "close", "release"));
+    e.set_config(read("test/host/data/office.json"));
+  }
+
+  {  // a thermostat's "unit": instead of the degree sign and the item's; too wide for the large font, in the next one
+    cJSON *doc = cJSON_Parse(read("test/host/data/office.json").c_str());
+    cJSON_AddItemToArray(cJSON_GetObjectItem(doc, "pages"), cJSON_Parse(R"({"id": "thermo", "type": "thermostat",
+        "title": "Humidity", "item": "Dry_Setpoint", "current": {"item": "Dry_Now"}, "unit": "%"})"));
+    for (cJSON *pg = cJSON_GetObjectItem(doc, "pages")->child; pg; pg = pg->next)
+      if (std::string(cJSON_GetStringValue(cJSON_GetObjectItem(pg, "id"))) == "lights")
+        cJSON_ReplaceItemInArray(cJSON_GetObjectItem(pg, "buttons"), 0,
+                                 cJSON_Parse(R"({"label": "Dry", "icon": "thermostat", "open": "thermo"})"));
+    char *text = cJSON_PrintUnformatted(doc);
+    e.set_config(text);
+    cJSON_free(text);
+    cJSON_Delete(doc);
+    set_state("Dry_Setpoint", "55", "Decimal", nullptr, 55, true);
+    set_state("Dry_Now", "56.7", "Decimal", nullptr, 56.7, true);
+    limits["Dry_Setpoint"] = appoh::Limits{true, true, true, 30, 80, 1};
+    e.on_message(loaded("home"));
+    e.on_message(event("home", "swipe", "left"));
+    e.on_message(loaded("buttons"));
+    e.on_message(event("buttons", "tile1", "release"));
+    rec.out.clear();
+    e.on_message(loaded("thermostat"));
+    CHECK(rec.has("now.font=5") && rec.has("now.txt=\"56,7%\"") && rec.has("target.txt=\"Ziel 55 %\""));
+    rec.out.clear();
+    set_state("Dry_Now", "5.2", "Decimal", nullptr, 5.2, true);
+    e.on_state("Dry_Now");
+    CHECK(rec.has("now.font=6") && rec.has("now.txt=\"5,2%\""));   // it fits again: back in the page's font
     e.on_message(event("thermostat", "close", "release"));
     e.set_config(read("test/host/data/office.json"));
   }

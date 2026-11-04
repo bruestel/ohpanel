@@ -902,7 +902,8 @@ class Validator {
       }
     } else if (t == "thermostat") {
       allowed(pg, p, {"id", "type", "title", "icon", "item", "current", "heating", "cooling", "mode", "modes", "min",
-                      "max", "step", "style", "curve", "switch"});
+                      "max", "step", "unit", "style", "curve", "switch"});
+      string(pg, "unit", p, false, 6);   // instead of the degree sign and the item's: "%" on a dehumidifier
       // the gradient along the ring: the share's power (below 1 red the sooner)
       if (const cJSON *c = cJSON_GetObjectItem(pg, "curve")) {
         const double v = cJSON_IsNumber(c) ? c->valuedouble : -1;
