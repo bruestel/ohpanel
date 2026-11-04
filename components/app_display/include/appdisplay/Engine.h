@@ -469,6 +469,8 @@ class Engine {
   std::vector<const cJSON *> days_of(const cJSON *page) const;
   static constexpr int kWeatherChips = 6;   // the weather page's cards of an extra
   const cJSON *rows_of(const cJSON *page);
+  void ask_group(const cJSON *page);
+  const cJSON *button_at(const cJSON *page, int i);
   void forget_group_rows();
   std::map<std::string, cJSON *> group_rows_;   // an entity page's group: its members as rows, by page id
   bool group_asked_ = false;                     // the page's group asked for again since it opened

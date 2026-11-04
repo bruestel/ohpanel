@@ -807,8 +807,25 @@ class Validator {
     string(pg, "title", p, t != "system" && !(t == "cover" && cJSON_GetObjectItem(pg, "item")), 64);
 
     if (t == "buttons") {
-      allowed(pg, p, {"id", "type", "title", "buttons"});
+      allowed(pg, p, {"id", "type", "title", "buttons", "group", "metadata", "label", "icon", "color", "value_style",
+                       "only_on"});
       slots(pg, "buttons", p, kMaxButtons, [&](const cJSON *b, const std::string &bp) { button(b, bp); });
+      // a group's members as the tiles, as an entity page's rows
+      if (const cJSON *group = cJSON_GetObjectItem(pg, "group")) {
+        item_name(group, member(p, "group"));
+        if (cJSON_GetObjectItem(pg, "buttons"))
+          fail(p, "needs either \"buttons\" or \"group\"");
+        icon(pg, p);
+        color(pg, p);
+        rules(pg, p, true);
+        string(pg, "metadata", p, false, 64);
+        string(pg, "label", p, false, 64);
+        boolean(pg, "only_on", p);   // the members on as the page opens
+      } else {
+        for (const char *k : {"metadata", "label", "icon", "color", "value_style", "only_on"})
+          if (cJSON_GetObjectItem(pg, k))
+            fail(member(p, k), "goes with \"group\"");
+      }
     } else if (t == "entities") {
       allowed(pg, p, {"id", "type", "title", "rows", "group", "icon", "color", "value_style", "format", "factor",
                        "wide", "style", "metadata", "label", "value_color", "scroll"});

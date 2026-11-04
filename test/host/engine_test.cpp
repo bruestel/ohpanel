@@ -2878,6 +2878,81 @@ int main(int argc, char **argv) {
     e.set_config(read("test/host/data/office.json"));
   }
 
+  {  // a group's members as a button page's tiles, in the swipe row, eight a sheet: those on as the page opens (one
+     // without a state yet too)
+    cJSON *doc = cJSON_Parse(read("test/host/data/office.json").c_str());
+    cJSON_AddItemToArray(cJSON_GetObjectItem(doc, "pages"), cJSON_Parse(R"({"id": "on-now", "type": "buttons",
+        "title": "Lights on", "group": "gLights", "icon": "lightbulb", "only_on": true})"));
+    cJSON_InsertItemInArray(cJSON_GetObjectItem(doc, "swipe"), 1, cJSON_CreateString("on-now"));
+    char *text = cJSON_PrintUnformatted(doc);
+    e.set_config(text);
+    cJSON_free(text);
+    cJSON_Delete(doc);
+    members["gLights"] = {};
+    for (int i = 1; i <= 9; i++) {
+      const std::string name = "L" + std::to_string(i);
+      members["gLights"].push_back({name, name, {}});
+      set_state(name.c_str(), i == 9 ? "OFF" : "ON", "OnOff");
+    }
+    members["gLights"].push_back({"L_new", "New", {}});
+    e.on_message(loaded("home"));
+    e.on_message(event("home", "swipe", "left"));
+    CHECK(e.current() == "on-now");
+    rec.out.clear();
+    e.on_message(loaded("buttons"));
+    CHECK(rec.has("tile1_name.txt=\"L1\"") && rec.has("tile8_name.txt=\"L8\""));
+    commands.clear();
+    e.on_message(event("buttons", "tile1", "release"));
+    CHECK(commands.size() == 1 && commands.back() == std::make_pair(std::string("L1"), std::string("OFF")));
+    rec.out.clear();
+    set_state("L1", "OFF", "OnOff");
+    e.on_state("L1");
+    CHECK(rec.has(pic_cmd("tile1_pic", "aurora", "button1", "off")) && !rec.has("vis tile1_pic,0"));   // it stays, grey
+    e.on_message(event("buttons", "swipe", "left"));   // the next sheet: same page, the rest
+    CHECK(e.current() == "on-now");
+    rec.out.clear();
+    e.on_message(loaded("buttons"));
+    CHECK(rec.has("tile1_name.txt=\"New\"") && rec.has("vis tile2_pic,0") && !rec.has("tile1_name.txt=\"L9\""));   // L9 is off
+    e.on_message(event("buttons", "swipe", "left"));   // past the last sheet: the next page in the row
+    CHECK(e.current() == "lights");
+    e.on_message(loaded("buttons"));
+    e.on_message(event("buttons", "swipe", "right"));  // back -- as it is now, L1 gone: one sheet
+    CHECK(e.current() == "on-now");
+    rec.out.clear();
+    e.on_message(loaded("buttons"));
+    CHECK(rec.has("tile1_name.txt=\"L2\"") && rec.has("tile8_name.txt=\"New\""));
+    {  // without "only_on": every member a tap can switch; with metadata its name and icon, the page's without
+      cJSON *plain = cJSON_Parse(read("test/host/data/office.json").c_str());
+      cJSON_AddItemToArray(cJSON_GetObjectItem(plain, "pages"), cJSON_Parse(R"({"id": "on-now", "type": "buttons",
+          "title": "Lights", "group": "gLights", "icon": "lightbulb", "metadata": "light"})"));
+      cJSON_InsertItemInArray(cJSON_GetObjectItem(plain, "swipe"), 1, cJSON_CreateString("on-now"));
+      char *plain_text = cJSON_PrintUnformatted(plain);
+      e.set_config(plain_text);
+      cJSON_free(plain_text);
+      cJSON_Delete(plain);
+      std::vector<appoh::Member> known = members["gLights"];
+      known[0].metadata["light"] = appoh::Metadata{"Hall", {{"icon", "ceiling-light"}}};
+      known.push_back({"Door", "Door", {}, "Contact"});
+      known[1].type = "Dimmer";
+      members.erase("gLights");   // not known yet as the page opens: asked for, drawn when they come
+      e.on_message(loaded("home"));
+      e.on_message(event("home", "swipe", "left"));
+      e.on_message(loaded("buttons"));
+      members["gLights"] = known;
+      rec.out.clear();
+      e.on_options("gLights");
+      CHECK(rec.has("tile1_name.txt=\"Hall\"") && rec.has("tile8_name.txt=\"L8\"") && rec.has("vis tile1_pic,1"));
+      CHECK(rec.has(std::string("tile1_icon.txt=\"") + icon_glyph("ceiling-light") + "\""));
+      CHECK(rec.has(std::string("tile2_icon.txt=\"") + icon_glyph("lightbulb") + "\""));
+      e.on_message(event("buttons", "swipe", "left"));
+      rec.out.clear();
+      e.on_message(loaded("buttons"));
+      CHECK(rec.has("tile1_name.txt=\"L9\"") && rec.has("tile2_name.txt=\"New\"") && !rec.has("tile3_name.txt=\"Door\""));
+    }
+    members.erase("gLights");
+    e.set_config(read("test/host/data/office.json"));
+  }
+
   {  // a field's room in bytes (the manifest's third number): a text that fits its width but not its bytes -- ü,
      // ł take two -- is cut at a character, with "...", not by the display in the middle of a letter
     cJSON *doc = cJSON_Parse(read("test/host/data/office.json").c_str());

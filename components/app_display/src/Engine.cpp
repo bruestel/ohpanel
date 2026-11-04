@@ -1017,6 +1017,11 @@ void Engine::open(const std::string &id, bool remember, bool last_sheet) {
   if (id == start_page())
     history_.clear();
   current_ = id;
+  // "only_on": the members on as the page opens (rows_of), so that a tile stays where it is while the page shows
+  if (const auto it = group_rows_.find(id); it != group_rows_.end() && flag(page, "only_on")) {
+    cJSON_Delete(it->second);
+    group_rows_.erase(it);
+  }
   sheet_ = last_sheet ? std::max(0, sheets_of(page) - 1) : 0;   // a swipe back: where it ends
   light_view_ = 0;
   station_sheet_ = 0;
@@ -1092,7 +1097,7 @@ int Engine::sheets_of(const cJSON *page) {
   if (type_of(page) == PageType::Cover && member(page, "group"))   // the group's rows, the whole group first
     return std::max(1, (static_cast<int>(cover_rows(page).size()) + cover_rows_per_sheet(page) - 1) /
                            cover_rows_per_sheet(page));
-  if (type_of(page) == PageType::Entities) {
+  if (type_of(page) == PageType::Entities || (type_of(page) == PageType::Buttons && member(page, "group"))) {
     const cJSON *rows = rows_of(page);
     const int count = cJSON_IsArray(rows) ? cJSON_GetArraySize(rows) : 0;
     const int per = rows_per_sheet(page);
@@ -1375,7 +1380,11 @@ void Engine::on_options(const std::string &item) {
     const cJSON *rows = rows_of(page);
     const int count = cJSON_IsArray(rows) ? cJSON_GetArraySize(rows) : 0;
     sheet_ = std::min(sheet_, std::max(0, (count - 1) / rows_per_sheet(page)));
-    draw_entities(page, shown_);
+    if (type_of(page) == PageType::Buttons)
+      draw_buttons(page);
+    else
+      draw_entities(page, shown_);
+    draw_dots();   // in the swipe row its sheets are dots of the row
   }
   // a cover group's members: the rows drawn again where they are (no page anew: no flicker)
   if (page && type_of(page) == PageType::Cover && shown_ == "covers" && str(page, "group") == item) {
@@ -1619,7 +1628,7 @@ void Engine::act_shortcut(int index) {
 }
 
 void Engine::act_button(const cJSON *page, int index) {
-  const cJSON *b = slot(page, "buttons", index);
+  const cJSON *b = button_at(page, index);
   if (!b)
     return;
   const std::string action = str(b, "action", member(b, "open") ? "open" : member(b, "item") ? "toggle" : "none");

@@ -38,8 +38,17 @@ constexpr int kStateOn = 27469, kStateOff = 40147;   // a button's state line: #
 constexpr int kBarTrackOn = 57051, kBarTrackOff = 19017;   // its bar's track: #d9d9d9 on the white tile, #4a4a4a on the dark
 }  // namespace
 
+/* What tile i of a button page holds: its own button, or with a group the
+   members of the sheet shown. */
+const cJSON *Engine::button_at(const cJSON *page, int i) {
+  if (!member(page, "group"))
+    return slot(page, "buttons", i);
+  const cJSON *row = cJSON_GetArrayItem(rows_of(page), sheet_ * rows_per_sheet(page) + i);
+  return cJSON_IsObject(row) ? row : nullptr;
+}
+
 void Engine::draw_button(const cJSON *page, int i) {
-  const cJSON *b = slot(page, "buttons", i);
+  const cJSON *b = button_at(page, i);
   const std::string n = "tile" + std::to_string(i + 1);
   if (!b) {
     for (const char *part : {"_hs", "_pic", "_icon", "_name", "_value", "_bar", "_text", "_center"})
@@ -120,9 +129,14 @@ void Engine::draw_buttons(const cJSON *page) {
   txt("title", str(page, "title"));
   for (const char *obj : {"title", "close", "dots", "swipe"})
     vis(obj, true);
+  if (member(page, "group")) {
+    ask_group(page);
+    if (const int sheets = sheets_of(page); !in_swipe_row())   // in the swipe row its dots instead (draw_dots)
+      txt("dots", sheets > 1 ? sheet_dots(sheets, sheet_) : "");
+  }
   building_buttons_ = true;
   for (int i = 0; i < 8; i++) {
-    const cJSON *b = slot(page, "buttons", i);
+    const cJSON *b = button_at(page, i);
     if (b && member(b, "item"))
       bind(b, [this, page, i] {
         // a state changed: the tile's picture and its fields' colours in one go -- drawn one by one, the fields
@@ -137,7 +151,7 @@ void Engine::draw_buttons(const cJSON *page) {
   building_buttons_ = false;
   send("ref_stop");
   for (int i = 0; i < 8; i++)
-    if (const cJSON *b = slot(page, "buttons", i)) {
+    if (const cJSON *b = button_at(page, i)) {
       const std::string n = "tile" + std::to_string(i + 1);
       for (const std::string &part : button_parts(centred(b, style_of(b))))
         vis(n + part, true);
@@ -148,21 +162,24 @@ void Engine::draw_buttons(const cJSON *page) {
 }
 
 /* An entity page's style ("style": list, cards, rows): the cards hold eight a
-   sheet, the list and the rows seven. */
+   sheet, the list and the rows seven. A group's button page: its eight tiles. */
 int Engine::rows_per_sheet(const cJSON *page) const {
-  return str(page, "style") == "cards" ? 8 : 7;
+  return type_of(page) == PageType::Buttons || str(page, "style") == "cards" ? 8 : 7;
 }
 
 /* An entity page's rows: its own, or its group's members (Callbacks::members)
    as rows with the page's icon, colour, rules and format -- made once they
    are known, kept until they change (on_options) or the configuration does.
-   Null while not known.
+   Null while not known. A group's button page has them as its tiles: those a
+   tap can switch (Switch, Dimmer, Color), with "only_on" those that are on, or
+   whose state is not known yet.
 
    With "metadata" (a namespace, e.g. "plant") each member's metadata there
    goes with its row ("meta": the value as "value", the config's keys; the
    rules' "@key"s), "label" a template of them ("{room} > {short_name}"),
-   "hidden": true leaves the member out (shown without it), and "order" sorts -- those without
-   after the others, by label as openHAB's list has them. */
+   "hidden": true leaves the member out (shown without it), "icon" is its own
+   instead of the page's, and "order" sorts -- those without after the others,
+   by label as openHAB's list has them. */
 const cJSON *Engine::rows_of(const cJSON *page) {
   const std::string group = str(page, "group");
   if (group.empty())
@@ -186,7 +203,10 @@ const cJSON *Engine::rows_of(const cJSON *page) {
     return end && end != it->second.c_str() ? v : HUGE_VAL;
   };
   std::vector<const appoh::Member *> shown;
+  const bool buttons = type_of(page) == PageType::Buttons;
   for (const appoh::Member &m : members) {
+    if (buttons && !m.type.empty() && m.type != "Switch" && m.type != "Dimmer" && m.type != "Color")
+      continue;
     const auto hidden = meta_of(m).config.find("hidden");
     if (hidden == meta_of(m).config.end() || hidden->second != "true")
       shown.push_back(&m);
@@ -199,6 +219,10 @@ const cJSON *Engine::rows_of(const cJSON *page) {
     const appoh::Metadata &md = meta_of(m);
     cJSON *row = cJSON_CreateObject();
     cJSON_AddStringToObject(row, "item", m.name.c_str());
+    if (flag(page, "only_on") && has_state(row) && !on(row)) {
+      cJSON_Delete(row);
+      continue;
+    }
     // without metadata there: the item's label
     std::string text = &md == &kNone ? m.label : label.empty() ? (md.value.empty() ? m.label : md.value) : label;
     if (&md != &kNone && !label.empty()) {   // {value}, {key}: from the metadata; {label}: the item's
@@ -223,10 +247,23 @@ const cJSON *Engine::rows_of(const cJSON *page) {
     for (const char *key : {"icon", "color", "value_color", "value_style", "format", "factor"})
       if (const cJSON *v = member(page, key))
         cJSON_AddItemToObject(row, key, cJSON_Duplicate(v, true));
+    if (const auto own = md.config.find("icon"); own != md.config.end()) {
+      cJSON_DeleteItemFromObject(row, "icon");
+      cJSON_AddStringToObject(row, "icon", own->second.c_str());
+    }
     cJSON_AddItemToArray(rows, row);
   }
   group_rows_[id] = rows;
   return rows;
+}
+
+/* What openHAB has as members now, once as the page opens, in the background (on_options when it differs). */
+void Engine::ask_group(const cJSON *page) {
+  if (const std::string group = str(page, "group"); !group.empty() && !group_asked_ && cb_.members) {
+    group_asked_ = true;
+    std::vector<appoh::Member> ignored;
+    cb_.members(group, ignored, true);
+  }
 }
 
 void Engine::forget_group_rows() {
@@ -249,11 +286,7 @@ void Engine::draw_entities(const cJSON *page, const std::string &physical) {
   txt("title", str(page, "title"));
   const bool cards = physical == "entities_cards", list = physical == "entities";
   const int per = rows_per_sheet(page);
-  if (const std::string group = str(page, "group"); !group.empty() && !group_asked_ && cb_.members) {
-    group_asked_ = true;   // what openHAB has now, in the background (on_options when it differs)
-    std::vector<appoh::Member> ignored;
-    cb_.members(group, ignored, true);
-  }
+  ask_group(page);
   const cJSON *all = rows_of(page);
   const int sheets = sheets_of(page);
   // the sheets as dots at the bottom, the one shown full -- in the swipe row its dots instead (draw_dots), not these

@@ -157,7 +157,9 @@ void fetch_item(void *arg) {
         const std::string name = text_of(m, "name"), label = text_of(m, "label");
         if (name.empty())
           continue;
-        Member member{name, label.empty() ? name : label, metadata_of(cJSON_GetObjectItem(m, "metadata"))};
+        const std::string type = text_of(m, "type");
+        Member member{name, label.empty() ? name : label, metadata_of(cJSON_GetObjectItem(m, "metadata")),
+                      type == "Group" ? text_of(m, "groupType") : type};
         members.push_back(std::move(member));
       }
       own = metadata_of(cJSON_GetObjectItem(root, "metadata"));

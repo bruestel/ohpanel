@@ -290,6 +290,15 @@ int main() {
                doc("\"pages\":[{\"id\":\"m\",\"type\":\"media\",\"title\":\"x\",\"control\":{\"item\":\"C\"},"
                    "\"stations\":{}}]"),
                "pages[0].stations");
+  expect_valid("a group's button page",
+               doc("\"pages\":[{\"id\":\"l\",\"type\":\"buttons\",\"title\":\"x\",\"group\":\"gLights\",\"icon\":\"lightbulb\","
+                   "\"only_on\":true,\"metadata\":\"light\",\"label\":\"{room}\"}]"));
+  expect_issue("buttons beside a group",
+               doc("\"pages\":[{\"id\":\"l\",\"type\":\"buttons\",\"title\":\"x\",\"group\":\"g\",\"buttons\":[]}]"), "pages[0]");
+  expect_issue("only_on without a group",
+               doc("\"pages\":[{\"id\":\"l\",\"type\":\"buttons\",\"title\":\"x\",\"only_on\":true}]"), "pages[0].only_on");
+  expect_issue("only_on not a boolean",
+               doc("\"pages\":[{\"id\":\"l\",\"type\":\"buttons\",\"title\":\"x\",\"group\":\"g\",\"only_on\":1}]"), "pages[0].only_on");
   expect_valid("settings page opened", doc("\"home\":{\"shortcuts\":[{\"icon\":\"cog\",\"open\":\"settings\"}]}"));
   expect_valid("the older open_when_off still accepted",
                doc("\"home\":{\"shortcuts\":[{\"item\":\"S\",\"icon\":\"cog\",\"open\":\"settings\",\"open_when_off\":true}]}"));

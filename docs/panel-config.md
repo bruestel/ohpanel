@@ -291,6 +291,21 @@ others keep their place.
 | `value_style` | rules (see below) | by the item's state: `"active": true / false` draws the button active or not (else its state decides: `on`, else ON / OPEN / above 0), `"layout": "corner" / "center"` places its icon (else its own `layout`), `color` the icon's colour, `blink`, `icon` another icon, e.g. `[{"above": 65, "active": true, "color": "red"}]`; `always_active` still wins |
 | `layout` | string | `corner` (default): the icon top left, the name on the bottom line, the state (`value`) above it and, for a value in %, a bar below; `center`: the icon in the middle of the tile, large (48 px), the name centred under it, no state |
 
+Instead of `buttons`, a page may take the members of an openHAB group as its
+tiles, say to see which lights are on and switch them off:
+
+| Member | | |
+|---|---|---|
+| `group` | item | an openHAB group; its members that are a Switch, Dimmer or Color (or a group of those) become tiles that toggle them, the others are left out; with their labels from openHAB, eight on a sheet (swipe for more, in the swipe row too) |
+| `metadata`, `label` | | name, sort, hide the members and give each an icon of its own as on an entities page (the metadata's value as the name, `order`, `hidden=true`, `icon`), see there |
+| `icon`, `color`, `value_style` | | apply to every tile |
+| `only_on` | bool | only the members that are on as the page opens (and those whose state is not known yet). A tile switched off stays, grey, until the page opens again, so the tiles do not move under a finger; a light that comes on meanwhile shows then too |
+
+```json
+{"id": "lights-on", "type": "buttons", "title": "Lights on", "group": "gLights",
+ "icon": "lightbulb", "only_on": true}
+```
+
 ### `entities`: a list of states
 
 Either fixed `rows` or a `group`:
@@ -329,6 +344,8 @@ a namespace of its own rather than one of the panel's, so that other clients
 - `order` (a number) sorts the rows; members without come last, by label;
 - `hidden=true` leaves the member out (it stays in the group for others);
   without it, the member is shown;
+- `icon` (an icon's name) is the member's own instead of the page's; a rule's
+  icon still comes first;
 - any other key is there for the `label` template and for the rules'
   thresholds: `"at_most": "@critical"` compares with the member's `critical`;
 - a member without metadata there shows its item label, and rules with a

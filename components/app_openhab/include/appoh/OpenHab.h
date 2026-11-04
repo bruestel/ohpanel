@@ -158,6 +158,7 @@ struct Member {
   std::string name;
   std::string label;   // the item's label; its name if it has none
   std::map<std::string, Metadata> metadata;   // by namespace, e.g. "plant"
+  std::string type = {};   // the item's (a group's: of its base item), "Switch", "Dimmer" ...
   bool operator==(const Member &) const = default;
 };
 bool members(const std::string &group, std::vector<Member> &out, bool refresh = false);

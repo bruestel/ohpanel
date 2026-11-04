@@ -226,6 +226,7 @@ esp_err_t get_openhab_options(httpd_req_t *req) {
     cJSON *e = cJSON_CreateObject();
     cJSON_AddStringToObject(e, "name", m.name.c_str());
     cJSON_AddStringToObject(e, "label", m.label.c_str());
+    cJSON_AddStringToObject(e, "type", m.type.c_str());
     add_metadata(e, m.metadata);
     cJSON_AddItemToArray(ml, e);
   }
