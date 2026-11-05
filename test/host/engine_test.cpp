@@ -1159,6 +1159,19 @@ int main(int argc, char **argv) {
     e.on_state("Relay_Desk");
     CHECK(rec.has("relay2_bar.bco=19998"));
 
+    // a configuration saved: the relay (on) takes the state its item has, which no event will bring
+    set_state("Relay_Desk", "OFF", "OnOff");
+    relays.clear();
+    e.set_config(rcfg);
+    CHECK(relays.size() == 1 && relays.back() == std::make_pair(1, false));
+    // not without openHAB: what the panel knows may be old
+    e.set_status(away);
+    set_state("Relay_Desk", "ON", "OnOff");
+    e.set_config(rcfg);
+    CHECK(relays.size() == 1);
+    e.set_status(online);
+    e.on_state("Relay_Desk");
+
     // a label is no condition for the bar
     rcfg = read("test/host/data/office.json");
     rcfg.replace(rcfg.find(desk), desk.size(), "\"relay\": {\"item\": \"Relay_Desk\"}");

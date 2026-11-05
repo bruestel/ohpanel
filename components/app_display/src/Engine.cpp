@@ -347,8 +347,10 @@ void Engine::set_config(const std::string &json) {
   }
   page_item_ = str(member(member(config_, "display"), "current_page"), "item");
   update_theme();
-  if (status_.openhab)
+  if (status_.openhab) {
     prefetch_at_ = now_ms_ + kPrefetchDelayMs;   // a catalogue the new configuration names
+    follow_relays(nullptr);   // a relay given an item whose state is known already: no state will come for it
+  }
   // the page shown may be gone -- or home, taken out of the row: the start page then
   const bool home_in_row = std::find(swipe_row_.begin(), swipe_row_.end(), "home") != swipe_row_.end();
   if ((current_ != "home" && !page_config(current_)) || (current_ == "home" && !home_in_row)) {
