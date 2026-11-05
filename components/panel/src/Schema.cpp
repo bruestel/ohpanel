@@ -713,10 +713,17 @@ class Validator {
              "weather_icon", "weather_page",
              "status_icons", "shortcuts", "info"});
     slots(h, "relays", path, kMaxRelays, [&](const cJSON *e, const std::string &p) {
-      allowed(e, p, {"label", "item", "relay"});
+      allowed(e, p, {"label", "item", "relay", "hidden"});
       string(e, "label", p, false, 24);
       optional_item(e, p);
-      boolean(e, "relay", p);
+      boolean(e, "hidden", p);
+      // true, false or an item of its own
+      if (const cJSON *own = cJSON_GetObjectItem(e, "relay"); cJSON_IsObject(own)) {
+        allowed(own, member(p, "relay"), {"item"});
+        item_name(cJSON_GetObjectItem(own, "item"), member(member(p, "relay"), "item"));
+      } else {
+        boolean(e, "relay", p);
+      }
     });
     item_ref(h, "indoor_temperature", path);  // older name of the first value row
     slots(h, "values", path, kMaxValueRows, [&](const cJSON *e, const std::string &p) {

@@ -51,6 +51,13 @@ inline bool flag(const cJSON *obj, const char *key, bool fallback = false) {
   return cJSON_IsBool(v) ? cJSON_IsTrue(v) : fallback;
 }
 
+/* What the relay of a home.relays entry follows: an item of its own ("relay": {"item"}), else the entry's, which is
+   the button's too; null for "relay": false and for no entry. */
+inline const cJSON *relay_ref(const cJSON *r) {
+  const cJSON *own = member(r, "relay");
+  return cJSON_IsObject(own) ? own : flag(r, "relay", true) ? r : nullptr;
+}
+
 /* Entry `i` of an array member, null for a gap or past the end. */
 inline const cJSON *slot(const cJSON *obj, const char *key, int i) {
   const cJSON *a = member(obj, key);

@@ -218,7 +218,7 @@ weather, status icons and info lines do not show; the hardware buttons still swi
 | `shortcuts` | up to 12 indicators | the large icons, three rows of four, numbered as read (the first four the top row, right-aligned); each may `open` a page, tapped while it is shown |
 | `info` | up to 2 lines | two text lines below the value rows, see below |
 
-A **relay** is `{"label", "item"?, "relay"?}` and describes one of the two
+A **relay** is `{"label", "item"?, "relay"?, "hidden"?}` and describes one of the two
 hardware buttons with the relay next to it:
 
 - without `item`, the button switches the relay directly;
@@ -230,12 +230,34 @@ hardware buttons with the relay next to it:
   needs no binding or Thing; a plain `Switch` item is enough, e.g.
   `Switch Office_Panel_Relay1 "Office light (panel)"`;
 - `"relay": false` leaves the relay alone: the button only acts on the item
-  (e.g. a smart bulb on a permanently powered circuit).
+  (e.g. a smart bulb on a permanently powered circuit);
+- `"relay": {"item": "..."}` gives the relay an item of its own (a Switch), and
+  button and relay are independent of each other: only that item switches the
+  relay, no press does. The button acts on `item`, like with `"relay": false`;
+  without `item` it does nothing and the bar shows the relay. For a load that
+  must not be switched at the wall, such as a heating contact or a pump:
+
+  ```json
+  "relays": [
+    {"label": "Heating", "relay": {"item": "Heating_Contact"}},
+    {"label": "Scene", "item": "Evening_Scene", "relay": {"item": "Pump"}}
+  ]
+  ```
+
+`"hidden": true` shows nothing of it on home, neither the label nor the bar; the
+button and the relay work as configured, unseen:
+`{"relay": {"item": "Heating_Contact"}, "hidden": true}` is a relay only openHAB
+sees.
 
 The relays keep their state through a restart or power cut; with an item,
 openHAB's state takes over once the panel is connected. An item that is NULL
 or UNDEF (openHAB restarting, before its persistence restores it) switches
-nothing: the relay stays as it is and the panel tells openHAB its state.
+nothing: the relay stays as it is and the panel tells openHAB its state, as a
+command, which a rule on "received command" sees too.
+
+A relay with an item of its own has no way back at the wall: while openHAB or
+the network is away it stays as it is, on as well, and after a power cut it comes
+back as it was.
 
 An **info line** has three fields, `left`, `main` and `right` (e.g. tram line,
 destination, departure), each `{"item", "format"?, "factor"?}` or `{"text"}`, the left

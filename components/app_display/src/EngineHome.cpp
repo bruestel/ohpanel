@@ -102,15 +102,15 @@ void Engine::draw_relays() {
   for (int i = 0; i < 2; i++) {
     const cJSON *r = slot(home, "relays", i);
     const std::string side = "relay" + std::to_string(i + 1);
-    if (!r) {
+    if (!r || flag(r, "hidden")) {   // "hidden": it works unseen
       vis(side + "_text", false);
       vis(side + "_bar", false);
       if (upright)
         relay_label(pg->second.at(side + "_label"), side, "", kWhite);
       continue;
     }
-    // the relay where there is one (it switches at once), else the item
-    const bool is_on = member(r, "item") && !flag(r, "relay", true) ? on(r) : relays_[i];
+    // the relay where the button switches it (at once) or has no item, else the button's item
+    const bool is_on = member(r, "item") && relay_ref(r) != r ? on(r) : relays_[i];
     if (upright) {
       vis(side + "_text", false);
       relay_label(pg->second.at(side + "_label"), side, str(r, "label"), i == 0 ? kWhite : kLightGrey);
@@ -220,8 +220,11 @@ void Engine::draw_home() {
     });
 
   for (int i = 0; i < 2; i++)
-    if (const cJSON *r = slot(h, "relays", i))
+    if (const cJSON *r = slot(h, "relays", i)) {
       bind(r, [this] { draw_relays(); });
+      if (cJSON_IsObject(member(r, "relay")))   // an item of its own
+        bind(member(r, "relay"), [this] { draw_relays(); });
+    }
   draw_relays();
 
   // status icons: top1 .. top10 (the bar under a relay's label shows its state)

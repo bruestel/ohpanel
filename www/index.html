@@ -427,6 +427,10 @@ details.advanced[open]>summary{margin-bottom:.6rem}
 .pved .row>label,.pved .row>.field{align-content:start}
 .pved label.check{margin:.4rem 0 1rem}
 .pved .row>label.check{align-self:end;min-height:36px;margin:0}   /* beside a field: on its input's line */
+.picks{display:grid;gap:.7rem;margin:.3rem 0 1rem}   /* a choice with a line each, the chosen one's fields under it */
+.pved .pick label.check{margin:0}
+.pick>.sub{margin-left:calc(16px + .5rem)!important}
+.pickfields{display:grid;gap:.6rem;margin:.5rem 0 0 calc(16px + .5rem)}
 .pved .iconpick{display:flex;align-items:center;gap:.5rem}
 .pved .iconlist{display:grid;gap:.4rem;justify-items:start}
 .pved .iconlist .iconpick{width:100%}
@@ -883,7 +887,7 @@ pre.box{margin:0;padding:.6rem .7rem;max-height:18rem;overflow:auto;background:v
       <h2>Setup hotspot</h2>
       <p class="sub">Opens when the panel cannot reach its network, or when the right button on the panel is held
         for 15 seconds (the panel then leaves its network for 10 minutes; a short press on either button closes it
-        again, switching the relay as always). It is an open network named like the panel; the display shows its name and a QR code to join, the
+        again, doing what it always does as well). It is an open network named like the panel; the display shows its name and a QR code to join, the
         setup page is at http://192.168.4.1. The password protection below, when on, guards it there too.</p>
       <div class="stats">
         <div class="stat"><b id="wApName">–</b><span>Name</span></div>
@@ -3167,12 +3171,14 @@ function fillHome(cfg) {
   f.wifi = {text: ''};   // only without a connection (Engine::draw_wifi)
   /* Relays: the bar under each label lights up while the relay is on -- as
      the panel reports it (/api/v1/info) -- or, for a button that only
-     commands its item, while the item is on (Engine::draw_relays). */
+     commands its item, while the item is on (Engine::draw_relays); a relay
+     with an item of its own follows that one. */
   const relays = h.relays || [];
   [0, 1].forEach(i => {
-    const r = relays[i], side = 'relay' + (i + 1);
-    const switched = info && Array.isArray(info.relays) ? !!info.relays[i] : !!(r && r.item && isOn(r));
-    const on = r && (r.item && r.relay === false ? isOn(r) : switched);
+    const r = relays[i] && !relays[i].hidden ? relays[i] : null, side = 'relay' + (i + 1);
+    const ref = r && r.relay && r.relay.item !== undefined ? r.relay : r;
+    const switched = info && Array.isArray(info.relays) ? !!info.relays[i] : !!(ref && ref.item && isOn(ref));
+    const on = r && (r.item && (r.relay === false || ref !== r) ? isOn(r) : switched);
     f[side + '_bar'] = r ? {text: '', bg: on ? THEME.accent : PALETTE['dark-grey']} : {hide: true};
     // upright beside the panel's buttons (the NSPanel US on its side: Engine::relay_label), read from the bottom up
     const upright = layoutBox('home', side + '_label');
@@ -4833,13 +4839,15 @@ function unnamed(name, input) {
 
 /* A text the display shows in a field of its own (LAYOUT.fit: font, width, bytes): `input` takes as much as the
    schema allows, a line under it says how it shows when it is too wide for the field (Engine::fitted).
-   `where` gives [page template, object] -- it may change (a button's icon place). */
+   `where` gives [page template, object] -- it may change (a button's icon place) -- and, for a text written upright
+   by the firmware (Engine::relay_label), the height it has instead of the field's width and bytes. */
 function fitHint(input, where) {
   const p = document.createElement('p');
   p.className = 'sub warn';
   const show = () => {
-    const [template, object] = where(), fit = LAYOUT.fit && LAYOUT.fit[template] && LAYOUT.fit[template][object];
-    const v = input.value.trim(), shown = fit && v ? fitted(v, ...fit) : v;
+    const [template, object, upright] = where(), fit = LAYOUT.fit && LAYOUT.fit[template] && LAYOUT.fit[template][object];
+    const v = input.value.trim();
+    const shown = fit && v ? fitted(v, fit[0], upright || fit[1], upright ? Infinity : fit[2]) : v;
     p.textContent = shown !== v ? 'Too wide for the display, shown as "' + shown + '"' : '';
     p.hidden = shown === v;
   };
@@ -5944,19 +5952,65 @@ function pvEditor() {
   } else if (slot && slot.kind === 'relay') {
     const e = slot.entry || {}, set = (k, v, d) => pvSlotSet(slot, k, v, d);
     head.textContent = (slot.i ? 'Right' : 'Left') + ' button and relay';
-    const sw = document.createElement('label');
-    sw.className = 'check';
-    const cb = document.createElement('input');
-    cb.type = 'checkbox'; cb.setAttribute('role', 'switch'); cb.checked = e.relay !== false;
-    cb.addEventListener('change', () => set('relay', cb.checked, true));
-    sw.append(cb, 'The button switches the relay (off: it only acts on the item)');
-    const p = document.createElement('p');
-    p.className = 'sub';
-    p.textContent = 'With an item (a plain Switch) the relay shows in openHAB: the button switches it and tells openHAB, '
-                  + 'and switching the item switches the relay.';
-    box.append(pvRow(field('Label', fitHint(textInput(e.label, v => set('label', v), {maxLength: 24}), () => ['home', 'relay1_text'])),
-                     field('Item', itemField(e.item, v => set('item', v), 'Switch'))), sw, p,
-               pvSlotButtons(slot, 2));
+    /* What the button does and what the relay follows, as one choice, the fields of the chosen one under it: the
+       items typed stay through a change of mind. */
+    const own = !!e.relay && typeof e.relay === 'object';
+    let buttonItem = e.item || '', relayItem = own ? e.relay.item || '' : '';
+    let mode = e.hidden ? 'hidden' : own ? (buttonItem ? 'both' : 'none') : e.relay === false ? 'item' : 'relay';
+    const write = () => pvSlotEdit(slot, x => {
+      x = x || {};
+      if (buttonItem && mode !== 'none' && mode !== 'hidden') x.item = buttonItem; else delete x.item;
+      if (mode === 'hidden') x.hidden = true; else delete x.hidden;
+      if (mode === 'relay') delete x.relay; else x.relay = mode !== 'item' && relayItem ? {item: relayItem} : false;
+      return x;
+    });
+    const labelRow = pvRow(field('Label (optional)', fitHint(textInput(e.label, v => set('label', v), {maxLength: 24}), () => ['home', 'relay1_text', (layoutBox('home', 'relay1_label') || [])[3]])));
+    const buttonField = field('', itemField(buttonItem, v => { buttonItem = v; write(); }, 'Switch'));
+    const relayField = field('Item of the relay (optional)', itemField(relayItem, v => { relayItem = v; write(); }, 'Switch'));
+    const bar = note('');
+    const fields = document.createElement('div');
+    fields.className = 'pickfields';
+    fields.append(buttonField, relayField, bar);
+    const modes = [
+      ['relay', 'Switches the relay', 'At once, with or without openHAB; with an item, openHAB can switch it too.', 'relay'],
+      ['item', 'Switches an item only', 'The relay is left alone.', 'item'],
+      ['both', 'Switches an item, the relay has its own', 'Button and relay are independent of each other.', "button's item"],
+      ['none', 'Does nothing, the relay follows an item', 'For a load that must not be switched at the wall.', 'relay'],
+      ['hidden', 'Does nothing and does not show, the relay follows an item', 'Neither label nor bar on the panel: a relay only openHAB sees.', ''],
+    ];
+    const picks = document.createElement('div');
+    picks.className = 'picks';
+    picks.setAttribute('role', 'radiogroup');
+    picks.setAttribute('aria-label', 'What the button does');
+    const places = {};
+    const show = () => {
+      places[mode].append(fields);
+      buttonField.hidden = mode === 'none' || mode === 'hidden';
+      labelRow.hidden = mode === 'hidden';
+      relayField.hidden = mode === 'relay' || mode === 'item';
+      buttonField.firstChild.textContent = mode === 'both' ? 'Item of the button (optional)' : 'Item (optional)';
+      const shows = modes.find(m => m[0] === mode)[3];
+      bar.textContent = shows ? 'The bar shows the ' + shows + '.' : '';
+      bar.hidden = !shows;
+    };
+    modes.forEach(([value, title, text]) => {
+      const pick = places[value] = document.createElement('div');
+      pick.className = 'pick';
+      const l = document.createElement('label');
+      l.className = 'check';
+      const radio = document.createElement('input');
+      radio.type = 'radio'; radio.name = 'relayMode'; radio.value = value; radio.checked = value === mode;
+      radio.addEventListener('change', () => { mode = value; show(); write(); });
+      l.append(radio, title);
+      const p = note(text);
+      pick.append(l, p);
+      picks.append(pick);
+    });
+    show();
+    const ask = document.createElement('div');
+    ask.className = 'field';
+    ask.textContent = 'What does the button do?';
+    box.append(labelRow, ask, picks, pvSlotButtons(slot, 2));
   } else if (slot && slot.kind === 'info') {
     const e = slot.entry || {};
     head.textContent = 'Info line ' + (slot.i + 1);

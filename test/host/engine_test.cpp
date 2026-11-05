@@ -1097,6 +1097,93 @@ int main(int argc, char **argv) {
     e.set_config(read("test/host/data/office.json"));
   }
 
+  // a relay with an item of its own: only that item switches it, the button acts on the other, independently
+  {
+    const std::string desk = "\"label\": \"Desk lamp\"";
+    std::string rcfg = read("test/host/data/office.json");
+    rcfg.replace(rcfg.find(desk), desk.size(), desk + ", \"item\": \"Desk_Scene\", \"relay\": {\"item\": \"Relay_Desk\"}");
+    PanelStatus online;
+    online.openhab = true;
+    e.set_status(online);
+    e.set_config(rcfg);
+    e.on_message(loaded("home"));
+    set_state("Desk_Scene", "OFF", "OnOff");
+    set_state("Relay_Desk", "OFF", "OnOff");
+    e.on_state("Relay_Desk");
+    relays.clear();
+    commands.clear();
+    e.hardware_button(1);
+    CHECK(relays.empty());
+    CHECK(commands.size() == 1 && commands.back() == std::make_pair(std::string("Desk_Scene"), std::string("ON")));
+    set_state("Desk_Scene", "ON", "OnOff");  // its state switches no relay
+    e.on_state("Desk_Scene");
+    CHECK(relays.empty());
+    set_state("Relay_Desk", "ON", "OnOff");  // the relay's own does
+    e.on_state("Relay_Desk");
+    CHECK(relays.size() == 1 && relays.back() == std::make_pair(1, true));
+    rec.out.clear();
+    set_state("Desk_Scene", "OFF", "OnOff");  // the bar is the button's: its item, whatever the relay does
+    e.on_state("Desk_Scene");
+    CHECK(rec.has("relay2_bar.bco=10597"));
+    CHECK(relays.size() == 1);
+
+    // restarting openHAB: as with an item of the button's, the relay stays and openHAB is told -- its own item
+    commands.clear();
+    set_state("Relay_Desk", "NULL", "UnDef");
+    e.on_state("Relay_Desk");
+    CHECK(relays.size() == 1);
+    CHECK(commands.size() == 1 && commands.back() == std::make_pair(std::string("Relay_Desk"), std::string("ON")));
+    set_state("Relay_Desk", "ON", "OnOff");
+    e.on_state("Relay_Desk");
+
+    // without a button's item a press does nothing, also without openHAB, and the bar shows the relay
+    rcfg = read("test/host/data/office.json");
+    rcfg.replace(rcfg.find(desk), desk.size(), desk + ", \"relay\": {\"item\": \"Relay_Desk\"}");
+    e.set_config(rcfg);
+    e.on_message(loaded("home"));
+    relays.clear();
+    commands.clear();
+    e.hardware_button(1);
+    PanelStatus away;
+    e.set_status(away);
+    e.hardware_button(1);
+    e.set_status(online);
+    CHECK(relays.empty() && commands.empty());
+    rec.out.clear();
+    set_state("Relay_Desk", "OFF", "OnOff");
+    e.on_state("Relay_Desk");
+    CHECK(relays.size() == 1 && relays.back() == std::make_pair(1, false));
+    CHECK(rec.has("relay2_bar.bco=10597"));
+    rec.out.clear();
+    set_state("Relay_Desk", "ON", "OnOff");
+    e.on_state("Relay_Desk");
+    CHECK(rec.has("relay2_bar.bco=19998"));
+
+    // a label is no condition for the bar
+    rcfg = read("test/host/data/office.json");
+    rcfg.replace(rcfg.find(desk), desk.size(), "\"relay\": {\"item\": \"Relay_Desk\"}");
+    e.set_config(rcfg);
+    rec.out.clear();
+    e.on_message(loaded("home"));
+    CHECK(rec.has_prefix("relay2_bar.bco=") && !rec.has("vis relay2_bar,0"));
+
+    // "hidden": nothing of it shows, with a label too, and it works all the same
+    rcfg = read("test/host/data/office.json");
+    rcfg.replace(rcfg.find(desk), desk.size(), desk + ", \"relay\": {\"item\": \"Relay_Desk\"}, \"hidden\": true");
+    e.set_config(rcfg);
+    rec.out.clear();
+    e.on_message(loaded("home"));
+    CHECK(rec.has("vis relay2_text,0") && rec.has("vis relay2_bar,0"));
+    CHECK(!rec.has_prefix("relay2_bar.bco=") && !rec.has_prefix("relay2_text.txt="));
+    rec.out.clear();
+    relays.clear();
+    set_state("Relay_Desk", "OFF", "OnOff");   // (the relay off again, for what follows)
+    e.on_state("Relay_Desk");
+    CHECK(relays.size() == 1 && relays.back() == std::make_pair(1, false));
+    CHECK(!rec.has_prefix("relay2_bar.bco="));
+    e.set_config(read("test/host/data/office.json"));
+  }
+
   {  // value_style: a rule may set another icon, a colour and blinking -- icons and texts
     cJSON *doc = cJSON_Parse(read("test/host/data/office.json").c_str());
     cJSON *home = cJSON_GetObjectItem(doc, "home");

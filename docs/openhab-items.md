@@ -14,7 +14,8 @@ metadata. Mostly the configuration names what each field says; a group's rows (a
 // --- Home screen ------------------------------------------------------------------------------------------------
 
 // the two relays: a plain Switch each, no channel; the panel keeps it in step with its relay
-// (home.relays[].item; "relay": false on the second: the button switches the item only, not the relay)
+// (home.relays[].item; "relay": false on the second: the button switches the item only, not the relay;
+// "relay": {"item": ...} would give a relay an item of its own, which the button does not touch)
 Switch Kitchen_Ceiling             "Kitchen ceiling light"
 Switch Kitchen_Counter_Switch      "Counter light"                   { channel="<light>:switch" }
 

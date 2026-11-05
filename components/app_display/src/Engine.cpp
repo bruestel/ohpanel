@@ -1647,7 +1647,8 @@ void Engine::act_button(const cJSON *page, int index) {
    switches the relay back (on_state). A press while openHAB is unreachable is
    kept: when the item's state arrives after the reconnect, the panel sends its
    own instead of following the stale one. "relay": false only commands the
-   item. */
+   item, and so does a relay with an item of its own ("relay": {"item"}), which
+   no press switches: without an "item" that press does nothing. */
 void Engine::hardware_button(int index) {
   // someone is at the panel (idle()) -- but a screen that is off stays off: the light switched at night
   // does not light the room with the display too; a touch wakes it
@@ -1655,7 +1656,7 @@ void Engine::hardware_button(int index) {
     touched_ms_ = now_ms_;
   const cJSON *r = slot(member(config_, "home"), "relays", index);
   const std::string item = str(r, "item");
-  const bool switches = !r || flag(r, "relay", true);
+  const bool switches = !r || relay_ref(r) == r;
   // without openHAB nothing is sent (it would only fail): an item alone stays as it is, a relay's state
   // goes to openHAB once it is connected again (relay_pending_, follow_relays)
   if (!switches) {
@@ -1883,8 +1884,8 @@ void Engine::close_note(bool dismissed) {
    stays as it is, and openHAB, once connected, is told its state -- once. */
 void Engine::follow_relays(const std::string *item) {
   for (int i = 0; i < 2; i++) {
-    const cJSON *r = slot(member(config_, "home"), "relays", i);
-    if (!r || (item && str(r, "item") != *item) || !flag(r, "relay", true) || !has_state(r))
+    const cJSON *r = relay_ref(slot(member(config_, "home"), "relays", i));
+    if (!r || (item && str(r, "item") != *item) || !has_state(r))
       continue;
     if (state_of(r).undefined()) {
       if (status_.openhab && !relay_told_[i] && cb_.command) {

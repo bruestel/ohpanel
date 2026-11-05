@@ -62,6 +62,8 @@ int main() {
                doc("\"home\":{\"values\":[{\"item\":\"T\",\"icon\":\"thermometer\"},{\"item\":\"H\",\"format\":\"time\"}],"
                    "\"info\":[{\"left\":{\"icon\":\"tram\",\"color\":\"white\",\"bg\":\"red\"},"
                    "\"main\":{\"item\":\"D\",\"color\":\"blue\"},\"right\":{\"text\":\"x\",\"color\":\"yellow\"}}]}"));
+  expect_valid("a relay's own item", doc("\"home\":{\"relays\":[{\"relay\":{\"item\":\"R\"}},"
+                                         "{\"item\":\"B\",\"relay\":{\"item\":\"R2\"},\"hidden\":true}]}"));
   expect_valid("indoor_temperature, the older name", doc("\"home\":{\"indoor_temperature\":{\"item\":\"T\"}}"));
   expect_valid("states counting as on", doc("\"home\":{\"shortcuts\":[{\"item\":\"S\",\"icon\":\"speaker\","
                                             "\"on\":\"PLAYING\"}],\"status_icons\":[{\"item\":\"P\",\"icon\":\"speaker\","
@@ -387,6 +389,11 @@ int main() {
                  "home.shortcuts");
   }
   expect_issue("relay flag", doc("\"home\":{\"relays\":[{\"label\":\"x\",\"relay\":\"no\"}]}"), "home.relays[0].relay");
+  expect_issue("relay hidden flag", doc("\"home\":{\"relays\":[{\"hidden\":\"yes\"}]}"), "home.relays[0].hidden");
+  expect_issue("relay without its item", doc("\"home\":{\"relays\":[{\"relay\":{}}]}"), "home.relays[0].relay.item");
+  expect_issue("relay's item", doc("\"home\":{\"relays\":[{\"relay\":{\"item\":\"a b\"}}]}"), "home.relays[0].relay.item");
+  expect_issue("relay's empty item", doc("\"home\":{\"relays\":[{\"relay\":{\"item\":\"\"}}]}"), "home.relays[0].relay.item");
+  expect_issue("relay's unknown key", doc("\"home\":{\"relays\":[{\"relay\":{\"item\":\"A\",\"x\":1}}]}"), "home.relays[0].relay.x");
   expect_issue("info field item and text",
                doc("\"home\":{\"info\":[{\"main\":{\"item\":\"A\",\"text\":\"b\"}}]}"), "home.info[0].main");
   expect_issue("icon set", doc("\"home\":{\"weather_icon\":{\"item\":\"W\",\"codes\":\"Open Weather\"}}"),
