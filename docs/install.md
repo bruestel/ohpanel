@@ -189,13 +189,26 @@ panel goes by, so open the panel under the name it was made for. A Let's Encrypt
 own CA** refuses it. **Stop using it** goes back to the panel's own; **Make new keys** and a new CA do that too.
 
 The panel does not renew it. A Let's Encrypt certificate runs out after 90 days, so let the client that fetched it
-send each new one, with the panel's login:
+send each new one, with the panel's login. Upload the first one with its key in the web interface. After that the
+certificate alone is enough, as long as the renewal keeps the key: the private key does not travel again.
 
-    jq -n --rawfile cert fullchain.cer --rawfile key panel.key '{cert: $cert, key: $key}' |
+    jq -n --rawfile cert fullchain.cer '{cert: $cert}' |
         curl -fsS -u admin:password --data-binary @- https://panel.myhome.example/api/v1/tls/server
 
-The panel's https server restarts with it. The first time it does not yet answer with this certificate: add `-k`, or
-upload it in the web interface. `{"remove": true}` goes back to the panel's own.
+acme.sh keeps the key unless told otherwise; certbot makes a new one unless it runs with `--reuse-key`. A certificate
+with a new key is refused and the old one stays in use: send that key too, as `{cert: $cert, key: $key}`. The panel's
+https server restarts with the new certificate. `{"remove": true}` goes back to the panel's own.
+
+A renewal comes about 30 days before the end, so the panel still answers with a valid certificate and curl needs no
+`-k`. Should it have run out, do not just add `-k`, and do not send this over http: the login goes along, and whoever
+reads it can upload a certificate of their own. Pin the key instead. It stays the same, so an expired certificate
+still proves it is your panel, and curl stops before it sends the login to any other:
+
+    pin=$(openssl x509 -in fullchain.cer -noout -pubkey | openssl pkey -pubin -outform der |
+        openssl dgst -sha256 -binary | base64)
+    jq -n --rawfile cert fullchain.cer '{cert: $cert}' |
+        curl -fsS -k --pinnedpubkey "sha256//$pin" -u admin:password --data-binary @- \
+            https://panel.myhome.example/api/v1/tls/server
 
 With [acme.sh](https://github.com/acmesh-official/acme.sh), a deploy hook does this at each renewal. Save it as
 `~/.acme.sh/deploy/ohpanel.sh`:
@@ -204,7 +217,6 @@ With [acme.sh](https://github.com/acmesh-official/acme.sh), a deploy hook does t
 #!/usr/bin/env sh
 # acme.sh --deploy -d panel.myhome.example --deploy-hook ohpanel
 ohpanel_deploy() {
-  _ckey="$2"
   _cfullchain="$5"
   _getdeployconf DEPLOY_OHPANEL_URL
   _getdeployconf DEPLOY_OHPANEL_USER
@@ -212,7 +224,7 @@ ohpanel_deploy() {
   _savedeployconf DEPLOY_OHPANEL_URL "$DEPLOY_OHPANEL_URL"
   _savedeployconf DEPLOY_OHPANEL_USER "$DEPLOY_OHPANEL_USER"
   _savedeployconf DEPLOY_OHPANEL_PASSWORD "$DEPLOY_OHPANEL_PASSWORD"
-  jq -n --rawfile cert "$_cfullchain" --rawfile key "$_ckey" '{cert: $cert, key: $key}' |
+  jq -n --rawfile cert "$_cfullchain" '{cert: $cert}' |
     curl -fsS -u "$DEPLOY_OHPANEL_USER:$DEPLOY_OHPANEL_PASSWORD" --data-binary @- \
       "$DEPLOY_OHPANEL_URL/api/v1/tls/server"
 }

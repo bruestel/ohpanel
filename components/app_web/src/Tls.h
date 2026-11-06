@@ -71,9 +71,10 @@ bool set_ca(const std::string &cert_pem, const std::string &key_pem, std::string
 
 /* An own server certificate instead of one the panel issues, e.g. from Let's Encrypt: the certificate with its chain
    (PEM, the server's first) and its private key, used as they are by the next ensure(), whatever names the panel goes
-   by. Checked: no CA, the key its own; the dates are for whoever renews it, the panel does not. renew() and set_ca()
-   drop it, its key never leaves the panel again. False with `error` if it is refused or cannot be stored. */
-bool set_server(const std::string &chain_pem, const std::string &key_pem, std::string *error);
+   by. An empty key keeps the one the panel holds, for a renewal with the same key. Checked: no CA, the key its own;
+   the dates are for whoever renews it, the panel does not. renew() and set_ca() drop it, its key never leaves the
+   panel again. False with `error` if it is refused or cannot be stored. */
+bool set_server(const std::string &chain_pem, const std::string &key_given, std::string *error);
 bool clear_server();   // back to the certificate the panel issues
 
 /* More names the panel goes by (a name of its own in the home network's DNS, say): the CA may vouch for them too

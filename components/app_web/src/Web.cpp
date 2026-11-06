@@ -748,8 +748,8 @@ esp_err_t post_tls_server(httpd_req_t *req) {
   const char *cert = cJSON_GetStringValue(cJSON_GetObjectItem(root, "cert"));
   const char *key = cJSON_GetStringValue(cJSON_GetObjectItem(root, "key"));
   const bool remove = cJSON_IsTrue(cJSON_GetObjectItem(root, "remove"));
-  std::string error = "needs \"cert\" and \"key\"";
-  const bool ok = remove ? tls::clear_server() : cert && key && tls::set_server(cert, key, &error);
+  std::string error = "needs \"cert\"";
+  const bool ok = remove ? tls::clear_server() : cert && tls::set_server(cert, key ? key : "", &error);
   cJSON_Delete(root);
   if (!ok) {
     httpd_resp_set_status(req, "400 Bad Request");

@@ -1365,11 +1365,11 @@ pre.box{margin:0;padding:.6rem .7rem;max-height:18rem;overflow:auto;background:v
     <label class="drop" id="caCertDrop"><input type="file" id="caCert" accept=".crt,.pem,.cer" hidden>
       <span class="dropicon" aria-hidden="true"></span><span class="droptext"><b id="caCertName">CA certificate</b><small>.crt or .pem: choose or drop it here</small></span></label>
     <label class="drop" id="caKeyDrop"><input type="file" id="caKey" accept=".key,.pem" hidden>
-      <span class="dropicon" aria-hidden="true"></span><span class="droptext"><b>Its private key</b><small>.key or .pem, not encrypted: choose or drop it here</small></span></label>
+      <span class="dropicon" aria-hidden="true"></span><span class="droptext"><b class="caKeyName">Its private key</b><small>.key or .pem, not encrypted: choose or drop it here</small></span></label>
   </div>
   <div class="cafiles" id="caPaste" hidden>
     <label><span id="caCertLabel">CA certificate</span><textarea id="caCertText" rows="4" spellcheck="false" placeholder="-----BEGIN CERTIFICATE-----"></textarea></label>
-    <label>Its private key<textarea id="caKeyText" rows="4" spellcheck="false" placeholder="-----BEGIN EC PRIVATE KEY-----"></textarea></label>
+    <label><span class="caKeyName">Its private key</span><textarea id="caKeyText" rows="4" spellcheck="false" placeholder="-----BEGIN EC PRIVATE KEY-----"></textarea></label>
   </div>
   <p class="sub"><span id="caNote">Devices that trust the current CA need the new one.</span> The key stays on the panel: it can not be downloaded
     again, not in a backup either.</p>
@@ -1518,6 +1518,7 @@ function globalPrefix64() {
 }
 let tlsInfo = null;    // GET /tls, as last loaded
 let tlsHosts = [];     // the names added, as edited (saved with "Save names")
+let srvOwn = false;   // a key on the panel: a renewed certificate can do without one
 async function loadTls() {
   showTlsGuide();
   const st = $('tState');
@@ -1535,6 +1536,7 @@ async function loadTls() {
     $('tCaFp').textContent = fp.length > 20 ? fp.slice(0, 11) + ' … ' + fp.slice(-5) : fp;
     $('tCaFp').title = fp;
     $('tSrvUntil').textContent = t.server.valid_to || '';
+    srvOwn = t.server.own;
     $('tSrvOwn').hidden = !t.server.own;
     $('tSrvRemove').hidden = !t.server.own;
     $('tSrvOpen').textContent = t.server.own ? 'Replace your server certificate…' : 'Use your own server certificate…';
@@ -1615,7 +1617,8 @@ let caMode = 'file';
 function caReady() {
   const cert = caMode === 'file' ? caPem.cert : $('caCertText').value;
   const key = caMode === 'file' ? caPem.key : $('caKeyText').value;
-  $('caGo').disabled = !/-----BEGIN CERTIFICATE-----/.test(cert) || !/-----BEGIN [A-Z ]*PRIVATE KEY-----/.test(key);
+  const keyOk = /-----BEGIN [A-Z ]*PRIVATE KEY-----/.test(key) || (!key.trim() && caKind === 'server' && srvOwn);
+  $('caGo').disabled = !/-----BEGIN CERTIFICATE-----/.test(cert) || !keyOk;
   return {cert, key};
 }
 function caDrop(drop, input, kind) {
@@ -1664,9 +1667,11 @@ function caOpen(kind) {
   $('caNote').textContent = server ? 'It runs out: renew it in time, a script can do that (see the install guide).'
                                    : 'Devices that trust the current CA need the new one.';
   $('caGo').textContent = server ? 'Use this certificate' : 'Use this CA';
+  const keep = server && srvOwn;
+  document.querySelectorAll('.caKeyName').forEach(el => { el.textContent = keep ? 'Its private key, if it has a new one' : 'Its private key'; });
   caPem.cert = caPem.key = '';
   $('caCert').value = $('caKey').value = $('caCertText').value = $('caKeyText').value = '';
-  [['caCertDrop', '.crt or .pem: choose or drop it here'], ['caKeyDrop', '.key or .pem, not encrypted: choose or drop it here']]
+  [['caCertDrop', '.crt or .pem: choose or drop it here'], ['caKeyDrop', keep ? 'Leave it out to keep the key on the panel' : '.key or .pem, not encrypted: choose or drop it here']]
     .forEach(([id, text]) => { $(id).classList.remove('ok', 'bad'); $(id).querySelector('small').textContent = text; });
   setMsg($('caDlgMsg'), '');
   caReady();

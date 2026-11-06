@@ -509,16 +509,18 @@ bool set_ca(const std::string &cert_pem, const std::string &key_pem, std::string
   return (drop_own() && ok) || fail("could not store");
 }
 
-bool set_server(const std::string &chain_pem, const std::string &key_pem, std::string *error) {
+bool set_server(const std::string &chain_pem, const std::string &key_given, std::string *error) {
   const auto fail = [error](const char *why) {
     if (error)
       *error = why;
     return false;
   };
-  if (chain_pem.size() > kChainMax || key_pem.size() > kPemMax)
+  if (chain_pem.size() > kChainMax || key_given.size() > kPemMax)
     return fail("certificate or key too long");
   std::lock_guard<std::mutex> lock(g_mx);
   psa_crypto_init();
+  const bool kept = key_given.empty();
+  const std::string key_pem = kept ? blob_get("own_key") : key_given;
   mbedtls_x509_crt crt;
   mbedtls_x509_crt_init(&crt);
   mbedtls_pk_context key;
@@ -528,22 +530,25 @@ bool set_server(const std::string &chain_pem, const std::string &key_pem, std::s
     why = "not a certificate (PEM)";
   else if (mbedtls_x509_crt_get_ca_istrue(&crt))
     why = "a CA certificate: use \"Use your own CA\" for it";
+  else if (key_pem.empty())
+    why = "needs its private key: the panel has none yet";
   else if (!parse_key(key_pem, key))
     why = "not a private key (PEM, unencrypted)";
   else if (mbedtls_pk_check_pair(&crt.pk, &key) != 0)
-    why = "the key does not belong to the certificate (the first in the file, the server's)";
+    why = kept ? "made with a new key: send that key with it"
+               : "the key does not belong to the certificate (the first in the file, the server's)";
   mbedtls_pk_free(&key);
   mbedtls_x509_crt_free(&crt);
   if (why)
     return fail(why);
   // the old one gone first: beside two versions of a configuration at its limit (20 KB of the 28 the partition
-  // offers) one chain fits, two might not
+  // offers) one chain fits, two might not. The key first: should the chain then not fit, a kept key is not lost
   drop_own();
   nvs_handle_t h;
   if (nvs_open_from_partition(kOwnPartition, kNs, NVS_READWRITE, &h) != ESP_OK)
     return fail("could not store");
-  const bool ok = nvs_set_blob(h, "own_crt", chain_pem.data(), chain_pem.size()) == ESP_OK &&
-                  nvs_set_blob(h, "own_key", key_pem.data(), key_pem.size()) == ESP_OK && nvs_commit(h) == ESP_OK;
+  const bool ok = nvs_set_blob(h, "own_key", key_pem.data(), key_pem.size()) == ESP_OK &&
+                  nvs_set_blob(h, "own_crt", chain_pem.data(), chain_pem.size()) == ESP_OK && nvs_commit(h) == ESP_OK;
   nvs_close(h);
   ESP_LOGW(TAG, "An own server certificate set");
   return ok || fail("could not store");
