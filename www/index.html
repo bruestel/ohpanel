@@ -6256,7 +6256,8 @@ function coverCanvas(src, side) {
    or the cover over it --, the controls between the favourites' and the
    volume's discs. */
 function fillMedia(page, cfg) {
-  const f = {title: {text: page.title}};
+  const grey = rgb565(50712);   // every page's title (Engine draw_media)
+  const f = {title: {text: page.title, color: grey}};
   const ctl = stateOf(page.control), playing = !!ctl && ctl.state === 'PLAY';
   // a stream's file name as its title (no space, long or with ?/=) is no title (Engine cryptic())
   const cryptic = t => !t.includes(' ') && (t.length >= 24 || /[?\/=]/.test(t));
@@ -6283,6 +6284,20 @@ function fillMedia(page, cfg) {
     f.fav_pic = {bg: MEDIA_PILL, radius: 24};   // a disc
     f.fav_icon = {icon: 'star', color: THEME.accent, bg: MEDIA_PILL};
   } else ['fav_pic', 'fav_icon'].forEach(k => { f[k] = {hide: true}; });
+  if (page.clock) f.title = {draw: {box: [0, 0, ...screenSize()], fn: ctx => {   // on the cross's line (Engine::media_title, media_clock)
+    const right = visibleSize()[0] - 47, at = h => strftime(disp.time, new Date(2026, 0, 1, h, 58));
+    ctx.font = '22px Ubuntu, system-ui, sans-serif';
+    ctx.fillStyle = grey;
+    const room = right - Math.max(ctx.measureText(at(11)).width, ctx.measureText(at(23)).width) - 20;
+    let title = page.title || '';
+    if (ctx.measureText(title).width > room) {
+      while (title && ctx.measureText(title + '...').width > room) title = title.slice(0, -1).trimEnd();
+      title += '...';
+    }
+    ctx.fillText(title, 10, 29);
+    ctx.textAlign = 'right';
+    ctx.fillText(strftime(disp.time, new Date()), right, 29);
+  }}};
   return f;
 }
 
@@ -6720,6 +6735,8 @@ function pvMediaEditor(box, head, hint, page) {
         field('What plays, as an address (optional; Sonos: currenttrackuri)', itemField((page.uri || {}).item, v => ref('uri', v), 'String'))),
     pvFlag('Send the volume while its slider moves (off: only when it is let go)', page.live !== false,
            on => pvEdit((c, p) => { if (on) delete p.live; else p.live = false; })),
+    pvFlag('Show the clock at the top right', page.clock === true,
+           on => pvEdit((c, p) => { if (on) p.clock = true; else delete p.clock; })),
     note('The cover: a String item holding the picture\'s address (Sonos: the currentalbumarturl channel), or the '
        + 'picture itself as a data: address (an Image item, which sends every new picture through the state stream: '
        + 'the address is lighter). JPEG only; the panel draws it 70 x 70 points large, after everything else.'));

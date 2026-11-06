@@ -30,6 +30,11 @@ constexpr int64_t kLiveMs = 300;           // a slider moving sends this often a
 constexpr int kCoverScale = 2;             // a cover's pixel, drawn 2 x 2 (Cover.h)
 constexpr int kArtRadius = 18;             // the art box's corners (boards/nspanel/nextion/layout.py ART_RADIUS)
 constexpr int kCoverFillsPerIdle = 60;     // a cover drawn in parts, a rest between them: a touch is not kept waiting
+// a page's title row with a clock (font 3, a cell of 26 px; boards/nspanel/nextion/layout.py TITLE, CLOSE_ICON): the
+// digits, 16 px above the baseline at 21, centred on the close cross's disc (y 8..32); the title's field stands higher
+constexpr int kRowFont = 3, kRowTop = 8, kRowH = 26;
+constexpr int kTitleX = 10, kCloseFromRight = 12 + 25, kClockGap = 10;
+constexpr int kTitleGrey = 50712;          // every page's title (boards/nspanel/nextion/ohpanel_hmi.py TITLE_GREY); the design's white here
 }  // namespace
 
 std::vector<Engine::Station> Engine::stations_of(const cJSON *page) const {
@@ -84,7 +89,13 @@ const cJSON *Engine::favorites_of(const cJSON *media) const {
 }
 
 void Engine::draw_media(const cJSON *page) {
-  txt("title", str(page, "title"));
+  if (flag(page, "clock")) {
+    media_title(page);
+    media_clock();
+  } else {
+    num("title", "pco", kTitleGrey);
+    txt("title", str(page, "title"));
+  }
   media_refresh(page);   // the texts first: a field shown draws what it has
   for (const char *obj : {"track", "artist", "album", "art_pic", "art_icon", "prev_icon", "next_icon", "prev_hs",
                           "play_hs", "next_hs"})
@@ -99,6 +110,54 @@ void Engine::draw_media(const cJSON *page) {
   for (const char *key : {"control", "volume", "mute", "track", "artist", "album", "uri"})
     bind(member(page, key), [this, page] { media_refresh(page); });
   bind(member(page, "art"), [this, page] { draw_art(page); });   // last: over the fields shown above
+}
+
+/* A text of the title's row, cropped from the background as the title's field is: its edges blend with the picture as
+   a field's do (over nothing, they look like another font), and it replaces what the box held in one go. */
+void Engine::row_text(int x, int w, int xcen, const std::string &text) {
+  const bool crop = bg_sent_ >= 0;
+  send("xstr " + std::to_string(x) + "," + std::to_string(kRowTop) + "," + std::to_string(w) + "," +
+       std::to_string(kRowH) + "," + std::to_string(kRowFont) + "," + std::to_string(kTitleGrey) + "," +
+       std::to_string(crop ? bg_sent_ : 0) + "," + std::to_string(xcen) + ",0," + (crop ? "0" : "3") + ",\"" +
+       nextion::quote(text) + "\"");
+}
+
+/* What the clock takes, whatever the time: its place does not change, nor the title's beside it. Half of the row at
+   most, a long time_format is cut off at its left. */
+int Engine::media_clock_width() const {
+  struct tm t = {};
+  t.tm_min = 58;
+  int width = 0;
+  for (const int hour : {11, 23}) {
+    t.tm_hour = hour;
+    width = std::max(width, text_width(kRowFont, format_time(settings_.time_format, t, settings_.texts)));
+  }
+  return std::min(width, (display_size_.visible_w - kCloseFromRight - kClockGap) / 2);
+}
+
+/* The title on the row of the clock: the field cannot move, so the text is drawn, cut off before the clock. The field
+   is left alone, empty as the page loaded it: written to, even with nothing, it repaints over what is drawn here. */
+void Engine::media_title(const cJSON *page) {
+  const int clock_x = display_size_.visible_w - kCloseFromRight - kClockGap - media_clock_width();
+  const int width = clock_x - kClockGap - kTitleX;
+  row_text(kTitleX, width, 0, shorten(kRowFont, str(page, "title"), width, false));
+}
+
+/* The time before the close cross, in the title's font, drawn again when it changes: each minute (tick) and with the
+   page; once the time is known. */
+void Engine::media_clock() {
+  const cJSON *page = shown_ == "media" ? page_config(current_) : nullptr;
+  if (!flag(page, "clock") || now_ < 1000000000 || note_drawn_)
+    return;
+  struct tm t;
+  localtime_r(&now_, &t);
+  const std::string time = format_time(settings_.time_format, t, settings_.texts);
+  std::string &drawn = drawn_["clock"];
+  if (drawn == time)
+    return;
+  drawn = time;
+  const int w = media_clock_width(), x = display_size_.visible_w - kCloseFromRight - kClockGap - w;
+  row_text(x, w, 2, time);
 }
 
 void Engine::media_refresh(const cJSON *page) {

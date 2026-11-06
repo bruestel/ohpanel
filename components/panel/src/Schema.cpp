@@ -1065,8 +1065,9 @@ class Validator {
       item_ref(pg, "color_temperature", p);
     } else if (t == "media") {
       allowed(pg, p, {"id", "type", "title", "icon", "control", "mute", "volume", "track", "artist", "album", "art",
-                      "favorites", "play", "uri", "live"});
+                      "favorites", "play", "uri", "live", "clock"});
       boolean(pg, "live", p);   // false: the volume sent only when the slider is let go
+      boolean(pg, "clock", p);  // the time in the title's row
       icon(pg, p);
       item_ref(pg, "control", p, true);
       // art: what plays as a picture -- an item holding its address (or the picture as a data: address)

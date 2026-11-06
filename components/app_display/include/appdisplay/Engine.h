@@ -660,6 +660,10 @@ class Engine {
   bool media_playing(const cJSON *page) const;
   const cJSON *favorites_of(const cJSON *media) const;
   void media_refresh(const cJSON *page);         // what changed with a state
+  void media_title(const cJSON *page);           // the title of a page with a clock, drawn
+  void media_clock();                            // the clock of a media page showing one
+  int media_clock_width() const;
+  void row_text(int x, int w, int xcen, const std::string &text);   // a text in the title's row, drawn
   void media_event(const cJSON *page, const std::string &component);
   void draw_favorites(const cJSON *page);
   void favorites_event(const cJSON *page, int index);

@@ -651,6 +651,7 @@ and a star that opens a page of favourites.
 | `play` | `{item}`, with `favorites`: the item a favourite's stream URI goes to, for Sonos one linked to the `playuri` channel |
 | `uri` | `{item}`: what plays, as an address, for Sonos `currenttrackuri`. After a favourite's tap the panel learns the stream it plays and shows the station's name whenever that stream plays without a title worth showing: after a pause, another time. A stream is known by its address without the server and the parameters (both change from play to play). Without `uri` the panel goes by the file name a stream tells as its title. Some broadcasters name all their streams alike (`stream.mp3`), which then show no name; `uri` tells them apart |
 | `icon` | what the page shows as its picture while nothing plays (default `speaker`) |
+| `clock` | `true`: the time in the title's row, before the close cross, in the title's size and colour and the display's `time_format`. The title then stands a few pixels lower, level with the cross, and is cut off before the clock where the row is too short (the NSPanel US upright) |
 
 A title that is one long word, or one with `?`, `/` or `=` is not shown: a station
 without metadata reports its stream's file name (`stream.mp3?cid=...`).

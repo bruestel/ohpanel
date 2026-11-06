@@ -2118,8 +2118,10 @@ void Engine::tick(time_t now) {
   const bool new_minute = now / 60 != now_ / 60;
   const bool new_second = now != now_;
   now_ = now;
-  if (new_minute)
+  if (new_minute) {
     draw_clock();
+    media_clock();
+  }
   /* Rules by a date match by the time of day too ("from", "until") and by the day (after midnight): what shows an
      item holding a date drawn again each minute -- unchanged, nothing goes to the display. */
   if (new_minute && dated_rules_) {

@@ -1626,6 +1626,87 @@ int main(int argc, char **argv) {
     e.on_message(loaded("home"));
   }
 
+  {  // the media page's clock ("clock"): title and time drawn on the cross's line, the time again each minute
+    const auto drawn = [&](const std::string &word) {
+      return std::count_if(rec.out.begin(), rec.out.end(), [&](const std::string &c) {
+        return c.rfind("xstr ", 0) == 0 && c.find(",8,") != std::string::npos && c.find("\"" + word + "\"") != std::string::npos; });
+    };
+    const auto configure = [&](bool clock, const char *format) {
+      cJSON *doc = cJSON_Parse(read("test/host/data/office.json").c_str());
+      cJSON *display = cJSON_GetObjectItem(doc, "display");
+      if (!display)
+        display = cJSON_AddObjectToObject(doc, "display");
+      cJSON_DeleteItemFromObject(display, "time_format");
+      cJSON_AddStringToObject(display, "time_format", format);
+      cJSON_AddItemToObject(display, "notifications", cJSON_Parse(R"({"item": "Panel_Notify"})"));
+      for (cJSON *pg = cJSON_GetObjectItem(doc, "pages")->child; pg; pg = pg->next)
+        if (std::string(cJSON_GetStringValue(cJSON_GetObjectItem(pg, "id"))) == "speaker") {
+          cJSON_DeleteItemFromObject(pg, "title");
+          cJSON_AddStringToObject(pg, "title", "Kitchen speaker");
+          if (clock)
+            cJSON_AddBoolToObject(pg, "clock", true);
+        }
+      char *json = cJSON_PrintUnformatted(doc);
+      e.set_config(json);
+      cJSON_free(json);
+      cJSON_Delete(doc);
+      e.on_message(loaded("home"));
+      e.on_message(event("home", "short1", "release"));
+      CHECK(e.current() == "speaker");
+      rec.out.clear();
+      e.on_message(loaded("media"));
+    };
+    e.tick(1791196439);                              // 12:33
+    configure(false, "%H:%M");                       // without: the title in its field, no time
+    CHECK(rec.has("title.pco=50712"));               // grey, as every page's title
+    CHECK(rec.has("title.txt=\"Kitchen speaker\"") && drawn("Kitchen speaker") == 0 && drawn("12:33") == 0);
+    rec.out.clear();
+    e.tick(1791196439 + 60);
+    CHECK(drawn("12:34") == 0);
+
+    e.tick(1791196439);
+    configure(true, "%H:%M");
+    CHECK(!rec.has_prefix("title.txt") && drawn("Kitchen speaker") == 1 && drawn("12:33") == 1);
+    CHECK(rec.has("xstr 345,8,58,26,3,50712,48,2,0,0,\"12:33\""));   // cropped from the background, as a field is
+    rec.out.clear();
+    e.tick(1791196440);                              // the next minute: the time alone
+    CHECK(drawn("12:34") == 1 && drawn("Kitchen speaker") == 0);
+    rec.out.clear();
+    e.tick(1791196441);                              // the same minute: nothing
+    CHECK(rec.out.empty());
+
+    // a card over the page: the minute passes under it, the page comes back with the time
+    set_state("Panel_Notify", "NULL", "UnDef");
+    e.on_state("Panel_Notify");
+    set_state("Panel_Notify", "warning|Window|Open", "String");
+    e.on_state("Panel_Notify");
+    rec.out.clear();
+    e.tick(1791196439 + 120);
+    CHECK(drawn("12:35") == 0);
+    nextion::Message touch;
+    touch.kind = nextion::Message::Kind::Point;
+    touch.press = false;
+    e.on_message(touch);
+    CHECK(rec.has(page_cmd("media")));
+    rec.out.clear();
+    e.on_message(loaded("media"));
+    CHECK(drawn("12:35") == 1 && drawn("Kitchen speaker") == 1);
+
+    configure(true, "%I:%M %p");                     // AM/PM on one line, in the same font
+    CHECK(drawn("12:35 PM") == 1);
+    e.on_message(event("media", "close", "release"));
+    e.on_message(loaded("home"));
+    rec.out.clear();
+    e.tick(1791196439 + 180);                        // another page: no time drawn
+    CHECK(drawn("12:36 PM") == 0);
+    e.on_message(event("home", "short1", "release"));
+    e.on_message(loaded("media"));
+    set_state("Panel_Notify", "NULL", "UnDef");
+    e.on_state("Panel_Notify");
+    e.on_message(event("media", "close", "release"));
+    e.on_message(loaded("home"));
+  }
+
   {  // a light with colour temperature (in K) and colour: its tiles choose the view; the wheel picks a colour
     cJSON *doc = cJSON_Parse(read("test/host/data/office.json").c_str());
     for (cJSON *pg = cJSON_GetObjectItem(doc, "pages")->child; pg; pg = pg->next)

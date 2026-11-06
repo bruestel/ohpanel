@@ -134,6 +134,9 @@ int main() {
   expect_issue("thermostat curve", doc(R"("pages":[{"id":"t","type":"thermostat","title":"x","item":"S","curve":0.6}])"),
                "pages[0].curve");
   expect_valid("thermostat unit", doc(R"("pages":[{"id":"t","type":"thermostat","title":"x","item":"S","unit":"%"}])"));
+  expect_valid("media clock", doc(R"("pages":[{"id":"m","type":"media","title":"x","control":{"item":"P"},"clock":true}])"));
+  expect_issue("media clock flag",
+               doc(R"("pages":[{"id":"m","type":"media","title":"x","control":{"item":"P"},"clock":"yes"}])"), "pages[0].clock");
   expect_issue("thermostat unit too long",
                doc(R"("pages":[{"id":"t","type":"thermostat","title":"x","item":"S","unit":"percent"}])"), "pages[0].unit");
   expect_issue("thermostat without target", doc(R"("pages":[{"id":"t","type":"thermostat","title":"x"}])"),
