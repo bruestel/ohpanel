@@ -263,8 +263,9 @@ An **info line** has three fields, `left`, `main` and `right` (e.g. tram line,
 destination, departure), each `{"item", "format"?, "factor"?}` or `{"text"}`, the left
 one also `{"icon"}`. Each may have a text `color`; the left one may be a
 badge, a rounded box in the colour `bg` (e.g. the line number in the line's
-colour; a palette colour, another one becomes the nearest of them). A text too
-long for its field ends in "...".
+colour; a palette colour, another one becomes the nearest of them). While the
+right field is empty, the main text takes its place too. A text too long for
+its field ends in "...".
 
 Without an item, a value row, the outdoor temperature and the weather icon do
 not show.

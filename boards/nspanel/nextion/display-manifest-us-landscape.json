@@ -164,10 +164,12 @@
     "row2_n12",
     "row2_u12",
     "info1_text",
+    "info1_wide",
     "info1_tag",
     "info1_right",
     "info1_tagicon",
     "info2_text",
+    "info2_wide",
     "info2_tag",
     "info2_right",
     "info2_tagicon",
@@ -2897,6 +2899,11 @@
     130,
     28
    ],
+   "info1_wide": [
+    1,
+    212,
+    45
+   ],
    "info1_tag": [
     1,
     26,
@@ -2916,6 +2923,11 @@
     1,
     130,
     28
+   ],
+   "info2_wide": [
+    1,
+    212,
+    45
    ],
    "info2_tag": [
     1,
@@ -15528,12 +15540,14 @@
    "row2_n12",
    "row2_u12",
    "info1_text",
+   "info1_wide",
    "info1_tag",
    "info1_right",
    "info1_tagicon",
    "info1_badge",
    "info1_badgeico",
    "info2_text",
+   "info2_wide",
    "info2_tag",
    "info2_right",
    "info2_tagicon",
@@ -16299,5 +16313,5 @@
    "close"
   ]
  },
- "design": "61bfd2ee"
+ "design": "4672c403"
 }

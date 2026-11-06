@@ -319,12 +319,34 @@ int main(int argc, char **argv) {
   CHECK(rec.has("relay1_text.txt=\"Light\""));
   CHECK(rec.has("info1_tag.txt=\"92\""));             // tram line
   {  // too long for its field: cut, with "..."
-    const std::string main = rec.with_prefix("info1_text.txt=\"Central St");
+    const std::string main = rec.with_prefix("info1_wide.txt=\"Central St");
     CHECK(main.size() > 4 && main.compare(main.size() - 4, 4, "...\"") == 0);
     CHECK(main.find("Old Town") == std::string::npos);
   }
   CHECK(rec.has_prefix("short3_icon.txt="));           // guest wifi shortcut (always shown)
   if (g_failures) rec.dump();
+
+  {  // an info line's main text: on the whole line ("_wide") while the right field is empty, and back
+    set_state("nextDepartureDestination", "Central Station via Old Town", "String");
+    set_state("nextDepartureTime", "12:41 PM", "String");
+    e.on_state("nextDepartureTime");
+    set_state("nextDepartureTime", "", "String");
+    rec.out.clear();
+    e.on_state("nextDepartureTime");
+    CHECK(rec.has("vis info1_right,0") && rec.has("vis info1_text,0") && rec.has("vis info1_wide,1"));
+    CHECK(rec.pos("vis info1_right,0") < rec.pos("vis info1_wide,1"));   // hidden first: it would paint over
+    CHECK(rec.pos("vis info1_text,0") < rec.pos("vis info1_wide,1"));
+    CHECK(rec.has_prefix("info1_wide.txt=\"Central Station via"));
+    rec.out.clear();
+    e.on_state("nextDepartureDestination");                 // a new text goes to the field showing
+    CHECK(!rec.has_prefix("info1_text.txt="));
+    set_state("nextDepartureTime", "12:41 PM", "String");
+    rec.out.clear();
+    e.on_state("nextDepartureTime");
+    CHECK(rec.has("vis info1_wide,0") && rec.has("vis info1_text,1") && rec.has("vis info1_right,1"));
+    CHECK(rec.pos("vis info1_wide,0") < rec.pos("vis info1_right,1"));   // the same the other way
+    CHECK(rec.has("info1_right.txt=\"12:41 PM\""));
+  }
 
   {  // what counts as on: the states "on" names (a player's String item says PLAYING)
     cJSON *doc = cJSON_Parse(read("test/host/data/office.json").c_str());

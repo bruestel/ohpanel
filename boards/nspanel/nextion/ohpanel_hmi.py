@@ -426,6 +426,9 @@ def home_page(p: Project) -> None:
         rx, rw = layout.INFO_RIGHT
         text(home, f"info{line}_text", (layout.INFO_MAIN_X, y, rx - layout.INFO_GAP - layout.INFO_MAIN_X,
                                           layout.INFO_H), 1, maxl=20, pco=LIGHT_GREY)
+        # the main text with the right field's place too, while that is empty: one of the two shows
+        text(home, f"info{line}_wide", (layout.INFO_MAIN_X, y, rx + rw - layout.INFO_MAIN_X, layout.INFO_H), 1, maxl=20,
+             pco=LIGHT_GREY)
         text(home, f"info{line}_tag", (lx, y, lw, layout.INFO_H), 1, xcen=1, maxl=5)
         text(home, f"info{line}_right", (rx, y, rw, layout.INFO_H), 1, xcen=1, maxl=8, pco=LIGHT_GREY)   # "12:41 PM"
         # an icon in a field as high as its font, up where it shows centred on the line (layout.INFO_ICON_UP)
@@ -1217,6 +1220,7 @@ THEME_COLOURS = {
              "row1_icon": "th_dim", "row2_icon": "th_dim",
              "info1_tag": "th_text", "info2_tag": "th_text",
              "info1_text": "th_text", "info2_text": "th_text",
+             "info1_wide": "th_text", "info2_wide": "th_text",
              # the weather block's second line and the units: the numbers lead
              "low_arrow": "th_dim",
              **{f"{part}{k}": "th_dim" for part in ("high_arrow", "high") for k in range(0, layout.RANGE_STEPS + 1)},

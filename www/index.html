@@ -3218,7 +3218,13 @@ function fillHome(cfg) {
       // a badge (the left field only) with a value; empty: the plain field
       const bg = k === 0 && ref && ref.bg && (isIcon || text !== '');
       // the left field also as an icon ("_tagicon"), both also as a badge ("_badge", "_badgeico"): one shows
-      const obj = k !== 0 ? plain : n + (isIcon ? (bg ? '_badgeico' : '_tagicon') : (bg ? '_badge' : '_tag'));
+      // the main text on the whole line while the right field is empty ("_wide"): one of the two shows
+      const r = line && line.right, rightText = !r ? '' : r.text !== undefined ? r.text : shown(r, null, r.item ? ruleStyle(r.value_style, r) : {});
+      const free = k === 1 && !rightText;
+      const obj = k === 1 ? (free ? n + '_wide' : plain)
+                : k !== 0 ? plain : n + (isIcon ? (bg ? '_badgeico' : '_tagicon') : (bg ? '_badge' : '_tag'));
+      if (k === 1) f[free ? plain : n + '_wide'] = {hide: true};
+      if (k === 2 && !rightText) f[plain] = {hide: true};
       if (k === 0) [n + '_tag', n + '_badge', n + '_tagicon', n + '_badgeico'].forEach(v => { if (v !== obj) f[v] = {hide: true}; });
       const look = {};
       if (bg) look.badge = color(ref.bg, THEME.accent);
@@ -3226,6 +3232,7 @@ function fillHome(cfg) {
       else if (ref && (ref.color || bg || isIcon)) look.color = color(ref.color, THEME.text);
       else if (ref && key === 'right') look.color = THEME.dim;   // the side information dimmed (Engine::draw_home)
       if (style.blink) look.blink = style.blink;
+      if (k === 2 && !rightText) return;
       f[obj] = !ref ? {text: ''} : isIcon ? Object.assign({icon: ref.icon}, look) : Object.assign({text}, look);
     });
   });

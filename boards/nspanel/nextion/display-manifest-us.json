@@ -148,10 +148,12 @@
     "row2_n8",
     "row2_u8",
     "info1_text",
+    "info1_wide",
     "info1_tag",
     "info1_right",
     "info1_tagicon",
     "info2_text",
+    "info2_wide",
     "info2_tag",
     "info2_right",
     "info2_tagicon",
@@ -2793,6 +2795,11 @@
     182,
     39
    ],
+   "info1_wide": [
+    1,
+    264,
+    56
+   ],
    "info1_tag": [
     1,
     26,
@@ -2812,6 +2819,11 @@
     1,
     182,
     39
+   ],
+   "info2_wide": [
+    1,
+    264,
+    56
    ],
    "info2_tag": [
     1,
@@ -15375,12 +15387,14 @@
    "row2_n8",
    "row2_u8",
    "info1_text",
+   "info1_wide",
    "info1_tag",
    "info1_right",
    "info1_tagicon",
    "info1_badge",
    "info1_badgeico",
    "info2_text",
+   "info2_wide",
    "info2_tag",
    "info2_right",
    "info2_tagicon",
@@ -16136,5 +16150,5 @@
    "close"
   ]
  },
- "design": "926cd92d"
+ "design": "fe522f20"
 }

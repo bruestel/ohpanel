@@ -269,6 +269,12 @@ void Engine::draw_home() {
     const std::string n = "info" + std::to_string(line + 1);
     const char *fields[3] = {"left", "main", "right"};
     const std::string objs[3] = {n + "_tag", n + "_text", n + "_right"};
+    /* The main text has the whole line while the right field is empty ("_wide", its place too): two fields, as a
+       field's width is fixed, one showing -- and the right one hidden, or it would repaint over the wide one. Each
+       leaves before the other shows: hiding a field repaints what is under it. */
+    const cJSON *right = member(l, "right");
+    const std::string wide = n + "_wide";
+    std::function<void()> draw_main;
     for (int f = 0; f < 3; f++) {
       const cJSON *ref = member(l, fields[f]);
       /* The left field also comes as an icon ("_tagicon") and both as a badge
@@ -282,19 +288,28 @@ void Engine::draw_home() {
       std::vector<std::string> variants = {plain};
       if (f == 0)
         variants = {plain, badge_of(plain), ico, badge_of(ico)};
+      else if (f == 1)
+        variants = {plain, wide};
       const bool icon = f == 0 && member(ref, "icon"), bg = f == 0 && member(ref, "bg");
       const int fg = color_of(ref, "color", theme_.text);
       const std::string badge_pic = bg ? std::to_string(picture("badge" + std::to_string(line + 1),
                                                                 nearest_palette(color_of(ref, "bg", 0))))
                                        : "";
       const bool coloured = member(ref, "color") != nullptr;
-      bind(ref, [this, ref, variants, plain, ico, icon, bg, fg, coloured, badge_pic, f, badge_of] {
+      const std::function<void()> draw = [this, ref, variants, plain, ico, icon, bg, fg, coloured, badge_pic, f, badge_of,
+                                           right, wide, draw_main] {
         const RuleStyle style = style_of(ref);
         const std::string value = !ref ? "" : icon ? glyph(ref) : value_of(ref, nullptr, &style);
-        const std::string base = icon ? ico : plain;
+        const RuleStyle right_style = style_of(right);
+        const bool free_line = f == 1 && (!right || value_of(right, nullptr, &right_style).empty());
+        const std::string base = icon ? ico : free_line ? wide : plain;
         const std::string obj = bg && !value.empty() && badge_pic != "-1" ? badge_of(base) : base;
+        if (f == 2 && !value.empty())
+          draw_main();
         for (const auto &v : variants)
-          vis(v, v == obj);
+          vis(v, v == obj && (f != 2 || !value.empty()));
+        if (f == 2 && value.empty())
+          draw_main();
         if (obj != base)
           num(obj, "pic", atoi(badge_pic.c_str()));
         // a colour of a matching value_style rule, or its own; else the page's: text, the right
@@ -309,7 +324,10 @@ void Engine::draw_home() {
           if (v != obj)
             anims_.erase(v);
         show_text(obj, value, style.blink);
-      });
+      };
+      if (f == 1)
+        draw_main = draw;
+      bind(ref, draw);
     }
   }
 }
