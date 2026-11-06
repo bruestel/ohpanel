@@ -179,6 +179,49 @@ Each panel is set up on its own. To start a second one like the first:
 - **HTTPS:** each panel makes a certificate authority (CA) of its own, to be trusted once per device. For
   several panels, make one CA (`tools/make_ca.sh "My home CA"`) and upload it to each under
   **Security → Use your own CA**: then your devices trust all panels at once.
+- **A certificate of your own**, from Let's Encrypt for example: see below.
+
+## A server certificate of your own
+
+**Security → Use your own server certificate** takes a finished certificate instead of one the panel issues: the
+file with its chain (`fullchain`) and its private key, unencrypted. It is used as it is, whatever address or name the
+panel goes by, so open the panel under the name it was made for. A Let's Encrypt certificate is no CA: **Use your
+own CA** refuses it. **Stop using it** goes back to the panel's own; **Make new keys** and a new CA do that too.
+
+The panel does not renew it. A Let's Encrypt certificate runs out after 90 days, so let the client that fetched it
+send each new one, with the panel's login:
+
+    jq -n --rawfile cert fullchain.cer --rawfile key panel.key '{cert: $cert, key: $key}' |
+        curl -fsS -u admin:password --data-binary @- https://panel.myhome.example/api/v1/tls/server
+
+The panel's https server restarts with it. The first time it does not yet answer with this certificate: add `-k`, or
+upload it in the web interface. `{"remove": true}` goes back to the panel's own.
+
+With [acme.sh](https://github.com/acmesh-official/acme.sh), a deploy hook does this at each renewal. Save it as
+`~/.acme.sh/deploy/ohpanel.sh`:
+
+```sh
+#!/usr/bin/env sh
+# acme.sh --deploy -d panel.myhome.example --deploy-hook ohpanel
+ohpanel_deploy() {
+  _ckey="$2"
+  _cfullchain="$5"
+  _getdeployconf DEPLOY_OHPANEL_URL
+  _getdeployconf DEPLOY_OHPANEL_USER
+  _getdeployconf DEPLOY_OHPANEL_PASSWORD
+  _savedeployconf DEPLOY_OHPANEL_URL "$DEPLOY_OHPANEL_URL"
+  _savedeployconf DEPLOY_OHPANEL_USER "$DEPLOY_OHPANEL_USER"
+  _savedeployconf DEPLOY_OHPANEL_PASSWORD "$DEPLOY_OHPANEL_PASSWORD"
+  jq -n --rawfile cert "$_cfullchain" --rawfile key "$_ckey" '{cert: $cert, key: $key}' |
+    curl -fsS -u "$DEPLOY_OHPANEL_USER:$DEPLOY_OHPANEL_PASSWORD" --data-binary @- \
+      "$DEPLOY_OHPANEL_URL/api/v1/tls/server"
+}
+```
+
+Set the three values once for the first deploy; acme.sh keeps them and runs the hook after each renewal:
+
+    export DEPLOY_OHPANEL_URL=https://panel.myhome.example DEPLOY_OHPANEL_USER=admin DEPLOY_OHPANEL_PASSWORD=...
+    acme.sh --deploy -d panel.myhome.example --deploy-hook ohpanel
 
 ## When something goes wrong
 

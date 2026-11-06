@@ -655,6 +655,7 @@ esp_err_t get_tls(httpd_req_t *req) {
   cJSON_AddStringToObject(ca, "valid_to", i.ca_valid_to.c_str());
   cJSON_AddBoolToObject(ca, "own", i.ca_own);   // uploaded (POST /tls/ca), not made by the panel
   cJSON *srv = cJSON_AddObjectToObject(r, "server");
+  cJSON_AddBoolToObject(srv, "own", i.server_own);   // uploaded (POST /tls/server), not issued by the panel
   cJSON_AddStringToObject(srv, "fingerprint", i.server_fingerprint.c_str());
   cJSON_AddStringToObject(srv, "valid_to", i.server_valid_to.c_str());
   cJSON *names = cJSON_AddArrayToObject(srv, "names");
@@ -733,6 +734,33 @@ esp_err_t post_tls_ca(httpd_req_t *req) {
   return send_raw_json(req, "{\"ok\":true}");
 }
 
+/* {"cert": PEM, "key": PEM}: an own server certificate (with its chain, the server's first), e.g. from Let's Encrypt;
+   {"remove": true}: back to the one the panel issues. What a renewal script posts. The key only in, as above. */
+esp_err_t post_tls_server(httpd_req_t *req) {
+  if (!check_auth(req))
+    return deny(req);
+  std::string body;
+  if (!read_body(req, body, 20480)) {   // a chain and a key, escaped as JSON
+    httpd_resp_set_status(req, "400 Bad Request");
+    return send_raw_json(req, "{\"error\":\"bad body\"}");
+  }
+  cJSON *root = cJSON_Parse(body.c_str());
+  const char *cert = cJSON_GetStringValue(cJSON_GetObjectItem(root, "cert"));
+  const char *key = cJSON_GetStringValue(cJSON_GetObjectItem(root, "key"));
+  const bool remove = cJSON_IsTrue(cJSON_GetObjectItem(root, "remove"));
+  std::string error = "needs \"cert\" and \"key\"";
+  const bool ok = remove ? tls::clear_server() : cert && key && tls::set_server(cert, key, &error);
+  cJSON_Delete(root);
+  if (!ok) {
+    httpd_resp_set_status(req, "400 Bad Request");
+    cJSON *e = cJSON_CreateObject();
+    cJSON_AddStringToObject(e, "error", remove ? "could not save" : error.c_str());
+    return send_json(req, e);
+  }
+  addresses_changed();   // the https server restarted with it
+  return send_raw_json(req, "{\"ok\":true}");
+}
+
 /* Every route, on the http server and on the https one alike. */
 void add_routes(httpd_handle_t server) {
   /* Designated initialisers on purpose: httpd_uri_t has grown fields across
@@ -779,6 +807,7 @@ void add_routes(httpd_handle_t server) {
       {.uri = "/api/v1/tls", .method = HTTP_POST, .handler = post_tls},
       {.uri = "/api/v1/tls/ca.crt", .method = HTTP_GET, .handler = get_tls_ca},
       {.uri = "/api/v1/tls/ca", .method = HTTP_POST, .handler = post_tls_ca},
+      {.uri = "/api/v1/tls/server", .method = HTTP_POST, .handler = post_tls_server},
   };
   for (const auto &r : routes)
     httpd_register_uri_handler(server, &r);

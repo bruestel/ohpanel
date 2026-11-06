@@ -1170,6 +1170,8 @@ pre.box{margin:0;padding:.6rem .7rem;max-height:18rem;overflow:auto;background:v
         <div class="actions">
           <a class="b" href="/api/v1/tls/ca.crt" download="ohpanel-ca.crt">Download certificate</a>
           <button class="b sec" id="tCaOpen" type="button">Use your own CA…</button>
+          <button class="b sec" id="tSrvOpen" type="button">Use your own server certificate…</button>
+          <button class="b sec quiet" id="tSrvRemove" type="button" hidden>Stop using it</button>
           <button class="b sec quiet" id="tRenewOpen" type="button">Make new keys…</button>
         </div>
         <span class="msg" id="tCaMsg"></span>
@@ -1184,6 +1186,8 @@ pre.box{margin:0;padding:.6rem .7rem;max-height:18rem;overflow:auto;background:v
       </div>
       <p class="sub">Grey ones come by themselves. Server certificate valid until <span id="tSrvUntil"></span>, issued anew
         whenever the address or a name changes. <button class="linkbtn" id="tPrefix" type="button" hidden>Add the current IPv6 prefix</button></p>
+      <p class="sub" id="tSrvOwn" hidden>Your own server certificate is in use: the panel issues none, and the names above
+        are the ones it was made for. Renew it before the date above, see the install guide.</p>
       <p class="sub" id="tOwnNames" hidden>With your own CA the names you add go into the server certificate only:
         your CA has to allow them (tools/make_ca.sh takes them when it makes the CA).</p>
       <div class="actions" id="tHostsBar" hidden><button class="b" id="tHostsSave" type="button">Save names</button>
@@ -1349,24 +1353,25 @@ pre.box{margin:0;padding:.6rem .7rem;max-height:18rem;overflow:auto;background:v
 
 <dialog class="icons confirm" id="caDlg" aria-labelledby="caTitle">
   <h2 id="caTitle">Use your own CA</h2>
-  <p class="sub">The panel issues its server certificate with your CA. Handy when your devices trust it already, or to
+  <p class="sub" id="caIntro">The panel issues its server certificate with your CA. Handy when your devices trust it already, or to
     share one CA between all your panels: upload the same one to each.</p>
-  <p class="cahint">No CA yet? Make one on your computer: <code>tools/make_ca.sh "My home CA"</code></p>
+  <p class="cahint" id="caHint">No CA yet? Make one on your computer: <code>tools/make_ca.sh "My home CA"</code><br>
+    A certificate from Let's Encrypt is no CA: it goes under <b>Use your own server certificate</b>.</p>
   <div class="seg" role="tablist" id="caMode">
     <button type="button" role="tab" aria-selected="true" data-mode="file">Files</button>
     <button type="button" role="tab" aria-selected="false" data-mode="paste">Paste PEM</button>
   </div>
   <div class="cafiles" id="caFiles">
     <label class="drop" id="caCertDrop"><input type="file" id="caCert" accept=".crt,.pem,.cer" hidden>
-      <span class="dropicon" aria-hidden="true"></span><span class="droptext"><b>CA certificate</b><small>.crt or .pem: choose or drop it here</small></span></label>
+      <span class="dropicon" aria-hidden="true"></span><span class="droptext"><b id="caCertName">CA certificate</b><small>.crt or .pem: choose or drop it here</small></span></label>
     <label class="drop" id="caKeyDrop"><input type="file" id="caKey" accept=".key,.pem" hidden>
       <span class="dropicon" aria-hidden="true"></span><span class="droptext"><b>Its private key</b><small>.key or .pem, not encrypted: choose or drop it here</small></span></label>
   </div>
   <div class="cafiles" id="caPaste" hidden>
-    <label>CA certificate<textarea id="caCertText" rows="4" spellcheck="false" placeholder="-----BEGIN CERTIFICATE-----"></textarea></label>
+    <label><span id="caCertLabel">CA certificate</span><textarea id="caCertText" rows="4" spellcheck="false" placeholder="-----BEGIN CERTIFICATE-----"></textarea></label>
     <label>Its private key<textarea id="caKeyText" rows="4" spellcheck="false" placeholder="-----BEGIN EC PRIVATE KEY-----"></textarea></label>
   </div>
-  <p class="sub">Devices that trust the current CA need the new one. The key stays on the panel: it can not be downloaded
+  <p class="sub"><span id="caNote">Devices that trust the current CA need the new one.</span> The key stays on the panel: it can not be downloaded
     again, not in a backup either.</p>
   <span class="msg" id="caDlgMsg"></span>
   <div class="end">
@@ -1530,6 +1535,9 @@ async function loadTls() {
     $('tCaFp').textContent = fp.length > 20 ? fp.slice(0, 11) + ' … ' + fp.slice(-5) : fp;
     $('tCaFp').title = fp;
     $('tSrvUntil').textContent = t.server.valid_to || '';
+    $('tSrvOwn').hidden = !t.server.own;
+    $('tSrvRemove').hidden = !t.server.own;
+    $('tSrvOpen').textContent = t.server.own ? 'Replace your server certificate…' : 'Use your own server certificate…';
     $('tOwnNames').hidden = !t.ca.own;
     $('renewOwn').hidden = !t.ca.own;
     tlsHosts = [...(t.hosts || [])];
@@ -1642,7 +1650,20 @@ $('caMode').addEventListener('click', ev => {
   $('caPaste').hidden = caMode !== 'paste';
   caReady();
 });
-$('tCaOpen').addEventListener('click', () => {
+/* One dialog for both: a CA the panel issues with, or a server certificate used as it is. */
+let caKind = 'ca';
+function caOpen(kind) {
+  caKind = kind;
+  const server = kind === 'server';
+  $('caTitle').textContent = server ? 'Use your own server certificate' : 'Use your own CA';
+  $('caIntro').textContent = server
+    ? 'The panel answers https with this certificate as it is, for example one from Let\'s Encrypt, and issues none itself.'
+    : 'The panel issues its server certificate with your CA. Handy when your devices trust it already, or to share one CA between all your panels: upload the same one to each.';
+  $('caHint').hidden = server;
+  $('caCertName').textContent = $('caCertLabel').textContent = server ? 'Certificate with its chain (fullchain)' : 'CA certificate';
+  $('caNote').textContent = server ? 'It runs out: renew it in time, a script can do that (see the install guide).'
+                                   : 'Devices that trust the current CA need the new one.';
+  $('caGo').textContent = server ? 'Use this certificate' : 'Use this CA';
   caPem.cert = caPem.key = '';
   $('caCert').value = $('caKey').value = $('caCertText').value = $('caKeyText').value = '';
   [['caCertDrop', '.crt or .pem: choose or drop it here'], ['caKeyDrop', '.key or .pem, not encrypted: choose or drop it here']]
@@ -1650,15 +1671,25 @@ $('tCaOpen').addEventListener('click', () => {
   setMsg($('caDlgMsg'), '');
   caReady();
   $('caDlg').showModal();
+}
+$('tCaOpen').addEventListener('click', () => caOpen('ca'));
+$('tSrvOpen').addEventListener('click', () => caOpen('server'));
+$('tSrvRemove').addEventListener('click', async () => {
+  try {
+    await postJson('/tls/server', {remove: true});
+    setMsg($('tCaMsg'), 'The panel issues its certificate again. Reload in a moment.', 'ok');
+    setTimeout(loadTls, 3000);
+  } catch (e) { setMsg($('tCaMsg'), e.message, 'err'); }
 });
 $('caCancel').addEventListener('click', () => $('caDlg').close());
 $('caGo').addEventListener('click', async () => {
   $('caGo').disabled = true;
   try {
-    await postJson('/tls/ca', caReady());
+    await postJson(caKind === 'server' ? '/tls/server' : '/tls/ca', caReady());
     caPem.cert = caPem.key = '';
     $('caDlg').close();
-    setMsg($('tCaMsg'), 'Your CA is in use: download its certificate if your devices do not trust it yet. Reload in a moment.', 'ok');
+    setMsg($('tCaMsg'), caKind === 'server' ? 'Your server certificate is in use. Reload in a moment, under the name it was made for.'
+      : 'Your CA is in use: download its certificate if your devices do not trust it yet. Reload in a moment.', 'ok');
     setTimeout(loadTls, 3000);
   } catch (e) { setMsg($('caDlgMsg'), e.message, 'err'); caReady(); }
 });

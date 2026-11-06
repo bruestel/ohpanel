@@ -193,7 +193,7 @@ esp_err_t post_reset(httpd_req_t *req) {
      -- this is a deliberate, confirmable action from a browser, so it can
      afford to be complete. */
   /* The panel layout goes too: "as if freshly flashed" includes it. */
-  bool ok = appcfg::factory_reset();
+  bool ok = appcfg::factory_reset() && tls::clear_server();   // no key of an own certificate left behind
   if (g_panel.reset)
     ok = g_panel.reset() && ok;
   cJSON *r = cJSON_CreateObject();

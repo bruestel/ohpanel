@@ -26,6 +26,7 @@ const char *const kNs = "tls";
 // valid whatever the panel's clock says: the browser checks the dates, against its own
 const char *const kNotBefore = "20250101000000", *const kNotAfter = "20491231235959";
 constexpr size_t kPemMax = 4096;
+constexpr size_t kChainMax = 8192;   // an own server certificate with its chain (Let's Encrypt: 3 to 6 KB)
 
 std::mutex g_mx;
 
@@ -44,6 +45,35 @@ std::string nvs_get(const char *key) {
   }
   nvs_close(h);
   return out;
+}
+
+/* An own server certificate: in the partition of the panel's configuration, where a chain fits (nvs has 20 KB, for
+   everything) -- in a namespace of its own, which neither a listing of the documents nor a backup reads. A blob: NVS
+   strings stop at 4000 bytes. */
+const char *const kOwnPartition = "panel";
+
+std::string blob_get(const char *key) {
+  nvs_handle_t h;
+  std::string out;
+  if (nvs_open_from_partition(kOwnPartition, kNs, NVS_READONLY, &h) != ESP_OK)
+    return out;
+  size_t len = 0;
+  if (nvs_get_blob(h, key, nullptr, &len) == ESP_OK && len > 0) {
+    out.resize(len);
+    if (nvs_get_blob(h, key, out.data(), &len) != ESP_OK)
+      out.clear();
+  }
+  nvs_close(h);
+  return out;
+}
+
+bool drop_own() {
+  nvs_handle_t h;
+  if (nvs_open_from_partition(kOwnPartition, kNs, NVS_READWRITE, &h) != ESP_OK)
+    return true;   // none there
+  const bool ok = nvs_erase_all(h) == ESP_OK && nvs_commit(h) == ESP_OK;
+  nvs_close(h);
+  return ok;
 }
 
 bool nvs_put(const std::vector<std::pair<const char *, std::string>> &values) {
@@ -251,6 +281,16 @@ std::string names_key(const Names &n) {
   return out;
 }
 
+/* Whether a certificate for the names `have` (names_key) serves those of `want`: every one of them is in it. More in
+   it do no harm, and as the panel starts it knows fewer -- no address yet: a new certificate each start otherwise. */
+bool names_covered(const std::string &have, const std::string &want) {
+  const std::string all = ";" + have;
+  for (size_t at = 0, end; (end = want.find(';', at)) != std::string::npos; at = end + 1)
+    if (all.find(";" + want.substr(at, end - at + 1)) == std::string::npos)
+      return false;
+  return true;
+}
+
 std::string device_name(const Names &n) {
   const std::string first = n.dns.empty() ? "ohpanel" : n.dns.front();
   return first.substr(0, first.find('.'));
@@ -339,6 +379,14 @@ void describe(const std::string &pem, std::string &fingerprint, std::string &val
 bool ensure(const Names &given, std::string &chain_pem, std::string &key_pem, bool *changed) {
   std::lock_guard<std::mutex> lock(g_mx);
   psa_crypto_init();
+  if (const std::string own = blob_get("own_crt"), own_key = blob_get("own_key"); !own.empty() && !own_key.empty()) {
+    chain_pem = own;   // as it was given, whatever names the panel goes by
+    key_pem = own_key;
+    if (changed)
+      *changed = chain_pem != g_last;
+    g_last = chain_pem;
+    return true;
+  }
   Names names = given;   // and the names the user added
   for (const std::string &h : split(nvs_get("hosts")))
     if (h.find('/') == std::string::npos)   // a prefix: the addresses in it come with `given` (covered())
@@ -360,7 +408,7 @@ bool ensure(const Names &given, std::string &chain_pem, std::string &key_pem, bo
   }
   std::string srv_key = nvs_get("srv_key"), srv_crt = nvs_get("srv_crt");
   const std::string want = names_key(names);
-  if (srv_key.empty() || srv_crt.empty() || nvs_get("srv_names") != want) {   // the names it goes by changed
+  if (srv_key.empty() || srv_crt.empty() || !names_covered(nvs_get("srv_names"), want)) {   // a name it goes by is new
     ESP_LOGI(TAG, "Issuing the server certificate for %s", want.c_str());
     mbedtls_pk_context key, ca;
     mbedtls_pk_init(&key);
@@ -402,7 +450,7 @@ bool renew() {
   const bool ok = nvs_commit(h) == ESP_OK;
   nvs_close(h);
   ESP_LOGW(TAG, "Keys erased: a new CA comes");
-  return ok;
+  return drop_own() && ok;
 }
 
 bool set_ca(const std::string &cert_pem, const std::string &key_pem, std::string *error) {
@@ -411,7 +459,7 @@ bool set_ca(const std::string &cert_pem, const std::string &key_pem, std::string
       *error = why;
     return false;
   };
-  if (cert_pem.size() > kPemMax || key_pem.size() > kPemMax)
+  if (cert_pem.size() > kChainMax || key_pem.size() > kPemMax)
     return fail("certificate or key too long");
   std::lock_guard<std::mutex> lock(g_mx);
   psa_crypto_init();
@@ -424,7 +472,9 @@ bool set_ca(const std::string &cert_pem, const std::string &key_pem, std::string
   if (!parse_cert(cert_pem, crt))
     why = "not a certificate (PEM)";
   else if (!mbedtls_x509_crt_get_ca_istrue(&crt))
-    why = "not a CA certificate (no basic constraints CA:TRUE)";
+    why = "a server certificate, not a CA: use \"Use your own server certificate\" for it";
+  else if (cert_pem.size() > kPemMax)   // a CA alone: only a server certificate comes with a chain
+    why = "certificate too long";
   else if (!parse_key(key_pem, key))
     why = "not a private key (PEM, unencrypted)";
   else if (mbedtls_pk_check_pair(&crt.pk, &key) != 0)
@@ -456,7 +506,52 @@ bool set_ca(const std::string &cert_pem, const std::string &key_pem, std::string
   ok = ok && nvs_commit(h) == ESP_OK;
   nvs_close(h);
   ESP_LOGW(TAG, "An own CA set: %s", subject.c_str());
+  return (drop_own() && ok) || fail("could not store");
+}
+
+bool set_server(const std::string &chain_pem, const std::string &key_pem, std::string *error) {
+  const auto fail = [error](const char *why) {
+    if (error)
+      *error = why;
+    return false;
+  };
+  if (chain_pem.size() > kChainMax || key_pem.size() > kPemMax)
+    return fail("certificate or key too long");
+  std::lock_guard<std::mutex> lock(g_mx);
+  psa_crypto_init();
+  mbedtls_x509_crt crt;
+  mbedtls_x509_crt_init(&crt);
+  mbedtls_pk_context key;
+  mbedtls_pk_init(&key);
+  const char *why = nullptr;
+  if (!parse_cert(chain_pem, crt))
+    why = "not a certificate (PEM)";
+  else if (mbedtls_x509_crt_get_ca_istrue(&crt))
+    why = "a CA certificate: use \"Use your own CA\" for it";
+  else if (!parse_key(key_pem, key))
+    why = "not a private key (PEM, unencrypted)";
+  else if (mbedtls_pk_check_pair(&crt.pk, &key) != 0)
+    why = "the key does not belong to the certificate (the first in the file, the server's)";
+  mbedtls_pk_free(&key);
+  mbedtls_x509_crt_free(&crt);
+  if (why)
+    return fail(why);
+  // the old one gone first: beside two versions of a configuration at its limit (20 KB of the 28 the partition
+  // offers) one chain fits, two might not
+  drop_own();
+  nvs_handle_t h;
+  if (nvs_open_from_partition(kOwnPartition, kNs, NVS_READWRITE, &h) != ESP_OK)
+    return fail("could not store");
+  const bool ok = nvs_set_blob(h, "own_crt", chain_pem.data(), chain_pem.size()) == ESP_OK &&
+                  nvs_set_blob(h, "own_key", key_pem.data(), key_pem.size()) == ESP_OK && nvs_commit(h) == ESP_OK;
+  nvs_close(h);
+  ESP_LOGW(TAG, "An own server certificate set");
   return ok || fail("could not store");
+}
+
+bool clear_server() {
+  std::lock_guard<std::mutex> lock(g_mx);
+  return drop_own();
 }
 
 std::vector<std::string> extra_hosts() {
@@ -529,7 +624,9 @@ Info info() {
   Info i;
   describe(nvs_get("ca_crt"), i.ca_fingerprint, i.ca_valid_to, &i.ca_subject, nullptr);
   i.ca_own = nvs_get("ca_own") == "1";
-  describe(nvs_get("srv_crt"), i.server_fingerprint, i.server_valid_to, nullptr, &i.server_names);
+  const std::string own = blob_get("own_crt");
+  i.server_own = !own.empty();
+  describe(i.server_own ? own : nvs_get("srv_crt"), i.server_fingerprint, i.server_valid_to, nullptr, &i.server_names);
   return i;
 }
 

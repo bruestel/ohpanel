@@ -17,6 +17,7 @@
 
    Kept in NVS (namespace "tls"), not in the documents of the storage
    partition: nothing that lists or backs those up carries the CA's key.
+   An own server certificate too, but in the partition "panel" (see set_server).
 */
 
 #pragma once
@@ -47,6 +48,7 @@ std::string ca_pem();
 struct Info {
   std::string ca_subject, ca_fingerprint, ca_valid_to;
   bool ca_own = false;   // set with set_ca
+  bool server_own = false;   // set with set_server
   std::string server_fingerprint, server_valid_to;
   std::vector<std::string> server_names;
 };
@@ -66,6 +68,13 @@ bool renew();
    certificate is issued by it from then on (the next ensure()). Its key never leaves the panel again (no backup
    carries it). False with `error` if it is refused or cannot be stored. */
 bool set_ca(const std::string &cert_pem, const std::string &key_pem, std::string *error);
+
+/* An own server certificate instead of one the panel issues, e.g. from Let's Encrypt: the certificate with its chain
+   (PEM, the server's first) and its private key, used as they are by the next ensure(), whatever names the panel goes
+   by. Checked: no CA, the key its own; the dates are for whoever renews it, the panel does not. renew() and set_ca()
+   drop it, its key never leaves the panel again. False with `error` if it is refused or cannot be stored. */
+bool set_server(const std::string &chain_pem, const std::string &key_pem, std::string *error);
+bool clear_server();   // back to the certificate the panel issues
 
 /* More names the panel goes by (a name of its own in the home network's DNS, say): the CA may vouch for them too
    (and the names under them), the server certificate is issued for them. Changing them makes a new CA certificate,
