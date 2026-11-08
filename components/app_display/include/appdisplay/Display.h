@@ -18,9 +18,11 @@ namespace appdisplay {
 struct Hooks {
   std::function<void(int index, bool on)> relay;
   std::function<void()> restart;
+  /* Plays a tone (Sound.h) on the buzzer, at a volume of 1 to 100. */
+  std::function<void(const std::string &tone, int volume)> sound;
   /* The panel's values for the info page; the display's own are added here. */
   std::function<SystemInfo()> system;
-  /* A display.screen number its openHAB item set, to keep in the configuration. */
+  /* A display.screen number (or a volume of display.sound) its openHAB item set, to keep in the configuration. */
   std::function<void(const std::string &key, int value)> remember;
   /* The display switched off and on again (its power, the board's pin):
      what brings back one stuck in an interrupted upload -- a restart of the

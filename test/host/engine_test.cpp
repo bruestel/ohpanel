@@ -171,6 +171,8 @@ int main(int argc, char **argv) {
   cb.relay = [&](int i, bool on) { relays.push_back({i, on}); };
   std::vector<std::pair<std::string, int>> remembered;
   cb.remember = [&](const std::string &key, int value) { remembered.push_back({key, value}); };
+  std::vector<std::pair<std::string, int>> sounds;   // tones played (Callbacks::sound): tone, volume
+  cb.sound = [&](const std::string &tone, int volume) { sounds.push_back({tone, volume}); };
   static bool outdated = false;
   static std::string ssid = "home";
   // a station catalogue (appoh::options), known from the start
@@ -3259,6 +3261,120 @@ int main(int argc, char **argv) {
     rec.out.clear();
     e.tick(monday_1659 + 120);                                                                 // 17:01: unchanged
     CHECK(!rec.has_prefix("short2_icon"));
+    e.set_config(read("test/host/data/office.json"));
+  }
+
+  {  // display.sound: a touch sounds once (its press, or its release), a notification by its level, the play item's
+     // tone (at a volume of its own too); the touch's volume from its item
+    cJSON *doc = cJSON_Parse(read("test/host/data/office.json").c_str());
+    cJSON *display = cJSON_GetObjectItem(doc, "display");
+    if (!display)
+      display = cJSON_AddObjectToObject(doc, "display");
+    cJSON_DeleteItemFromObject(display, "notifications");
+    cJSON_AddItemToObject(display, "notifications", cJSON_Parse(R"({"item": "Panel_Note"})"));
+    cJSON_AddItemToObject(display, "sound", cJSON_Parse(
+        R"({"touch_volume": {"value": 40, "item": "Panel_Vol"}, "touch": "click", "notification_volume": 90,
+            "notifications": {"info": "none"}, "play": {"item": "Panel_Sound"}})"));
+    char *text = cJSON_PrintUnformatted(doc);
+    set_state("Panel_Sound", "beep", "String");   // set while the panel was away
+    set_state("Panel_Note", "", "String");
+    g_states.erase("Panel_Vol");
+    e.set_config(text);
+    cJSON_free(text);
+    cJSON_Delete(doc);
+    int64_t t = 900000000;
+    e.on_message(event("home", "swipe", "none"));
+    e.idle(t);
+    e.on_message(loaded("home"));
+    e.on_state("Panel_Note");
+    sounds.clear();
+    updates.clear();
+    e.on_message(event("home", "short12", "release"));   // a release alone: it sounds
+    CHECK(sounds.size() == 1 && sounds.back() == std::make_pair(std::string("click"), 40));
+    e.on_message(event("home", "weather", "press"));     // a press sounds, its release then not
+    e.on_message(event("home", "weather", "release"));
+    e.on_message(loaded("home"));
+    CHECK(sounds.size() == 2);
+    e.on_message(event("home", "swipe", "left"));        // a swipe, the page's own touch: quiet
+    e.on_message(event("home", "touch", "press"));
+    CHECK(sounds.size() == 2);
+    e.on_message(event("home", "swipe", "right"));
+    e.on_message(loaded("home"));
+    e.on_state("Panel_Sound");                           // the state from before the start: cleared, not played
+    CHECK(sounds.size() == 2 && updates.size() == 1 &&
+          updates.back() == std::make_pair(std::string("Panel_Sound"), std::string("NULL")));
+    set_state("Panel_Sound", "NULL", "UnDef");
+    e.on_state("Panel_Sound");
+    set_state("Panel_Sound", "ding-dong", "String");
+    e.on_state("Panel_Sound");
+    CHECK(sounds.size() == 3 && sounds.back() == std::make_pair(std::string("ding-dong"), 90) && updates.size() == 2);
+    set_state("Panel_Sound", "bang", "String");          // no tone: stays, nothing played
+    e.on_state("Panel_Sound");
+    set_state("Panel_Sound", "beep|loud", "String");     // nor a volume that is none
+    e.on_state("Panel_Sound");
+    set_state("Panel_Sound", "beep|101", "String");
+    e.on_state("Panel_Sound");
+    CHECK(sounds.size() == 3 && updates.size() == 2);
+    set_state("Panel_Sound", "beep|25", "String");       // a volume of its own
+    e.on_state("Panel_Sound");
+    CHECK(sounds.size() == 4 && sounds.back() == std::make_pair(std::string("beep"), 25) && updates.size() == 3);
+    sounds.pop_back();
+    set_state("Panel_Note", "info|Hello", "String");      // info set to none
+    e.on_state("Panel_Note");
+    CHECK(sounds.size() == 3);
+    nextion::Message touch;                              // the card closed by a touch: it sounds
+    touch.kind = nextion::Message::Kind::Point;
+    touch.press = true;
+    e.on_message(touch);
+    touch.press = false;
+    e.on_message(touch);
+    CHECK(sounds.size() == 4 && sounds.back().first == "click");
+    e.on_message(loaded("home"));
+    set_state("Panel_Note", "alert|Smoke", "String");
+    e.on_state("Panel_Note");
+    CHECK(sounds.size() == 5 && sounds.back() == std::make_pair(std::string("alarm"), 90));
+    e.on_message(touch);                                 // closed: a click
+    e.on_message(loaded("home"));
+    CHECK(sounds.size() == 6);
+    set_state("Panel_Vol", "0", "Percent", nullptr, 0, true);   // openHAB mutes it, the panel keeps that
+    e.on_state("Panel_Vol");
+    e.on_message(event("home", "short12", "release"));
+    CHECK(sounds.size() == 6);
+    remembered.clear();
+    e.idle(t += 6000);
+    CHECK(remembered.size() == 1 && remembered[0] == std::make_pair(std::string("touch_volume"), 0));
+    set_state("Panel_Vol", "70", "Percent", nullptr, 70, true);
+    e.on_state("Panel_Vol");
+    e.on_message(event("home", "short12", "release"));
+    CHECK(sounds.size() == 7 && sounds.back() == std::make_pair(std::string("click"), 70));
+    set_state("Panel_Sound", "beep | 25", "String");    // blanks around the bar
+    e.on_state("Panel_Sound");
+    CHECK(sounds.size() == 8 && sounds.back() == std::make_pair(std::string("beep"), 25));
+
+    // the screen off (idle at 0 %): a notification that waits for a touch is quiet, one that wakes it sounds
+    doc = cJSON_Parse(read("test/host/data/office.json").c_str());
+    display = cJSON_GetObjectItem(doc, "display");
+    if (!display)
+      display = cJSON_AddObjectToObject(doc, "display");
+    cJSON_DeleteItemFromObject(display, "notifications");
+    cJSON_DeleteItemFromObject(display, "screen");
+    cJSON_AddItemToObject(display, "notifications", cJSON_Parse(R"({"item": "Panel_Note", "wake_and_keep_on": "alert"})"));
+    cJSON_AddItemToObject(display, "screen", cJSON_Parse(R"({"idle_brightness": 0, "idle_after": 30})"));
+    text = cJSON_PrintUnformatted(doc);
+    e.set_config(text);
+    cJSON_free(text);
+    cJSON_Delete(doc);
+    e.on_message(event("home", "swipe", "none"));
+    e.idle(t += 100);
+    e.idle(t += 31000);
+    CHECK(e.asleep());
+    sounds.clear();
+    set_state("Panel_Note", "warning|Window open", "String");
+    e.on_state("Panel_Note");
+    CHECK(sounds.empty());
+    set_state("Panel_Note", "alert|Smoke", "String");
+    e.on_state("Panel_Note");
+    CHECK(sounds.size() == 1 && sounds.back().first == "alarm");
     e.set_config(read("test/host/data/office.json"));
   }
 

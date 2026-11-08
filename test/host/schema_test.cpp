@@ -366,6 +366,19 @@ int main() {
   expect_issue("screen: night both", doc("\"display\":{\"screen\":{\"night\":{\"item\":\"N\",\"from\":\"23:00\"}}}"),
                "display.screen.night");
   expect_issue("screen: unknown", doc("\"display\":{\"screen\":{\"contrast\":1}}"), "display.screen.contrast");
+  expect_valid("sound", doc("\"display\":{\"sound\":{\"touch_volume\":{\"value\":30,\"item\":\"Panel_Volume\"},"
+                            "\"notification_volume\":90,"
+                            "\"touch\":\"click\",\"notifications\":{\"info\":\"rising\",\"warning\":\"none\","
+                            "\"alert\":\"alarm\"},\"play\":{\"item\":\"Panel_Sound\"}}}"));
+  expect_valid("sound: silent", doc("\"display\":{\"sound\":{\"touch_volume\":0}}"));
+  expect_issue("sound: too loud", doc("\"display\":{\"sound\":{\"notification_volume\":101}}"),
+               "display.sound.notification_volume");
+  expect_issue("sound: one volume", doc("\"display\":{\"sound\":{\"volume\":50}}"), "display.sound.volume");
+  expect_issue("sound: no such tone", doc("\"display\":{\"sound\":{\"touch\":\"bang\"}}"), "display.sound.touch");
+  expect_issue("sound: no such level", doc("\"display\":{\"sound\":{\"notifications\":{\"error\":\"beep\"}}}"),
+               "display.sound.notifications.error");
+  expect_issue("sound: play item", doc("\"display\":{\"sound\":{\"play\":{\"item\":\"a b\"}}}"),
+               "display.sound.play.item");
   expect_valid("home after: never", doc("\"display\":{\"home_after\":0}"));
   expect_issue("home after: negative", doc("\"display\":{\"home_after\":-1}"), "display.home_after");
   expect_issue("home after: too long", doc("\"display\":{\"home_after\":3601}"), "display.home_after");

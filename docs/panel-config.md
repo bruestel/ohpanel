@@ -93,6 +93,7 @@ with a `format` it shows the whole text instead.
 | `page_fade` | number | a swipe to another page fades the screen out and in again, that many ms each way (in 4 steps), hiding how the display draws the new page; default 0 (not), at most 1000 |
 | `cover_reveal` | string | how the media page's cover appears: `dissolve` (in a random order, the default), `center` (from the middle outwards), `sharpen` (blurred first, 8 x 8 and then 4 x 4 points averaged, then sharp; a third more to draw), `wipe` (row by row from the top) |
 | `screen` | object | the screen's brightness, see below |
+| `sound` | object | the buzzer: a tone for touches and notifications, their volumes, an item that plays one, see below |
 | `notifications` | `{"item", "wake_and_keep_on"?}` | a String item whose new states show as notifications, see below |
 | `open_page` | `{"item"}` | a String item: a page id set on it opens that page, see below |
 | `current_page` | `{"item"}` | a String item the id of each page that opens is sent to, see below |
@@ -115,6 +116,41 @@ buttons switch as always but leave it off. A number with an
 `item` (a Dimmer or Number) is kept in step with it: what openHAB says wins,
 also after a restart, and is kept in the configuration; a change made here
 (the web interface) is sent to the item.
+
+`display.sound` sets what the buzzer plays: by default a tone for each notification, none for a touch.
+
+| Member | Type | |
+|---|---|---|
+| `touch` | tone | played by a touch that does something: a button, a tile, a key, the close cross, a card closed; not a swipe or a slider. Default `none` |
+| `touch_volume` | number or `{"value", "item"}` | the touch's volume, %, 0 to 100 (default 12); 0: silent |
+| `notifications` | `{"info"?, "warning"?, "alert"?}`, each a tone | played as a notification of that level shows (`display.notifications`): on a screen that is on, or one it wakes; one that waits for a touch on a screen that is off (at night, idle at 0 %) is quiet. `none`: silent. Default `rising`, `falling`, `alarm` |
+| `notification_volume` | number or `{"value", "item"}` | the notifications' volume and that of `play`'s tones, %, 0 to 100 (default 65); 0: silent |
+| `play` | `{"item"}` | a String item: a tone's name set on it plays that tone, see below |
+
+A volume with an `item` (a Dimmer or Number) is kept in step with it as the numbers of `display.screen`: what
+openHAB says wins, a change in the web interface is sent to the item.
+
+The tones: `click` (short and soft, for touches), `tick` (short and bright), `beep`, `double`, `triple`
+(two and three beeps), `rising`, `falling` (three notes up or down), `ding-dong`, `alarm` (two notes in turn,
+about a second), and `none`. A tone that comes while another plays cuts it off. The web interface's *Sound*
+part plays each on the panel before it is saved.
+
+```json
+"sound": {"touch": "click", "touch_volume": {"value": 30, "item": "Panel_Touch_Volume"},
+          "notifications": {"info": "none", "warning": "double"}, "notification_volume": 80,
+          "play": {"item": "Panel_Sound"}}
+```
+
+A tone's name set on `play`'s item plays it at `notification_volume`, or at the volume after a `|`
+(`ding-dong|30`, 0 to 100); the panel then sets the item to NULL, so a rule sees it done and the same tone can
+be played again. What the panel does not know (a tone, a volume) is left on the item. The state the item has
+when the panel starts was set while the panel was away: it is set to NULL and plays nothing.
+
+```
+// openHAB rules (DSL): the doorbell rings on the panel, softly at night; touches silent at night
+Panel_Sound.sendCommand(if (now.getHour >= 22 || now.getHour < 7) "ding-dong|20" else "ding-dong")
+Panel_Touch_Volume.sendCommand(0)
+```
 
 `display.notifications.item` names a String item; each new state of it shows
 as a card over the page on screen (the page stands still under it) until a

@@ -148,7 +148,7 @@
       data = null;
       return ok();
     }
-    if (['restart', 'reset', 'ota', 'display/tft', 'tls/ca', 'tls/server', 'backup'].includes(path)) return notInDemo();
+    if (['restart', 'reset', 'ota', 'display/tft', 'tls/ca', 'tls/server', 'backup', 'sound'].includes(path)) return notInDemo();
     if (path === 'qr') {   // made when the demo was built (tools/build_demo.py): the codes of its own qr pages
       let q = {};
       try { q = JSON.parse(body); } catch (e) { q = {}; }

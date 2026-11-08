@@ -6,6 +6,7 @@
 */
 
 #include "board.h"
+#include "buzzer.h"
 #include "diagnostics.h"
 #include "netwatch.h"
 #include "logbuf.h"
@@ -16,6 +17,7 @@
 #include "appcfg/Config.h"
 #include "appdisplay/Display.h"
 #include "appdisplay/Icons.h"
+#include "appdisplay/Sound.h"
 #include "appnet/Net.h"
 #include "appoh/OpenHab.h"
 #include "appstore/Store.h"
@@ -123,6 +125,19 @@ static void remember_screen(const std::string &key, int value) {
     g_remembering = false;   // kept for the next change
     ESP_LOGW(TAG, "display.screen.%s not kept yet: no memory for its task", key.c_str());
   }
+}
+
+/* A tone of display.sound on the buzzer (the display's touches and notifications, the web interface trying one);
+   false for a name that is no tone. */
+static bool play_tone(const std::string &tone, int volume) {
+  const std::vector<appdisplay::Note> *notes = appdisplay::tone_notes(tone);
+  if (!notes)
+    return false;
+  std::vector<buzzer::Note> out;
+  for (const appdisplay::Note &n : *notes)
+    out.push_back({n.hz, n.ms, n.level});
+  buzzer::play(out, volume);
+  return true;
 }
 
 static void restart() {
@@ -297,6 +312,7 @@ extern "C" void app_main() {
     set_relay(i, appcfg::relay(i));
 
   temperature::begin();
+  buzzer::begin();
 
   /* The timezone from the settings, before the display formats any time. */
   appnet::apply_clock();
@@ -311,6 +327,7 @@ extern "C" void app_main() {
       appdisplay::Hooks{
           .relay = set_relay,
           .restart = restart,
+          .sound = [](const std::string &tone, int volume) { play_tone(tone, volume); },
           .system = system_info,
           .remember = remember_screen,
           .power_cycle =
@@ -362,6 +379,7 @@ extern "C" void app_main() {
                 return appweb::AssetsInfo{.version = i.version, .size = i.size, .icons = i.icons};
               },
           .assets_data = appdisplay::assets_data,
+          .sound = play_tone,
       });
 
   /* A freshly flashed image boots as PENDING_VERIFY. If it never marks itself

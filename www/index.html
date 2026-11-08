@@ -284,18 +284,14 @@ input[type=file]::file-selector-button{appearance:none;height:2rem;padding:0 .9r
 .urlrow{display:flex;gap:.4rem}
 .stack{display:grid;gap:.4rem;margin-top:.4rem}
 /* the panel page: the preview, under it the pages and the display settings side by side, the rest folded */
-.cols{display:grid;grid-template-columns:minmax(0,3fr) minmax(0,2fr);gap:1rem;align-items:start}
-.cols>.card:last-child{position:sticky;top:3.5rem}   /* the display settings stay in view beside a long list */
-@media(max-width:900px){.cols{grid-template-columns:minmax(0,1fr)}.cols>.card:last-child{position:static}}
+/* the panel's settings, a tile each: in columns as they fit, each tile right under the one above it (no gaps
+   beside a tall one), one under the other on a phone */
+.tiles{columns:22rem;column-gap:1rem}
+.tiles>.card{break-inside:avoid;margin-bottom:1rem}
+.tiles>.card:last-child{margin-bottom:0}
 .row.stack{grid-template-columns:minmax(0,1fr)}
 .row.two{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
 @media (max-width:560px){.row.two{grid-template-columns:minmax(0,1fr)}}
-details.advanced>summary{cursor:pointer;list-style:none;display:flex;align-items:baseline;gap:.6rem}
-details.advanced>summary::-webkit-details-marker{display:none}
-details.advanced>summary::before{content:"\25B8";color:var(--dim);font-size:12px}
-details.advanced[open]>summary::before{content:"\25BE"}
-details.advanced>summary h2{margin:0}
-details.advanced[open]>summary{margin-bottom:.6rem}
 .pages{display:grid;gap:.25rem;margin-bottom:.9rem;min-height:2.6rem}
 .pgarea h3{font-size:13px;font-weight:600;margin:.4rem 0 .4rem}
 .pgarea h3 .sub{font-weight:400;margin-left:.3rem}
@@ -338,6 +334,7 @@ details.advanced[open]>summary{margin-bottom:.6rem}
 .pages .pg .t .chip.todo{color:var(--warn);border-color:color-mix(in srgb,var(--warn) 50%,transparent)}
 .themerow{display:flex;flex-wrap:wrap;gap:.6rem 1.4rem;margin-top:.9rem}
 .screenh{margin:1.1rem 0 .2rem;font-size:14px}
+.card h2+.screenh{margin-top:.4rem}
 .screen{display:grid;gap:.9rem;margin-top:.6rem}
 .screen .scrow{display:grid;gap:.35rem;min-width:0}
 .screen .slider{display:flex;align-items:center;gap:.6rem;min-height:2.1rem;min-width:0}
@@ -348,6 +345,8 @@ details.advanced[open]>summary{margin-bottom:.6rem}
 .screen .scnight{display:flex;align-items:center;gap:.5rem;font-size:13px;color:var(--dim);min-width:0}
 .screen .scnight input[type=time]{flex:1;min-width:0}
 .screen .scnight > div{flex:1;min-width:0}
+.screen .sctone{display:flex;align-items:center;gap:.5rem;min-width:0}
+.screen .sctone select{flex:1;min-width:0}
 .themerow .th{display:flex;align-items:center;gap:.45rem;font-size:13px;color:var(--dim)}
 .themerow input[type=color]{width:2.2rem;height:1.7rem;padding:0;border:1px solid var(--line);border-radius:.35rem;background:none}
 .themerow .own{font-size:11px;color:var(--theme)}
@@ -977,24 +976,24 @@ pre.box{margin:0;padding:.6rem .7rem;max-height:18rem;overflow:auto;background:v
         <label>Time format<select id="vTime"></select></label>
       </div>
     </div>
-    <div class="cols">
-      <div class="card">
-        <h2>Pages</h2>
-        <p class="sub">Swiping goes through the swipe row in this order. Its first page (★) is the start page: the
-          panel starts there and goes back to it; drag a page by its handle to order it. Lights, covers, media players
-          and favourites open from a tile or a shortcut, every other page can go into the row too.</p>
-        <div class="pgarea">
-          <h3>Swipe row <span class="sub">its first is the start page</span></h3>
-          <div class="pages" id="pgRow"></div>
-          <button class="pgadd" type="button" id="pgAddRow" aria-expanded="false">+ Add to the swipe row</button>
-        </div>
-        <div class="pgarea">
-          <h3>Other pages <span class="sub">opened from tiles and shortcuts</span></h3>
-          <div class="pages" id="pgOther"></div>
-          <button class="pgadd" type="button" id="pgAddOther" aria-expanded="false">+ Add a page</button>
-        </div>
-        <div class="pgpick" id="pgPick" hidden></div>
+    <div class="card">
+      <h2>Pages</h2>
+      <p class="sub">Swiping goes through the swipe row in this order. Its first page (★) is the start page: the
+        panel starts there and goes back to it; drag a page by its handle to order it. Lights, covers, media players
+        and favourites open from a tile or a shortcut, every other page can go into the row too.</p>
+      <div class="pgarea">
+        <h3>Swipe row <span class="sub">its first is the start page</span></h3>
+        <div class="pages" id="pgRow"></div>
+        <button class="pgadd" type="button" id="pgAddRow" aria-expanded="false">+ Add to the swipe row</button>
       </div>
+      <div class="pgarea">
+        <h3>Other pages <span class="sub">opened from tiles and shortcuts</span></h3>
+        <div class="pages" id="pgOther"></div>
+        <button class="pgadd" type="button" id="pgAddOther" aria-expanded="false">+ Add a page</button>
+      </div>
+      <div class="pgpick" id="pgPick" hidden></div>
+    </div>
+    <div class="tiles">
       <div class="card">
         <h2>Display</h2>
         <p class="sub">How the panel's screen looks (time and date formats: the clock in the preview's edit mode).</p>
@@ -1008,12 +1007,16 @@ pre.box{margin:0;padding:.6rem .7rem;max-height:18rem;overflow:auto;background:v
             <option value="wipe">wiped on from the top</option></select></label>
         </div>
         <div class="themerow" id="vTheme"></div>
-        <h3 class="screenh">Screen</h3>
+      </div>
+      <div class="card">
+        <h2>Screen</h2>
         <p class="sub">How bright it is in use and idle, and off at night: then a touch only wakes it. Each number
           can be kept in step with an openHAB item (a Dimmer or Number): a change there comes here, a change here
           goes there.</p>
         <div id="vScreen" class="screen"></div>
-        <h3 class="screenh">Notifications</h3>
+      </div>
+      <div class="card">
+        <h2>Notifications</h2>
         <p class="sub">A String item: each new state shows as a card over the page, until it is touched.
           <code>level|title|text</code>, the level <code>info</code> (blue), <code>warning</code> (yellow) or
           <code>alert</code> (red); empty or NULL takes it away. A touch that closes it sets the item to NULL: a
@@ -1029,6 +1032,17 @@ pre.box{margin:0;padding:.6rem .7rem;max-height:18rem;overflow:auto;background:v
             value="warning|Window open|The bathroom window has been open for 30 minutes."></label>
           <div class="actions"><button type="button" class="b sec" id="vNoteShow">Show in the preview</button></div>
         </div>
+      </div>
+      <div class="card">
+        <h2>Sound</h2>
+        <p class="sub">The buzzer: a tone for each touch that does something and one for each level of
+          notification (by default info rising, warning falling, alert alarm), and an item that plays a tone. Each
+          volume can be kept in step with an openHAB item, to mute the panel at night, for example. ▶ plays a tone on
+          the panel, before it is saved.</p>
+        <div id="vSound" class="screen"></div>
+      </div>
+      <div class="card">
+        <h2>Pages and openHAB</h2>
         <h3 class="screenh">Open a page</h3>
         <p class="sub">A String item: a page id set on it (or <code>home</code>, <code>info</code>,
           <code>settings</code>) opens that page and wakes the screen. The panel then sets the item to NULL, so a
@@ -1042,8 +1056,7 @@ pre.box{margin:0;padding:.6rem .7rem;max-height:18rem;overflow:auto;background:v
       </div>
     </div>
     <div class="card">
-      <details class="advanced"><summary><h2>Advanced</h2>
-        <span class="sub">the configuration as a file and as JSON</span></summary>
+      <h2>Advanced</h2>
       <p class="sub">The whole configuration of the display: the preview, the pages and the display settings edit it,
         Save (on top) stores it on the panel. The format is described in docs/panel-config.md; saving checks it and
         lists what is wrong.</p>
@@ -1075,7 +1088,6 @@ pre.box{margin:0;padding:.6rem .7rem;max-height:18rem;overflow:auto;background:v
         </div>
         <div class="msg" id="iMsg">Click an item to insert its name at the cursor.</div>
         <div class="items" id="iList"></div>
-      </details>
       </details>
     </div>
   </section>
@@ -3861,6 +3873,7 @@ function renderPreview() {
   THEME = themeOf(cfg);
   showThemeInputs(cfg);
   showScreenInputs(cfg);
+  showSoundInputs(cfg);
   renderPages(cfg);
   const sel = $('vPage'), want = PV.page;
   // the swipe row first (its pages in its order, the start page ★), then the other pages by type, each type's by title
@@ -4348,6 +4361,112 @@ function showScreenInputs(cfg) {
   row.append(field('Night', how));
   if (mode) row.append(when);
   box.appendChild(row);
+}
+
+/* display.sound (Engine::sound): the tones of a touch and of the notifications' levels (Sound.cpp), their two
+   volumes, each a number or {"value", "item"} as display.screen's; the item that plays a tone. */
+const TONES = [['', 'none'], ['click', 'click (soft)'], ['tick', 'tick (bright)'], ['beep', 'beep'],
+               ['double', 'two beeps'], ['triple', 'three beeps'], ['rising', 'rising'], ['falling', 'falling'],
+               ['ding-dong', 'ding-dong'], ['alarm', 'alarm']];
+const VOLUMES = {touch_volume: {label: 'Touch volume', dflt: 12, example: 'Panel_Touch_Volume'},
+                 notification_volume: {label: 'Notification volume', dflt: 65, example: 'Panel_Notification_Volume'}};
+/* The notifications' tones when none is set (Format.h SoundSettings); "none" silences one. */
+const NOTE_TONES = {info: 'rising', warning: 'falling', alert: 'alarm'};
+
+function editSound(change) {
+  let cfg;
+  try { cfg = JSON.parse($('pJson').value); } catch (e) { return; }
+  cfg.display = cfg.display || {};
+  const so = Object.assign({}, cfg.display.sound);
+  change(so);
+  if (so.notifications && !Object.keys(so.notifications).length) delete so.notifications;
+  if (Object.keys(so).length) cfg.display.sound = so; else delete cfg.display.sound;
+  if (!Object.keys(cfg.display).length) delete cfg.display;
+  $('pJson').value = JSON.stringify(cfg, null, 2);
+  renderPreview();
+}
+
+function showSoundInputs(cfg) {
+  const box = $('vSound');
+  // not while someone types an item name in it
+  if (!box || (box.contains(document.activeElement) && document.activeElement.type === 'text')) return;
+  const so = ((cfg && cfg.display) || {}).sound || {};
+  box.innerHTML = '';
+  const volumes = {};
+  // a volume: a slider, an item it may be kept in step with
+  const volumeRow = (key) => {
+    const def = VOLUMES[key], raw = so[key];
+    const item = raw && typeof raw === 'object' ? raw.item || '' : '';
+    let value = raw && typeof raw === 'object' ? raw.value : raw;
+    if (!Number.isInteger(value)) value = def.dflt;
+    volumes[key] = value;
+    const set = (v, it) => editSound(x => {
+      if (it) x[key] = {value: v, item: it};
+      else if (v === def.dflt) delete x[key];
+      else x[key] = v;
+    });
+    const slider = document.createElement('div');
+    slider.className = 'slider';
+    const range = document.createElement('input');
+    range.type = 'range'; range.min = 0; range.max = 100; range.value = value;
+    range.setAttribute('aria-label', def.label);
+    const out = document.createElement('output');
+    const say = v => { out.textContent = v === 0 ? 'off' : v + ' %'; };
+    say(value);
+    range.addEventListener('input', () => { say(+range.value); volumes[key] = +range.value; });
+    range.addEventListener('change', () => { value = +range.value; set(value, item); });
+    slider.append(range, out);
+    const linked = itemField(item, v => set(value, v.trim()), 'Dimmer,Number');
+    linked.querySelector('input').placeholder = 'e.g. ' + def.example;
+    const itemBox = document.createElement('div');
+    itemBox.className = 'field scitem';
+    itemBox.append(def.label + ' from openHAB (optional: a Dimmer or Number item, 0 to 100)', linked);
+    const row = document.createElement('div');
+    row.className = 'scrow';
+    row.append(field(def.label, slider), itemBox);
+    return row;
+  };
+  // a tone with a button that plays it on the panel at its volume (an off one at the default)
+  const tone = (label, value, key, onChange, dflt) => {
+    const line = document.createElement('div');
+    line.className = 'sctone';
+    // a default tone first, as "" (left out of the configuration), and "none" for silence
+    const options = !dflt ? TONES : [['', TONES.find(([v]) => v === dflt)[1] + ' (default)'], ['none', 'none']]
+      .concat(TONES.filter(([v]) => v && v !== dflt));
+    const sel = selectInput(options, value || '', onChange);
+    const play = document.createElement('button');
+    play.type = 'button'; play.className = 'b sec'; play.textContent = '▶';
+    play.setAttribute('aria-label', 'Play ' + label.toLowerCase() + ' on the panel');
+    play.addEventListener('click', () => {
+      const t = sel.value || dflt;
+      if (!t || t === 'none') return;
+      postJson('/sound', {tone: t, volume: volumes[key] || VOLUMES[key].dflt})
+        .catch(e => setMsg($('vMsg'), 'Playing the tone failed: ' + e.message, 'err'));
+    });
+    line.append(sel, play);
+    return field(label, line);
+  };
+  box.appendChild(tone('Touch', so.touch, 'touch_volume', v => editSound(x => { if (v) x.touch = v; else delete x.touch; })));
+  box.appendChild(volumeRow('touch_volume'));
+  const levels = [['info', 'Notification: info'], ['warning', 'Notification: warning'], ['alert', 'Notification: alert']];
+  levels.forEach(([level, label]) => box.appendChild(tone(label, (so.notifications || {})[level], 'notification_volume',
+                                                          v => editSound(x => {
+    x.notifications = Object.assign({}, x.notifications);
+    if (v) x.notifications[level] = v; else delete x.notifications[level];
+  }), NOTE_TONES[level])));
+  box.appendChild(volumeRow('notification_volume'));
+  const play = itemField((so.play || {}).item || '', v => editSound(x => {
+    if (v.trim()) x.play = {item: v.trim()}; else delete x.play;
+  }), 'String');
+  play.querySelector('input').placeholder = 'e.g. Panel_Sound';
+  const holder = document.createElement('div');
+  holder.className = 'field';
+  const hint = document.createElement('p');
+  hint.className = 'sub';
+  hint.innerHTML = 'A String item. A state such as <code>ding-dong</code> plays that tone at the notification volume, ' +
+                   '<code>ding-dong|30</code> at 30 %; the panel then sets the item to NULL.';
+  holder.append('Play a tone from an item', play, hint);
+  box.appendChild(holder);
 }
 
 function editTheme(key, value) {

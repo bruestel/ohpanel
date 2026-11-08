@@ -29,6 +29,9 @@ constexpr gpio_num_t PIN_DISPLAY_POWER = GPIO_NUM_4;
 constexpr gpio_num_t PIN_DISPLAY_RX = GPIO_NUM_17;
 constexpr gpio_num_t PIN_DISPLAY_TX = GPIO_NUM_16;
 
+/* Buzzer: a passive piezo, a square wave of the note's frequency makes it sound (buzzer.h). */
+constexpr gpio_num_t PIN_BUZZER = GPIO_NUM_21;
+
 /* Temperature sensor: an NTC (10 kOhm at 25 C, B 3950) between GPIO38 (ADC1
    channel 2) and ground, 11.2 kOhm from 3.3 V -- the values the ESPHome
    configurations for this panel use. See temperature.cpp. */

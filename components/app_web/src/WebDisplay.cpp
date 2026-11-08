@@ -1,5 +1,5 @@
 /*
-   The display routes: a display firmware, a command, the icon set, a QR code.
+   The display routes: a display firmware, a command, the icon set, a QR code, a tone.
 */
 
 #include "WebDetail.h"
@@ -118,6 +118,27 @@ esp_err_t post_display_command(httpd_req_t *req) {
   if (command.empty() || !g_display.command)
     return reply(req, false, "no command");
   g_display.command(command);
+  return reply(req, true, "");
+}
+
+/* {"tone": "...", "volume": 1..100} -- plays a tone of display.sound on the buzzer, for choosing one in the web
+   interface before it is saved. */
+esp_err_t post_sound(httpd_req_t *req) {
+  if (!check_auth(req))
+    return deny(req);
+  std::string body;
+  if (!read_body(req, body, 256))
+    return reply(req, false, "bad body");
+  cJSON *root = cJSON_Parse(body.c_str());
+  const char *t = cJSON_GetStringValue(cJSON_GetObjectItem(root, "tone"));
+  const std::string tone = t ? t : "";
+  const cJSON *v = cJSON_GetObjectItem(root, "volume");
+  const int volume = cJSON_IsNumber(v) ? v->valueint : 50;
+  cJSON_Delete(root);
+  if (volume < 1 || volume > 100)
+    return reply(req, false, "volume: 1 to 100");
+  if (!g_display.sound || !g_display.sound(tone, volume))
+    return reply(req, false, "no such tone");
   return reply(req, true, "");
 }
 

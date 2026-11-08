@@ -522,8 +522,12 @@ int minutes(const cJSON *v) {
 
 }  // namespace
 
-ScreenSettings screen_settings(const cJSON *screen) {
+ScreenSettings screen_settings(const cJSON *screen, const cJSON *sound) {
   ScreenSettings s;
+  if (cJSON_IsObject(sound)) {
+    screen_number(sound, "touch_volume", s.touch_volume, s.touch_volume_item);
+    screen_number(sound, "notification_volume", s.notify_volume, s.notify_volume_item);
+  }
   if (!cJSON_IsObject(screen))
     return s;
   screen_number(screen, "brightness", s.brightness, s.brightness_item);
@@ -567,7 +571,16 @@ DisplaySettings display_settings(const cJSON *d) {
     s.page_fade = std::min(f->valueint, 1000);
   if (const cJSON *r = cJSON_GetObjectItem(d, "cover_reveal"); cJSON_IsString(r))
     s.cover_reveal = r->valuestring;
-  s.screen = screen_settings(cJSON_GetObjectItem(d, "screen"));
+  const cJSON *sound = cJSON_GetObjectItem(d, "sound");
+  s.screen = screen_settings(cJSON_GetObjectItem(d, "screen"), sound);
+  if (cJSON_IsObject(sound)) {
+    s.sound.touch = str(sound, "touch", "");
+    const cJSON *n = cJSON_GetObjectItem(sound, "notifications");
+    const char *const levels[] = {"info", "warning", "alert"};
+    for (int k = 0; k < 3; k++)
+      s.sound.notify[k] = str(n, levels[k], s.sound.notify[k]);
+    s.sound.play_item = str(cJSON_GetObjectItem(sound, "play"), "item", "");
+  }
   const cJSON *t = cJSON_GetObjectItem(d, "texts");
   if (cJSON_IsObject(t)) {
     s.texts.on = str(t, "on", s.texts.on);

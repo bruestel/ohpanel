@@ -32,8 +32,8 @@ std::vector<std::string> groups();
 std::vector<std::string> namespaces();
 
 /* Keeps a number of display.screen (brightness, idle_brightness, idle_after)
-   that its openHAB item set: as {"value", "item"} where an item is linked,
-   as the number otherwise. Without telling the display, which has it. */
+   or display.sound (touch_volume, notification_volume) that its openHAB item
+   set: as {"value", "item"} where an item is linked, as the number otherwise. Without telling the display, which has it. */
 bool remember_screen(const std::string &key, int value);
 
 }  // namespace panel_config

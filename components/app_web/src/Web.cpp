@@ -796,6 +796,7 @@ void add_routes(httpd_handle_t server) {
       {.uri = "/api/v1/transfer", .method = HTTP_GET, .handler = get_transfer},
       {.uri = "/api/v1/log", .method = HTTP_GET, .handler = get_log},
       {.uri = "/api/v1/display/command", .method = HTTP_POST, .handler = post_display_command},
+      {.uri = "/api/v1/sound", .method = HTTP_POST, .handler = post_sound},
       {.uri = "/api/v1/wifi/scan", .method = HTTP_GET, .handler = get_scan},
       {.uri = "/api/v1/panel", .method = HTTP_GET, .handler = get_panel},
       {.uri = "/api/v1/panel", .method = HTTP_PUT, .handler = put_panel},

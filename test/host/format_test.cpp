@@ -49,6 +49,16 @@ int main(int argc, char **argv) {
   t.tm_year = 126; t.tm_mon = 9; t.tm_mday = 5; t.tm_wday = 1; t.tm_hour = 13; t.tm_min = 35;
   CHECK(format_time(ds.date_format, t, ds.texts) == "Mo, 5. Okt. 26");
   DisplaySettings en = display_settings(nullptr);
+  // the buzzer: no touch tone, the notifications' tones and volumes by default; "none" silences one
+  CHECK(en.sound.touch.empty() && en.sound.notify[0] == "rising" && en.sound.notify[1] == "falling" &&
+        en.sound.notify[2] == "alarm" && en.screen.touch_volume == 12 && en.screen.notify_volume == 65);
+  {
+    cJSON *so = cJSON_Parse(R"({"sound":{"notifications":{"warning":"none","alert":"beep"},"touch_volume":5}})");
+    const DisplaySettings sd = display_settings(so);
+    cJSON_Delete(so);
+    CHECK(sd.sound.notify[0] == "rising" && sd.sound.notify[1] == "none" && sd.sound.notify[2] == "beep" &&
+          sd.screen.touch_volume == 5);
+  }
   CHECK(format_time("%A, %d.%m.%Y %I:%M %p", t, en.texts) == "Monday, 05.10.2026 01:35 PM");
   CHECK(format_time("100%%", t, en.texts) == "100%");
   CHECK(format_time("%-I:%M %p", t, en.texts) == "1:35 PM");      // without the leading zero

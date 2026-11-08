@@ -283,6 +283,37 @@ class Validator {
     }
   }
 
+  /* display.sound: the tones of a touch and of the notifications, their volumes, an item that plays one. */
+  void sound_settings(const cJSON *s, const std::string &path) {
+    if (!object(s, path))
+      return;
+    allowed(s, path, {"touch", "touch_volume", "notifications", "notification_volume", "play"});
+    screen_number(s, "touch_volume", path, 0, 100, "0 (silent) to 100 (%)");
+    screen_number(s, "notification_volume", path, 0, 100, "0 (silent) to 100 (%)");
+    tone(s, "touch", path);
+    if (const cJSON *n = cJSON_GetObjectItem(s, "notifications")) {
+      const std::string p = member(path, "notifications");
+      if (object(n, p)) {
+        allowed(n, p, {"info", "warning", "alert"});
+        for (const char *level : {"info", "warning", "alert"})
+          tone(n, level, p);
+      }
+    }
+    if (const cJSON *pl = cJSON_GetObjectItem(s, "play")) {
+      const std::string p = member(path, "play");
+      if (object(pl, p)) {
+        allowed(pl, p, {"item"});
+        item_name(cJSON_GetObjectItem(pl, "item"), member(p, "item"));
+      }
+    }
+  }
+
+  /* A tone of the buzzer (app_display's Sound.cpp), or none. */
+  void tone(const cJSON *obj, const char *name, const std::string &path) {
+    one_of(obj, name, path, {"none", "click", "tick", "beep", "double", "triple", "rising", "falling", "ding-dong",
+                             "alarm"});
+  }
+
   /* A number of display.screen: the number, or {"value", "item"} -- the item
      (a Dimmer or Number) is kept in step with it. */
   void screen_number(const cJSON *s, const char *name, const std::string &path, int low, int high, const char *range) {
@@ -400,7 +431,7 @@ class Validator {
     if (!object(d, path))
       return;
     allowed(d, path, {"language", "date_format", "time_format", "background", "theme", "texts", "home_after", "screen",
-                      "notifications", "open_page", "current_page", "page_fade", "cover_reveal"});
+                      "sound", "notifications", "open_page", "current_page", "page_fade", "cover_reveal"});
     // how the media page's cover appears (Cover.h)
     one_of(d, "cover_reveal", path, {"dissolve", "center", "sharpen", "wipe"});
     // a swipe to another page fades out and in, that many ms each way (0: not)
@@ -435,6 +466,8 @@ class Validator {
     }
     if (const cJSON *screen = cJSON_GetObjectItem(d, "screen"))
       screen_settings(screen, member(path, "screen"));
+    if (const cJSON *sound = cJSON_GetObjectItem(d, "sound"))
+      sound_settings(sound, member(path, "sound"));
     // back to home after that many seconds without a touch on another page; 0: never
     if (const cJSON *h = cJSON_GetObjectItem(d, "home_after"))
       if (!cJSON_IsNumber(h) || h->valuedouble != h->valueint || h->valueint < 0 || h->valueint > 3600)

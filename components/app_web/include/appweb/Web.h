@@ -44,6 +44,8 @@ struct DisplayApi {
      size and version, and its bytes. */
   std::function<AssetsInfo()> assets_info;
   std::function<const uint8_t *()> assets_data;
+  /* Plays a tone of display.sound on the buzzer at a volume of 1 to 100; false for a name that is no tone. */
+  std::function<bool(const std::string &tone, int volume)> sound;
 };
 
 /* Health and post-mortem, supplied by the application for the same reason. */

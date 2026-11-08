@@ -70,10 +70,12 @@ bool remember_screen(const std::string &key, int value) {
   cJSON *display = cJSON_GetObjectItem(root, "display");
   if (!display)
     display = cJSON_AddObjectToObject(root, "display");
-  cJSON *screen = cJSON_GetObjectItem(display, "screen");
-  if (!screen)
-    screen = cJSON_AddObjectToObject(display, "screen");
-  cJSON *v = cJSON_GetObjectItem(screen, key.c_str());
+  // the buzzer's volumes are display.sound's, the other numbers display.screen's
+  const char *const parent = key.ends_with("_volume") ? "sound" : "screen";
+  cJSON *owner = cJSON_GetObjectItem(display, parent);
+  if (!owner)
+    owner = cJSON_AddObjectToObject(display, parent);
+  cJSON *v = cJSON_GetObjectItem(owner, key.c_str());
   if (cJSON_IsObject(v)) {
     cJSON *n = cJSON_GetObjectItem(v, "value");
     if (cJSON_IsNumber(n))
@@ -81,8 +83,8 @@ bool remember_screen(const std::string &key, int value) {
     else
       cJSON_AddNumberToObject(v, "value", value);
   } else {
-    cJSON_DeleteItemFromObject(screen, key.c_str());
-    cJSON_AddNumberToObject(screen, key.c_str(), value);
+    cJSON_DeleteItemFromObject(owner, key.c_str());
+    cJSON_AddNumberToObject(owner, key.c_str(), value);
   }
   char *text = cJSON_Print(root);
   cJSON_Delete(root);
@@ -90,9 +92,9 @@ bool remember_screen(const std::string &key, int value) {
   const bool ok = text && save(text, &error);
   cJSON_free(text);
   if (ok)
-    ESP_LOGI(TAG, "display.screen.%s = %d kept", key.c_str(), value);
+    ESP_LOGI(TAG, "display.%s.%s = %d kept", parent, key.c_str(), value);
   else
-    ESP_LOGW(TAG, "display.screen.%s not kept: %s", key.c_str(), error.c_str());
+    ESP_LOGW(TAG, "display.%s.%s not kept: %s", parent, key.c_str(), error.c_str());
   return ok;
 }
 

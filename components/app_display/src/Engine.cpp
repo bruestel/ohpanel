@@ -8,12 +8,14 @@
 #include "appdisplay/Engine.h"
 #include "appdisplay/Cover.h"
 #include "appdisplay/Icons.h"
+#include "appdisplay/Sound.h"
 
 #include <qrcodegen.h>
 
 #include <algorithm>
 #include <cmath>
 #include <cstdio>
+#include <cstdlib>
 #include <cstring>
 
 #include "EngineDetail.h"
@@ -346,6 +348,10 @@ void Engine::set_config(const std::string &json) {
     open_known_ = false;
   }
   page_item_ = str(member(member(config_, "display"), "current_page"), "item");
+  if (settings_.sound.play_item != play_item_) {
+    play_item_ = settings_.sound.play_item;
+    play_known_ = false;
+  }
   update_theme();
   if (status_.openhab) {
     prefetch_at_ = now_ms_ + kPrefetchDelayMs;   // a catalogue the new configuration names
@@ -1481,10 +1487,12 @@ void Engine::on_message(const nextion::Message &m) {
     if (!load) {
       const bool lifted = ((m.kind == Kind::Point || m.kind == Kind::Touch) && !m.press) ||
                           (m.kind == Kind::Event && m.text.find("release") != std::string::npos);
-      if (lifted && wake_touch_)
+      if (lifted && wake_touch_) {
         wake_touch_ = false;   // the touch that woke the screen
-      else if (lifted)
+      } else if (lifted) {
+        sound(settings_.sound.touch, screen_.touch_volume);
         close_note(true);
+      }
       return;
     }
   }
@@ -1545,6 +1553,7 @@ void Engine::on_event(const std::string &page, const std::string &component, con
 void Engine::act(const std::string &page, const std::string &component, const std::string &value) {
   if (asleep_)
     return;  // the touch that wakes the screen (idle() does) presses nothing
+  touch_sound(page, component, value);
   if (page == "settings" && component == "restart" && value == "release") {
     if (restart_armed_ && now_ms_ - restart_armed_ < 5000) {
       if (cb_.restart)
@@ -1683,6 +1692,8 @@ void Engine::on_state(const std::string &item) {
     notify_state();
   if (item == open_item_)
     open_state();
+  if (item == play_item_)
+    play_state();
   screen_item(item);
   follow_relays(&item);
   for (const auto &b : bindings_)
@@ -1720,6 +1731,10 @@ void Engine::notify_state() {
   const int level = n.what.level == "alert" ? 2 : n.what.level == "warning" ? 1 : 0;
   n.keep = level >= wake_level_;
   note_ = n;
+  // it sounds as it shows: on a screen that is on, or one it wakes -- not one waiting for a touch on a screen that is
+  // off (at night, or idle at 0 %)
+  if (!asleep_ || n.keep)
+    sound(settings_.sound.notify[level], screen_.notify_volume);
   if (n.keep)
     touched_ms_ = now_ms_;  // wakes the screen (screen_tick)
   if (was_drawn) {        // another one: the page again, then the new card
@@ -1763,6 +1778,65 @@ void Engine::open_state() {
   }
   if (cb_.update)
     cb_.update(open_item_, "NULL");
+}
+
+// ------------------------------------------------------------------ sound --
+
+/* A tone of display.sound at a volume; "" and "none" play nothing, nor does a volume of 0. */
+void Engine::sound(const std::string &tone, int volume) {
+  if (!tone.empty() && tone != "none" && volume > 0 && cb_.sound)
+    cb_.sound(tone, volume);
+}
+
+/* A touch that acts: its press sounds, or -- most of the design's objects report only that -- its release. Not
+   the page's own touch ("touch": only that the panel is in use), nor a swipe. */
+void Engine::touch_sound(const std::string &page, const std::string &component, const std::string &value) {
+  if (component == "touch" || component == "swipe")
+    return;
+  const std::string key = page + "/" + component;
+  if (value == "press") {
+    pressed_ = key;
+  } else if (value != "release") {
+    return;
+  } else if (pressed_ == key) {
+    pressed_.clear();   // sounded as it was pressed
+    return;
+  }
+  sound(settings_.sound.touch, screen_.touch_volume);
+}
+
+/* display.sound.play's item changed: a tone's name plays it, at notification_volume or at the volume after it
+   ("ding-dong|30"), then the item goes back to NULL. What the panel does not know stays (a rule sees nothing done);
+   the state the item has when the panel starts was set while the panel was away: set to NULL, not played. */
+void Engine::play_state() {
+  appoh::ItemState st;
+  if (!cb_.state || !cb_.state(play_item_, st))
+    return;
+  const std::string value = st.undefined() ? "" : st.state;
+  const bool first = !play_known_;
+  play_known_ = true;
+  if (value.empty())
+    return;
+  if (!first) {
+    const size_t bar = value.find('|');
+    std::string tone = value.substr(0, bar);
+    tone.erase(tone.find_last_not_of(' ') + 1);   // "ding-dong | 30" as "ding-dong|30" (strtol skips the blank after)
+    int volume = screen_.notify_volume;
+    if (bar != std::string::npos) {
+      char *end = nullptr;
+      const long v = std::strtol(value.c_str() + bar + 1, &end, 10);
+      while (*end == ' ')
+        end++;
+      if (end == value.c_str() + bar + 1 || *end || v < 0 || v > 100)
+        return;
+      volume = static_cast<int>(v);
+    }
+    if (!tone_notes(tone))
+      return;
+    sound(tone, volume);
+  }
+  if (cb_.update)
+    cb_.update(play_item_, "NULL");
 }
 
 /* The words of `text` in lines of at most `width` pixels in `font`; a word
@@ -1978,7 +2052,9 @@ void Engine::idle(int64_t now_ms) {
     remember_.clear();
     const std::map<std::string, const std::string *> items = {{"brightness", &screen_.brightness_item},
                                                               {"idle_brightness", &screen_.idle_brightness_item},
-                                                              {"idle_after", &screen_.idle_after_item}};
+                                                              {"idle_after", &screen_.idle_after_item},
+                                                              {"touch_volume", &screen_.touch_volume_item},
+                                                              {"notification_volume", &screen_.notify_volume_item}};
     if (cb_.command)
       for (const auto &[key, value] : command_)
         if (!items.at(key)->empty())
@@ -2071,7 +2147,11 @@ void Engine::screen_item(const std::string &item) {
   for (const Key k : {Key{screen_.brightness_item, screen_.brightness, settings_.screen.brightness, "brightness", 1, 100},
                       Key{screen_.idle_brightness_item, screen_.idle_brightness, settings_.screen.idle_brightness,
                           "idle_brightness", 0, 100},
-                      Key{screen_.idle_after_item, screen_.idle_after, settings_.screen.idle_after, "idle_after", 0, 3600}}) {
+                      Key{screen_.idle_after_item, screen_.idle_after, settings_.screen.idle_after, "idle_after", 0, 3600},
+                      Key{screen_.touch_volume_item, screen_.touch_volume, settings_.screen.touch_volume, "touch_volume",
+                          0, 100},
+                      Key{screen_.notify_volume_item, screen_.notify_volume, settings_.screen.notify_volume,
+                          "notification_volume", 0, 100}}) {
     if (k.item != item)
       continue;
     k.value = std::clamp(v, k.low, k.high);
@@ -2095,7 +2175,11 @@ void Engine::screen_config(const ScreenSettings &before) {
                       Key{stored.idle_brightness_item, screen_.idle_brightness, stored.idle_brightness,
                           before.idle_brightness, before.idle_brightness_item, "idle_brightness"},
                       Key{stored.idle_after_item, screen_.idle_after, stored.idle_after, before.idle_after,
-                          before.idle_after_item, "idle_after"}}) {
+                          before.idle_after_item, "idle_after"},
+                      Key{stored.touch_volume_item, screen_.touch_volume, stored.touch_volume, before.touch_volume,
+                          before.touch_volume_item, "touch_volume"},
+                      Key{stored.notify_volume_item, screen_.notify_volume, stored.notify_volume, before.notify_volume,
+                          before.notify_volume_item, "notification_volume"}}) {
     if (k.item.empty())
       continue;
     appoh::ItemState st;

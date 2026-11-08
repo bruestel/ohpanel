@@ -89,12 +89,15 @@ struct Callbacks {
   std::function<void(const std::string &item, const std::string &state)> update;
   /* Switches a relay (index 0/1) the panel controls directly. */
   std::function<void(int index, bool on)> relay;
+  /* Plays a tone of Sound.h on the buzzer, at a volume of 1 to 100. */
+  std::function<void(const std::string &tone, int volume)> sound;
   /* The restart button of the settings page. */
   std::function<void()> restart;
   /* The values of the info page, asked for while it is shown. */
   std::function<SystemInfo()> system;
   /* A display.screen number that came from its openHAB item, to keep in the
-     stored configuration ("brightness", "idle_brightness", "idle_after"). */
+     stored configuration ("brightness", "idle_brightness", "idle_after"; display.sound's
+     "touch_volume", "notification_volume"). */
   std::function<void(const std::string &key, int value)> remember;
   /* The options of an item (appoh::options): false while not known yet;
      `refresh`: asked of openHAB again (in the background). */
@@ -374,6 +377,14 @@ class Engine {
   std::string open_item_;
   bool open_known_ = false;  // the item's state was seen once
   void open_state();
+  /* display.sound: a touch that acts sounds (its press, or its release when it reported none), a notification
+     sounds as it shows, a tone set on the play item plays (the item then goes to NULL, as display.open_page's). */
+  void sound(const std::string &tone, int volume);
+  void touch_sound(const std::string &page, const std::string &component, const std::string &value);
+  std::string pressed_;      // page/component whose press sounded: its release is quiet
+  bool play_known_ = false;  // the play item's state was seen once
+  std::string play_item_;
+  void play_state();
   /* display.current_page.item: the id of each page that opens is sent to it as a command (a rule turns on an
      amplifier with the media page); the same page again only after the screen was off. */
   std::string page_item_;

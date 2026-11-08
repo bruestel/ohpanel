@@ -61,20 +61,33 @@ struct Texts {
 };
 
 /* display.screen: how bright the screen is, when it dims, when it is off.
-   Each number may come from an openHAB item ("item"), which then wins. */
+   Each number may come from an openHAB item ("item"), which then wins. The
+   buzzer's volumes (display.sound.touch_volume, notification_volume) are such
+   numbers too, kept here with them. */
 struct ScreenSettings {
   int brightness = 85;       // % while in use
   int idle_brightness = 60;  // % after idle_after s without a touch; 0: off
   int idle_after = 60;       // s; 0: never idle
-  std::string brightness_item, idle_brightness_item, idle_after_item;
+  int touch_volume = 12;     // display.sound's, %; 0: silent
+  int notify_volume = 65;    // ... notification_volume: the notifications' tones and the play item's
+  std::string brightness_item, idle_brightness_item, idle_after_item, touch_volume_item, notify_volume_item;
   // the night: off (as a black page, woken by a touch) -- from/to in minutes
   // of the day (-1: no window), or while the Switch item is ON
   int night_from = -1, night_to = -1;
   std::string night_item;
 };
 
-/* display.screen, resolved; a missing object yields the defaults. */
-ScreenSettings screen_settings(const cJSON *screen);
+/* display.screen and display.sound's volumes, resolved; a missing object yields the defaults. */
+ScreenSettings screen_settings(const cJSON *screen, const cJSON *sound = nullptr);
+
+/* display.sound: the tones (Sound.h) of a touch (none by default) and of the notifications' levels (by default
+   rising, falling, alarm; "none": none), and the String item a tone set on it plays from. Their volumes are in
+   ScreenSettings. The defaults are in the web interface too (www/index.html, NOTE_TONES). */
+struct SoundSettings {
+  std::string touch;
+  std::string notify[3] = {"rising", "falling", "alarm"};   // info, warning, alert
+  std::string play_item;
+};
 
 /* Whether minute `now` of the day is in the night from..to (which may span
    midnight). */
@@ -92,6 +105,7 @@ struct DisplaySettings {
   int page_fade = 0;       // ms a swipe to another page fades the screen out, and in again; 0: not
   std::string cover_reveal;   // how a cover appears (Cover.h reveal_of): "" (dissolve), "center", "sharpen", "wipe"
   ScreenSettings screen;
+  SoundSettings sound;
 };
 
 /* Reads display.* (language, texts overrides, formats); a missing or null

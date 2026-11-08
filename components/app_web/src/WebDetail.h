@@ -178,6 +178,7 @@ esp_err_t get_backup(httpd_req_t *req);
 esp_err_t post_backup(httpd_req_t *req);
 esp_err_t post_display_tft(httpd_req_t *req);
 esp_err_t post_display_command(httpd_req_t *req);
+esp_err_t post_sound(httpd_req_t *req);
 esp_err_t get_assets(httpd_req_t *req);
 esp_err_t get_openhab_states(httpd_req_t *req);
 esp_err_t post_openhab_discover(httpd_req_t *req);

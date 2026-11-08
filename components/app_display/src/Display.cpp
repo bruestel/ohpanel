@@ -374,6 +374,9 @@ void task(void *) {
   cb.restart = [] {
     if (g_hooks.restart) g_hooks.restart();
   };
+  cb.sound = [](const std::string &tone, int volume) {
+    if (g_hooks.sound) g_hooks.sound(tone, volume);
+  };
   cb.options = [](const std::string &item, std::vector<appoh::Option> &out, bool refresh) {
     return appoh::options(item, out, refresh);
   };
