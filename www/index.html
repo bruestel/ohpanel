@@ -6734,10 +6734,10 @@ function fillThermostat(page) {
     const sb = layoutBox('thermostat', 'state_hs');
     if (sb && (heating || cooling)) {   // its icon and its word, centred together (drawn by the firmware)
       const word = heating ? t.heating : t.cooling, colour = heating ? '#ff8a3d' : '#4fc3f7';
-      ctx.font = '15px Ubuntu, system-ui, sans-serif';
+      ctx.font = '17px Ubuntu, system-ui, sans-serif';   // font 1 (its em 16.9 px)
       const tw = Math.min(ctx.measureText(word).width, sb[2] - 28), x = sb[0] + (sb[2] - (28 + tw)) / 2;
-      const ic = iconCanvas(heating ? 'fire' : 'snowflake', colour, 24);
-      if (ic) ctx.drawImage(ic, x, sb[1], 24, 24);
+      const ic = iconCanvas(heating ? 'fire' : 'snowflake', colour, 19);
+      if (ic) ctx.drawImage(ic, x + 2, sb[1] + 6, 19, 19);   // font 7 centred in 24 x 24: its em 19 px, 6 down (placeIcon)
       ctx.fillStyle = colour; ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
       ctx.fillText(word, x + 28, sb[1] + 22);   // on the icon's bottom
     }
@@ -6778,8 +6778,9 @@ function fillKeypad(page) {
     ctx.font = px + 'px Ubuntu, system-ui, sans-serif';
     const iw = ico ? 24 : 0, gap = ico && text ? 6 : 0;
     const tw = Math.min(ctx.measureText(text).width, b[2] - 16 - iw - gap), x = b[0] + (b[2] - (iw + gap + tw)) / 2;
-    const ic = ico && iconCanvas(ico, ink, 24);
-    if (ic) ctx.drawImage(ic, x, b[1] + (b[3] - 24) / 2, 24, 24);
+    const ic = ico && iconCanvas(ico, ink, 19);
+    // font 7 centred in a cell 3 px higher (kIconUp): its em 19 px, 6 down its 24 (placeIcon)
+    if (ic) ctx.drawImage(ic, x + 2, b[1] - 3 + Math.floor((b[3] - 24) / 2) + 6, 19, 19);
     ctx.fillStyle = ink; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
     ctx.fillText(text, x + iw + gap, b[1] + b[3] / 2 + 1, tw);
   };
