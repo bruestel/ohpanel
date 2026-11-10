@@ -126,6 +126,7 @@ bool melody_notes(const std::string &rtttl, std::vector<Note> &out, std::string 
       return fail(error, "\"" + d + "\": d is 1, 2, 4, 8, 16 or 32, o 3 to 8, b 20 to 900");
   }
   const int whole = 240000 / bpm;   // ms
+  size_t count = 0;
   for (size_t at = 0; at < notes.size();) {
     const size_t end = std::min(notes.find(',', at), notes.size());
     const std::string n = notes.substr(at, end - at);
@@ -160,7 +161,7 @@ bool melody_notes(const std::string &rtttl, std::vector<Note> &out, std::string 
     }
     if (!ok || i != n.size())
       return fail(error, "\"" + n + "\" is no note (e.g. 8c#6.)");
-    if (out.size() >= 2 * kMaxMelodyNotes)
+    if (++count > kMaxMelodyNotes)   // notes and pauses
       return fail(error, "more than " + std::to_string(kMaxMelodyNotes) + " notes");
     const int ms = whole / d * (dotted ? 3 : 2) / 2;
     if (pause) {
@@ -186,8 +187,8 @@ bool melody_name(const std::string &name, std::string *error) {
     if (!(std::islower(static_cast<unsigned char>(c)) || std::isdigit(static_cast<unsigned char>(c)) || c == '-' ||
           c == '_'))
       return fail(error, "a melody's name has only a-z, 0-9, - and _");
-  if (name[0] == '-' || name[0] == '_')
-    return fail(error, "a melody's name begins with a letter or digit");
+  if (!std::islower(static_cast<unsigned char>(name[0])))
+    return fail(error, "a melody's name begins with a letter");
   if (name == "none" || tone_notes(name))
     return fail(error, "\"" + name + "\" is a tone's name already");
   return true;
@@ -198,9 +199,12 @@ bool sound_notes(const std::string &sound, std::vector<Note> &out, std::string *
     out = *notes;
     return true;
   }
+  // a melody, a single note too ("2a"); what looks like no melody at all is a tone's name unknown
+  if (melody_notes(sound, out, error))
+    return true;
   if (sound.find_first_of(":,") == std::string::npos)
     return fail(error, "no such tone");
-  return melody_notes(sound, out, error);
+  return false;
 }
 
 }  // namespace sound

@@ -29,7 +29,7 @@ std::vector<std::string> tone_names();
    then the notes: [length]note[#][.][octave][.], the note c, d, e, f, g, a, b (or h), p a pause, a dot half as long
    again. The name and the defaults may be left out ("d=8:c,e,g", "::c,e,g"; default d=4, o=6, b=63). Its notes in
    `out`, each sounding to a short break before the next one, so that two of the same are heard as two; false for
-   text that is no melody, and why in `error`. At most kMaxMelodyNotes notes. */
+   text that is no melody, and why in `error`. At most kMaxMelodyNotes notes and pauses. */
 constexpr size_t kMaxMelodyNotes = 400;
 bool melody_notes(const std::string &rtttl, std::vector<Note> &out, std::string *error = nullptr);
 
@@ -38,11 +38,12 @@ bool melody_notes(const std::string &rtttl, std::vector<Note> &out, std::string 
 constexpr size_t kMaxOwnMelodies = 8;
 constexpr size_t kMaxMelodyText = 2048;
 
-/* Whether `name` can name a melody of one's own: 1 to 24 of a-z, 0-9, "-" and "_", beginning with a letter or digit,
-   not "none" nor a tone's name; why not in `error`. */
+/* Whether `name` can name a melody of one's own: 1 to 24 of a-z, 0-9, "-" and "_", beginning with a letter, not
+   "none" nor a tone's name; why not in `error`. */
 bool melody_name(const std::string &name, std::string *error = nullptr);
 
-/* A tone's name or a melody: what plays it; false for neither (and why, for a melody, in `error`). */
+/* A tone's name or a melody (one note too): what plays it; false for neither (and why, for what looks like a melody,
+   in `error`). */
 bool sound_notes(const std::string &sound, std::vector<Note> &out, std::string *error = nullptr);
 
 }  // namespace sound

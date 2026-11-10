@@ -4503,9 +4503,8 @@ function parseMelody(rtttl) {
     if (n[i] === '.' && !dotted) { dotted = true; i++; }
     if (!ok || i !== n.length)
       return fail('"' + n + '" is no note (e.g. 8c#6.)', pos[start], pos[start + n.length - 1] + 1 - pos[start]);
-    if (out.length >= 2 * MAX_MELODY_NOTES) return fail('more than ' + MAX_MELODY_NOTES + ' notes');
+    if (++count > MAX_MELODY_NOTES) return fail('more than ' + MAX_MELODY_NOTES + ' notes');   // notes and pauses
     const len = Math.floor(Math.floor(whole / d) * (dotted ? 3 : 2) / 2);
-    count++;
     ms += len;
     if (pause) { out.push({hz: 0, ms: len}); continue; }
     const gap = Math.min(Math.floor(len / 10), 20);   // a short break at its end (Sound.cpp)
@@ -4559,14 +4558,17 @@ function melodyStrip(p, key) {
 
 /* What plays on the panel from here, to show it: its key (an own melody's name, "ex:<n>" an example), since when,
    how long. ▶ buttons and strips with that key show it (paintPlaying); ■ stops it on the panel. */
-let melodyPlaying = null;
+let melodyPlaying = null, melodyTicking = false;
 function playMelody(key, rtttl, volume, msg) {
   if (melodyPlaying && melodyPlaying.key === key) { stopMelody(); return; }
   const p = parseMelody(rtttl);
   if (p.error) { setMsg(msg, p.error, 'err'); return; }
   setMsg(msg, '');
   postJson('/sound', {tone: rtttl.trim(), volume})
-    .then(() => { melodyPlaying = {key, start: performance.now(), ms: p.ms}; requestAnimationFrame(tickPlaying); })
+    .then(() => {
+      melodyPlaying = {key, start: performance.now(), ms: p.ms};
+      if (!melodyTicking) { melodyTicking = true; requestAnimationFrame(tickPlaying); }
+    })
     .catch(e => setMsg(msg, 'Playing the melody failed: ' + e.message, 'err'));
 }
 function stopMelody() {
@@ -4578,7 +4580,8 @@ function stopMelody() {
 function tickPlaying() {
   if (melodyPlaying && performance.now() - melodyPlaying.start >= melodyPlaying.ms) melodyPlaying = null;
   paintPlaying();
-  if (melodyPlaying) requestAnimationFrame(tickPlaying);
+  melodyTicking = !!melodyPlaying;   // one loop, however often ▶ is pressed
+  if (melodyTicking) requestAnimationFrame(tickPlaying);
 }
 function paintPlaying() {
   const f = melodyPlaying ? Math.min(1, (performance.now() - melodyPlaying.start) / melodyPlaying.ms) : 0;
@@ -4712,9 +4715,19 @@ function showSoundInputs(cfg) {
    back to their defaults, and come back with it). ▶ plays one as it stands, before it is saved, at the notification
    volume. What is open, the undo and the gallery's target outlive the tile being drawn again. */
 const MAX_MELODIES = 8;
-const MELODY_NAME = /^[a-z0-9][a-z0-9_-]{0,23}$/;
+const MELODY_NAME = /^[a-z][a-z0-9_-]{0,23}$/;
 const melodyUi = {open: null, focus: null, undo: null};
 const LEVEL_NAMES = {info: 'Info', warning: 'Warning', alert: 'Alert'};
+
+/* A tone's name, or none's: no melody may have it. */
+function isToneName(name) { return name === 'none' || TONES.some(([v]) => v === name); }
+
+/* `base`, or base-2, base-3 ... as `taken` says, within the 24 characters a name may have. */
+function uniqueMelodyName(base, taken) {
+  let n = base.slice(0, 24);
+  for (let k = 2; taken(n); k++) n = base.slice(0, 23 - String(k).length) + '-' + k;
+  return n;
+}
 
 function redrawSound() {
   // a field of the tile with the focus would keep it as it is (showSoundInputs): what was typed is in the configuration
@@ -4726,11 +4739,11 @@ function melodiesEditor(so, volume) {
   const own = so.melodies || {}, names = Object.keys(own);
   const holder = document.createElement('div');
   holder.className = 'field msect';
-  const taken = (name, self) => name === 'none' || TONES.some(([v]) => v === name) || (name !== self && own[name] !== undefined);
+  const taken = (name, self) => isToneName(name) || (name !== self && Object.hasOwn(own, name));
   const nameError = (name, self) => !MELODY_NAME.test(name)
-    ? 'A name has 1 to 24 of a-z, 0-9, - and _, first a letter or digit.'
+    ? 'A name has 1 to 24 of a-z, 0-9, - and _, first a letter.'
     : taken(name, self) ? 'A tone or another melody has this name.' : '';
-  const unique = base => { let n = base; for (let k = 2; taken(n); k++) n = base + '-' + k; return n; };
+  const unique = base => uniqueMelodyName(base, n => taken(n));
   // where it is used: the touch, the notifications' levels
   const usedBy = name => [so.touch === name ? 'Touch' : null]
     .concat(Object.keys(LEVEL_NAMES).map(l => (so.notifications || {})[l] === name ? LEVEL_NAMES[l] : null)).filter(Boolean);
@@ -4770,11 +4783,14 @@ function melodiesEditor(so, volume) {
     melodyUi.undo = null;
     editSound(x => {
       const entries = Object.entries(x.melodies || {});
-      entries.splice(Math.min(u.index, entries.length), 0, [unique(u.name), u.rtttl]);
+      if (entries.length >= MAX_MELODIES) return;
+      // its name, or another if that one is taken meanwhile: the tones that named it follow it, not the other
+      const name = uniqueMelodyName(u.name, n => isToneName(n) || entries.some(([k]) => k === n));
+      entries.splice(Math.min(u.index, entries.length), 0, [name, u.rtttl]);
       x.melodies = Object.fromEntries(entries);
-      if (u.refs.touch) x.touch = u.name;
+      if (u.refs.touch) x.touch = name;
       if (u.refs.levels.length) x.notifications = Object.assign({}, x.notifications);
-      for (const l of u.refs.levels) x.notifications[l] = u.name;
+      for (const l of u.refs.levels) x.notifications[l] = name;
     });
     redrawSound();
   };
@@ -4787,6 +4803,7 @@ function melodiesEditor(so, volume) {
   head.append('Own melodies', count);
   holder.appendChild(head);
 
+  if (melodyUi.undo && names.length >= MAX_MELODIES) melodyUi.undo = null;   // no room to bring it back
   if (melodyUi.undo) {
     const u = melodyUi.undo, bar = document.createElement('div');
     bar.className = 'mundo';

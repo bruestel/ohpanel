@@ -148,7 +148,7 @@ static bool try_tone(const std::string &tone, int volume, std::string *error) {
     buzzer::stop();
     return true;
   }
-  if (sound::tone_notes(tone) || tone.find_first_of(":,") != std::string::npos)
+  if (sound::tone_notes(tone) || !sound::melody_name(tone))
     return play_tone(tone, volume, error);
   cJSON *cfg = cJSON_Parse(panel_config::load().c_str());
   const cJSON *own = cJSON_GetObjectItem(

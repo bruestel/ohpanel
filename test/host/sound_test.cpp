@@ -127,6 +127,18 @@ int main() {
     CHECK(sound::sound_notes("beep", n) && n.size() == 1);
     CHECK(sound::sound_notes("x::a", n) && n.size() == 2);
     CHECK(!sound::sound_notes("bang", n, &error) && error == "no such tone");
+    CHECK(sound::sound_notes("2a", n) && n.size() == 2);   // a single note is a melody too
+    CHECK(!sound::sound_notes("x::a,y", n, &error) && error.find("\"y\"") != std::string::npos);
+    // at most 400 notes and pauses, however many entries they make for the buzzer
+    std::string pauses = "x::", quick = "x:d=32,b=900:";
+    for (size_t k = 0; k < sound::kMaxMelodyNotes; k++) {
+      pauses += "p,";
+      quick += "a,";
+    }
+    CHECK(sound::melody_notes(pauses, n) && n.size() == sound::kMaxMelodyNotes);
+    CHECK(sound::melody_notes(quick, n));
+    CHECK(!sound::melody_notes(pauses + "p", n, &error) && error == "more than 400 notes");
+    CHECK(!sound::melody_notes(quick + "a", n));
   }
 
   // the web interface's examples: const MELODIES = [['name', 'rtttl' + 'rtttl'], ...]; each plays
@@ -156,7 +168,7 @@ int main() {
   // the web interface's parser (parseMelody) is held to this one's results: the cases, with what this one makes of
   // them, for test/host/melody_test.js
   {
-    const char *const cases[] = {
+    std::vector<std::string> cases = {
         "test:d=4,o=4,b=120:a,8p,c5,2e.5", "X: d=8, b=240 : C#.5, H, P", "::a", "d=4:a", "name:a,b", "x:d=4:a,x",
         "x:q=4:a", "x:d=3:a", "x:b=10:a", "x::3a", "x::a9", "x::a##", "x::a..", "x::", "a:b:c:d", "x:d=8,o=5,b=63:",
         "x:d=32,o=8,b=900:b#,c#.,1p,32h8.", "x:o=3,b=20:1c.,2d#3", "x:d=4,o=6,b=63:,,a,,", "x:d=4 ,o=6:16a,16a,16a",
@@ -164,7 +176,15 @@ int main() {
         "x::p,p", "x::c.6.", "x::c6.#", "x::#c", "x::00004c", "doorbell:d=8,o=6,b=180:e,c,4g",
     };
     std::string json = "[";
-    for (const char *c : cases) {
+    {
+      std::string many = "x::";
+      for (size_t k = 0; k <= sound::kMaxMelodyNotes; k++)
+        many += "p,";
+      cases.push_back(many);                  // one pause too many
+      many.resize(many.size() - 2);
+      cases.push_back(many);                  // just enough
+    }
+    for (const std::string &c : cases) {
       std::vector<sound::Note> n;
       std::string error;
       const bool ok = sound::melody_notes(c, n, &error);
@@ -194,6 +214,7 @@ int main() {
     CHECK(sound::melody_name("doorbell") && sound::melody_name("a") && sound::melody_name("siren_2-b"));
     CHECK(!sound::melody_name("") && !sound::melody_name("Doorbell") && !sound::melody_name("door bell") &&
           !sound::melody_name("-x") && !sound::melody_name(std::string(25, 'a')));
+    CHECK(!sound::melody_name("2") && !sound::melody_name("2nd-bell"));   // a letter first: no key JS would reorder
     CHECK(!sound::melody_name("none") && !sound::melody_name("beep"));
   }
 

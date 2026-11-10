@@ -164,11 +164,11 @@ fraction of a whole note (1, 2, 4, 8, 16, 32; default 4), `o`, its octave (3 to 
 minute (20 to 900; default 63). Each note is `[length]note[#][.][octave]` (the dot may also come after the octave):
 the note `c`, `d`, `e`, `f`, `g`, `a`, `b` (or `h`), `#` a semitone higher, `.` half as long again, `p` a pause;
 `8c#7.` is a dotted eighth C sharp in octave 7. `a4` is 440 Hz. The name and the defaults may be left out
-(`::c,e,g`). At most 400 notes; blanks and upper case do not matter. Each note ends in a short break, so that two of
+(`::c,e,g`). At most 400 notes and pauses; blanks and upper case do not matter. Each note ends in a short break, so that two of
 the same are heard as two. The buzzer is loudest from octave 6 up (about 1 to 4 kHz); lower notes come out quieter.
 
 `melodies` keeps up to 8 melodies under names of your own: 1 to 24 of `a`-`z`, `0`-`9`, `-` and `_`, beginning
-with a letter or digit, and none of a tone's names (nor `none`). Each can be the tone of a touch or of a
+with a letter, and none of a tone's names (nor `none`). Each can be the tone of a touch or of a
 notification's level, and the play item plays it by its name (`doorbell|30`). Each must be a melody, at most 2048
 characters; the configuration is not saved otherwise.
 
