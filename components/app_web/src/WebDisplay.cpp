@@ -121,13 +121,13 @@ esp_err_t post_display_command(httpd_req_t *req) {
   return reply(req, true, "");
 }
 
-/* {"tone": "...", "volume": 1..100} -- plays a tone of display.sound on the buzzer, for choosing one in the web
-   interface before it is saved. */
+/* {"tone": "...", "volume": 1..100} -- plays a tone of display.sound or a melody (RTTTL) on the buzzer, for
+   choosing one in the web interface before it is saved. */
 esp_err_t post_sound(httpd_req_t *req) {
   if (!check_auth(req))
     return deny(req);
   std::string body;
-  if (!read_body(req, body, 256))
+  if (!read_body(req, body, 4096))
     return reply(req, false, "bad body");
   cJSON *root = cJSON_Parse(body.c_str());
   const char *t = cJSON_GetStringValue(cJSON_GetObjectItem(root, "tone"));
@@ -137,8 +137,9 @@ esp_err_t post_sound(httpd_req_t *req) {
   cJSON_Delete(root);
   if (volume < 1 || volume > 100)
     return reply(req, false, "volume: 1 to 100");
-  if (!g_display.sound || !g_display.sound(tone, volume))
-    return reply(req, false, "no such tone");
+  std::string error = "no such tone";
+  if (!g_display.sound || !g_display.sound(tone, volume, &error))
+    return reply(req, false, error);
   return reply(req, true, "");
 }
 

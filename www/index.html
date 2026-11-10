@@ -347,6 +347,7 @@ input[type=file]::file-selector-button{appearance:none;height:2rem;padding:0 .9r
 .screen .scnight > div{flex:1;min-width:0}
 .screen .sctone{display:flex;align-items:center;gap:.5rem;min-width:0}
 .screen .sctone select{flex:1;min-width:0}
+.screen textarea{width:100%;min-width:0;box-sizing:border-box;margin-top:.4rem}
 .themerow .th{display:flex;align-items:center;gap:.45rem;font-size:13px;color:var(--dim)}
 .themerow input[type=color]{width:2.2rem;height:1.7rem;padding:0;border:1px solid var(--line);border-radius:.35rem;background:none}
 .themerow .own{font-size:11px;color:var(--theme)}
@@ -1036,7 +1037,8 @@ pre.box{margin:0;padding:.6rem .7rem;max-height:18rem;overflow:auto;background:v
       <div class="card">
         <h2>Sound</h2>
         <p class="sub">The buzzer: a tone for each touch that does something and one for each level of
-          notification (by default info rising, warning falling, alert alarm), and an item that plays a tone. Each
+          notification (by default info rising, warning falling, alert alarm), and an item that plays a tone or a
+          melody. Each
           volume can be kept in step with an openHAB item, to mute the panel at night, for example. ▶ plays a tone on
           the panel, before it is saved.</p>
         <div id="vSound" class="screen"></div>
@@ -4372,6 +4374,19 @@ const VOLUMES = {touch_volume: {label: 'Touch volume', dflt: 12, example: 'Panel
                  notification_volume: {label: 'Notification volume', dflt: 65, example: 'Panel_Notification_Volume'}};
 /* The notifications' tones when none is set (Format.h SoundSettings); "none" silences one. */
 const NOTE_TONES = {info: 'rising', warning: 'falling', alert: 'alarm'};
+/* Melodies (RTTTL, Sound.h melody_notes) to try and to copy for the play item: public domain tunes only.
+   test/host/sound_test.cpp checks each one plays. */
+const MELODIES = [
+  ['Korobeiniki (Russian folk song)', 'korobeiniki:d=4,o=6,b=150:e,8b5,8c,d,8c,8b5,a5,8a5,8c,e,8d,8c,b5.,8c,d,e,c,a5,a5,p,' +
+   '8p,d,8f,a,8g,8f,e.,8c,e,8d,8c,b5,8b5,8c,d,e,c,a5,a5,p'],
+  ['Für Elise (Beethoven)', 'fur_elise:d=8,o=6,b=140:e7,d#7,e7,d#7,e7,b,d7,c7,4a,p,c,e,a,4b,p,e,g#,b,4c7,p,e,' +
+   'e7,d#7,e7,d#7,e7,b,d7,c7,4a,p,c,e,a,4b,p,e,c7,b,2a'],
+  ['Ode to Joy (Beethoven)', 'ode_to_joy:d=4,o=6,b=120:e,e,f,g,g,f,e,d,c,c,d,e,e.,8d,2d,e,e,f,g,g,f,e,d,c,c,d,e,d.,8c,2c'],
+  ['In the Hall of the Mountain King (Grieg)', 'mountain_king:d=8,o=6,b=120:a5,b5,c,d,e,c,4e,d#,b5,4d#,d,a#5,4d,' +
+   'a5,b5,c,d,e,c,e,a,g,e,c,e,4g'],
+  ['The Entertainer (Joplin)', 'entertainer:d=8,o=6,b=140:d,d#,e,4c7,e,4c7,e,2c.7,c7,d7,d#7,e7,c7,d7,4e7,b,4d7,2c7'],
+  ['Westminster chimes', 'westminster:d=4,o=6,b=100:e,g#,f#,2b5,e,f#,g#,2e,g#,e,f#,2b5,b5,f#,g#,2e'],
+];
 
 function editSound(change) {
   let cfg;
@@ -4389,7 +4404,7 @@ function editSound(change) {
 function showSoundInputs(cfg) {
   const box = $('vSound');
   // not while someone types an item name in it
-  if (!box || (box.contains(document.activeElement) && document.activeElement.type === 'text')) return;
+  if (!box || (box.contains(document.activeElement) && ['text', 'textarea'].includes(document.activeElement.type))) return;
   const so = ((cfg && cfg.display) || {}).sound || {};
   box.innerHTML = '';
   const volumes = {};
@@ -4464,9 +4479,49 @@ function showSoundInputs(cfg) {
   const hint = document.createElement('p');
   hint.className = 'sub';
   hint.innerHTML = 'A String item. A state such as <code>ding-dong</code> plays that tone at the notification volume, ' +
-                   '<code>ding-dong|30</code> at 30 %; the panel then sets the item to NULL.';
+                   '<code>ding-dong|30</code> at 30 %; a melody in RTTTL (below) plays as well. The panel then sets the ' +
+                   'item to NULL.';
   holder.append('Play a tone from an item', play, hint);
   box.appendChild(holder);
+  box.appendChild(melodyTry(() => volumes.notification_volume || VOLUMES.notification_volume.dflt));
+}
+
+/* A melody in RTTTL to try on the panel, an example to start from: what the play item takes. Not part of the
+   configuration; the text stays while the tiles are drawn again. */
+let melodyText = MELODIES[0][1];
+function melodyTry(volume) {
+  const holder = document.createElement('div');
+  holder.className = 'field';
+  const pick = selectInput([['', 'Examples...']].concat(MELODIES.map(([name], k) => [String(k), name])), '', v => {
+    if (v === '') return;
+    melodyText = text.value = MELODIES[+v][1];
+    pick.value = '';
+  });
+  const text = document.createElement('textarea');
+  text.rows = 3; text.spellcheck = false; text.value = melodyText;
+  text.setAttribute('aria-label', 'Melody (RTTTL)');
+  text.addEventListener('input', () => { melodyText = text.value; });
+  const msg = document.createElement('p');
+  msg.className = 'msg';
+  const play = document.createElement('button');
+  play.type = 'button'; play.className = 'b sec'; play.textContent = '▶';
+  play.setAttribute('aria-label', 'Play the melody on the panel');
+  play.addEventListener('click', () => {
+    setMsg(msg, '');
+    postJson('/sound', {tone: text.value.trim(), volume: volume()})
+      .catch(e => setMsg(msg, 'Playing the melody failed: ' + e.message, 'err'));
+  });
+  const line = document.createElement('div');
+  line.className = 'sctone';
+  line.append(pick, play);
+  const hint = document.createElement('p');
+  hint.className = 'sub';
+  hint.innerHTML = 'RTTTL, the ringtones\' notation: <code>name:d=4,o=6,b=120:8e,8d#,e,p,2c.7</code>: the default ' +
+                   'length (<code>d</code>, of a whole note), octave (<code>o</code>) and quarters a minute ' +
+                   '(<code>b</code>), then the notes. Set it on the play item as it is, or with <code>|30</code> for ' +
+                   'a volume. The buzzer sounds best from octave 6 up.';
+  holder.append('Try a melody (at the notification volume)', line, text, msg, hint);
+  return holder;
 }
 
 function editTheme(key, value) {

@@ -31,7 +31,7 @@ web interface, which shows a live preview of the display: what you change there 
 - **openHAB in charge**: notifications as cards over the page (a warning, an alert), and a page opened by an
   item, e.g. the alarm's keypad when the door opens
 - **Sound** from the panel's buzzer: a tone for touches and one per notification level, their volumes and a tone
-  to play set by items (the doorbell on the panel)
+  or a melody (RTTTL) to play set by items (the doorbell on the panel)
 - **Setup without a cable** after the first flash: the panel opens a hotspot, finds openHAB in the network
   and is updated over WiFi, both the firmware and the display's design
 - **Themes**: five backgrounds (Aurora, Black, Candy, Dunes, Forest), each with its own accent and text colours;

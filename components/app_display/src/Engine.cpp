@@ -1805,8 +1805,8 @@ void Engine::touch_sound(const std::string &page, const std::string &component, 
   sound(settings_.sound.touch, screen_.touch_volume);
 }
 
-/* display.sound.play's item changed: a tone's name plays it, at notification_volume or at the volume after it
-   ("ding-dong|30"), then the item goes back to NULL. What the panel does not know stays (a rule sees nothing done);
+/* display.sound.play's item changed: a tone's name or a melody (RTTTL, Sound.h) plays it, at notification_volume or
+   at the volume after it ("ding-dong|30"), then the item goes back to NULL. What the panel does not know stays (a rule sees nothing done);
    the state the item has when the panel starts was set while the panel was away: set to NULL, not played. */
 void Engine::play_state() {
   appoh::ItemState st;
@@ -1831,7 +1831,8 @@ void Engine::play_state() {
         return;
       volume = static_cast<int>(v);
     }
-    if (!tone_notes(tone))
+    std::vector<appdisplay::Note> notes;
+    if (!sound_notes(tone, notes))
       return;
     sound(tone, volume);
   }

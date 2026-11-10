@@ -125,7 +125,7 @@ also after a restart, and is kept in the configuration; a change made here
 | `touch_volume` | number or `{"value", "item"}` | the touch's volume, %, 0 to 100 (default 12); 0: silent |
 | `notifications` | `{"info"?, "warning"?, "alert"?}`, each a tone | played as a notification of that level shows (`display.notifications`): on a screen that is on, or one it wakes; one that waits for a touch on a screen that is off (at night, idle at 0 %) is quiet. `none`: silent. Default `rising`, `falling`, `alarm` |
 | `notification_volume` | number or `{"value", "item"}` | the notifications' volume and that of `play`'s tones, %, 0 to 100 (default 65); 0: silent |
-| `play` | `{"item"}` | a String item: a tone's name set on it plays that tone, see below |
+| `play` | `{"item"}` | a String item: a tone's name or a melody set on it plays it, see below |
 
 A volume with an `item` (a Dimmer or Number) is kept in step with it as the numbers of `display.screen`: what
 openHAB says wins, a change in the web interface is sent to the item.
@@ -151,6 +151,25 @@ when the panel starts was set while the panel was away: it is set to NULL and pl
 Panel_Sound.sendCommand(if (now.getHour >= 22 || now.getHour < 7) "ding-dong|20" else "ding-dong")
 Panel_Touch_Volume.sendCommand(0)
 ```
+
+A melody in RTTTL, the notation of the old mobile phones' ringtones, plays as well, with a volume after a `|` too:
+
+```
+Panel_Sound.sendCommand("ode_to_joy:d=4,o=6,b=120:e,e,f,g,g,f,e,d,c,c,d,e,e.,8d,2d|40")
+```
+
+It has three parts, split by `:`: a name, the defaults and the notes. The defaults are `d`, a note's length as a
+fraction of a whole note (1, 2, 4, 8, 16, 32; default 4), `o`, its octave (3 to 8; default 6) and `b`, quarters a
+minute (20 to 900; default 63). Each note is `[length]note[#][.][octave]` (the dot may also come after the octave):
+the note `c`, `d`, `e`, `f`, `g`, `a`, `b` (or `h`), `#` a semitone higher, `.` half as long again, `p` a pause;
+`8c#7.` is a dotted eighth C sharp in octave 7. `a4` is 440 Hz. The name and the defaults may be left out
+(`::c,e,g`). At most 400 notes; blanks and upper case do not matter. Each note ends in a short break, so that two of
+the same are heard as two. The buzzer is loudest from octave 6 up (about 1 to 4 kHz); lower notes come out quieter.
+
+The web interface's *Sound* tile plays a melody on the panel before it goes into a rule, and has examples to start
+from, all of them public domain: Korobeiniki, *Für Elise*, *Ode to Joy*, *In the Hall of the Mountain King*,
+*The Entertainer* and the Westminster chimes. Melodies in RTTTL are found in many places on the internet; mind that
+a song may be protected by copyright.
 
 `display.notifications.item` names a String item; each new state of it shows
 as a card over the page on screen (the page stands still under it) until a

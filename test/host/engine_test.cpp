@@ -3319,6 +3319,14 @@ int main(int argc, char **argv) {
     e.on_state("Panel_Sound");
     CHECK(sounds.size() == 4 && sounds.back() == std::make_pair(std::string("beep"), 25) && updates.size() == 3);
     sounds.pop_back();
+    set_state("Panel_Sound", "tune:d=8,o=6,b=120:c,e,g|30", "String");   // a melody, its volume
+    e.on_state("Panel_Sound");
+    CHECK(sounds.size() == 4 && sounds.back() == std::make_pair(std::string("tune:d=8,o=6,b=120:c,e,g"), 30) &&
+          updates.size() == 4);
+    sounds.pop_back();
+    set_state("Panel_Sound", "tune:d=8:c,x", "String");   // no melody: stays, nothing played
+    e.on_state("Panel_Sound");
+    CHECK(sounds.size() == 3 && updates.size() == 4);
     set_state("Panel_Note", "info|Hello", "String");      // info set to none
     e.on_state("Panel_Note");
     CHECK(sounds.size() == 3);

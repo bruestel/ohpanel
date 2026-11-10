@@ -127,14 +127,15 @@ static void remember_screen(const std::string &key, int value) {
   }
 }
 
-/* A tone of display.sound on the buzzer (the display's touches and notifications, the web interface trying one);
-   false for a name that is no tone. */
-static bool play_tone(const std::string &tone, int volume) {
-  const std::vector<appdisplay::Note> *notes = appdisplay::tone_notes(tone);
-  if (!notes)
+/* A tone of display.sound or a melody (RTTTL) on the buzzer (the display's touches and notifications, the play
+   item, the web interface trying one); false, and why in `error`, for neither. */
+static bool play_tone(const std::string &tone, int volume, std::string *error = nullptr) {
+  std::vector<appdisplay::Note> notes;
+  if (!appdisplay::sound_notes(tone, notes, error))
     return false;
   std::vector<buzzer::Note> out;
-  for (const appdisplay::Note &n : *notes)
+  out.reserve(notes.size());
+  for (const appdisplay::Note &n : notes)
     out.push_back({n.hz, n.ms, n.level});
   buzzer::play(out, volume);
   return true;
