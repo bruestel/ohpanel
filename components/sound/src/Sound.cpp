@@ -5,14 +5,14 @@
    web interface (www/index.html, TONES); test/host/sound_test.cpp checks they agree.
 */
 
-#include "appdisplay/Sound.h"
+#include "sound/Sound.h"
 
 #include <algorithm>
 #include <cctype>
 #include <cmath>
 #include <utility>
 
-namespace appdisplay {
+namespace sound {
 namespace {
 
 const std::vector<std::pair<std::string, std::vector<Note>>> &tones() {
@@ -179,6 +179,20 @@ bool melody_notes(const std::string &rtttl, std::vector<Note> &out, std::string 
   return true;
 }
 
+bool melody_name(const std::string &name, std::string *error) {
+  if (name.empty() || name.size() > 24)
+    return fail(error, "a melody's name has 1 to 24 characters");
+  for (const char c : name)
+    if (!(std::islower(static_cast<unsigned char>(c)) || std::isdigit(static_cast<unsigned char>(c)) || c == '-' ||
+          c == '_'))
+      return fail(error, "a melody's name has only a-z, 0-9, - and _");
+  if (name[0] == '-' || name[0] == '_')
+    return fail(error, "a melody's name begins with a letter or digit");
+  if (name == "none" || tone_notes(name))
+    return fail(error, "\"" + name + "\" is a tone's name already");
+  return true;
+}
+
 bool sound_notes(const std::string &sound, std::vector<Note> &out, std::string *error) {
   if (const std::vector<Note> *notes = tone_notes(sound)) {
     out = *notes;
@@ -189,4 +203,4 @@ bool sound_notes(const std::string &sound, std::vector<Note> &out, std::string *
   return melody_notes(sound, out, error);
 }
 
-}  // namespace appdisplay
+}  // namespace sound

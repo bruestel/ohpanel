@@ -8,7 +8,7 @@
 #include "appdisplay/Engine.h"
 #include "appdisplay/Cover.h"
 #include "appdisplay/Icons.h"
-#include "appdisplay/Sound.h"
+#include "sound/Sound.h"
 
 #include <qrcodegen.h>
 
@@ -1782,10 +1782,13 @@ void Engine::open_state() {
 
 // ------------------------------------------------------------------ sound --
 
-/* A tone of display.sound at a volume; "" and "none" play nothing, nor does a volume of 0. */
+/* A tone of display.sound at a volume; "" and "none" play nothing, nor does a volume of 0. A melody of one's own
+   (display.sound.melodies) goes to the buzzer as its RTTTL. */
 void Engine::sound(const std::string &tone, int volume) {
-  if (!tone.empty() && tone != "none" && volume > 0 && cb_.sound)
-    cb_.sound(tone, volume);
+  if (tone.empty() || tone == "none" || volume <= 0 || !cb_.sound)
+    return;
+  const auto own = settings_.sound.melodies.find(tone);
+  cb_.sound(own != settings_.sound.melodies.end() ? own->second : tone, volume);
 }
 
 /* A touch that acts: its press sounds, or -- most of the design's objects report only that -- its release. Not
@@ -1805,7 +1808,7 @@ void Engine::touch_sound(const std::string &page, const std::string &component, 
   sound(settings_.sound.touch, screen_.touch_volume);
 }
 
-/* display.sound.play's item changed: a tone's name or a melody (RTTTL, Sound.h) plays it, at notification_volume or
+/* display.sound.play's item changed: a tone's name, a melody of one's own or one in RTTTL (sound/Sound.h) plays it, at notification_volume or
    at the volume after it ("ding-dong|30"), then the item goes back to NULL. What the panel does not know stays (a rule sees nothing done);
    the state the item has when the panel starts was set while the panel was away: set to NULL, not played. */
 void Engine::play_state() {
@@ -1831,8 +1834,8 @@ void Engine::play_state() {
         return;
       volume = static_cast<int>(v);
     }
-    std::vector<appdisplay::Note> notes;
-    if (!sound_notes(tone, notes))
+    std::vector<sound::Note> notes;
+    if (!settings_.sound.melodies.count(tone) && !sound::sound_notes(tone, notes))
       return;
     sound(tone, volume);
   }

@@ -379,6 +379,30 @@ int main() {
                "display.sound.notifications.error");
   expect_issue("sound: play item", doc("\"display\":{\"sound\":{\"play\":{\"item\":\"a b\"}}}"),
                "display.sound.play.item");
+  // melodies of one's own: a tone may name one, each must be a melody under a name no tone has; at most 8
+  expect_valid("sound: own melodies", doc("\"display\":{\"sound\":{\"melodies\":{\"doorbell\":\"d:d=8,o=6,b=180:e,c,4g\","
+                                           "\"siren_2\":\"::c7,a6\"},\"touch\":\"doorbell\","
+                                           "\"notifications\":{\"alert\":\"siren_2\"}}}"));
+  expect_issue("sound: no such melody", doc("\"display\":{\"sound\":{\"melodies\":{\"doorbell\":\"::c\"},"
+                                            "\"notifications\":{\"info\":\"chime\"}}}"),
+               "display.sound.notifications.info");
+  expect_issue("sound: no melody", doc("\"display\":{\"sound\":{\"melodies\":{\"doorbell\":\"::c,x\"}}}"),
+               "display.sound.melodies.doorbell");
+  expect_issue("sound: a melody's number", doc("\"display\":{\"sound\":{\"melodies\":{\"doorbell\":5}}}"),
+               "display.sound.melodies.doorbell");
+  expect_issue("sound: a tone's name", doc("\"display\":{\"sound\":{\"melodies\":{\"beep\":\"::c\"}}}"),
+               "display.sound.melodies.beep");
+  expect_issue("sound: a melody's name", doc("\"display\":{\"sound\":{\"melodies\":{\"Door Bell\":\"::c\"}}}"),
+               "display.sound.melodies.Door Bell");
+  expect_issue("sound: melodies a list", doc("\"display\":{\"sound\":{\"melodies\":[\"::c\"]}}"),
+               "display.sound.melodies");
+  {
+    std::string many;
+    for (int k = 0; k < 9; k++)
+      many += std::string(k ? "," : "") + "\"m" + std::to_string(k) + "\":\"::c\"";
+    expect_issue("sound: too many melodies", doc("\"display\":{\"sound\":{\"melodies\":{" + many + "}}}"),
+                 "display.sound.melodies");
+  }
   expect_valid("home after: never", doc("\"display\":{\"home_after\":0}"));
   expect_issue("home after: negative", doc("\"display\":{\"home_after\":-1}"), "display.home_after");
   expect_issue("home after: too long", doc("\"display\":{\"home_after\":3601}"), "display.home_after");

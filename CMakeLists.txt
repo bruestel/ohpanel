@@ -57,7 +57,7 @@ project(${OHPANEL_PROJECT})
 # by section, which LTO's renaming would undo). Split into a file per page or route group, they lost the inlining
 # across functions a single file had; LTO brings it back. Fat objects: the archives keep ordinary code too, so a
 # link without LTO (and the archive index) still works.
-foreach(component app_config app_display app_net app_openhab app_store app_web nextion panel qrcodegen board src main)
+foreach(component app_config app_display app_net app_openhab app_store app_web nextion panel qrcodegen sound board src main)
     if(TARGET __idf_${component})
         target_compile_options(__idf_${component} PRIVATE -flto=auto -ffat-lto-objects)
     endif()

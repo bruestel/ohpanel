@@ -580,6 +580,10 @@ DisplaySettings display_settings(const cJSON *d) {
     for (int k = 0; k < 3; k++)
       s.sound.notify[k] = str(n, levels[k], s.sound.notify[k]);
     s.sound.play_item = str(cJSON_GetObjectItem(sound, "play"), "item", "");
+    const cJSON *m = cJSON_GetObjectItem(sound, "melodies");
+    for (const cJSON *e = cJSON_IsObject(m) ? m->child : nullptr; e; e = e->next)
+      if (e->string && cJSON_IsString(e))
+        s.sound.melodies[e->string] = e->valuestring;
   }
   const cJSON *t = cJSON_GetObjectItem(d, "texts");
   if (cJSON_IsObject(t)) {

@@ -10,7 +10,7 @@
 #include <string>
 #include <vector>
 
-namespace appdisplay {
+namespace sound {
 
 struct Note {
   uint16_t hz;  // 0: a pause
@@ -33,7 +33,16 @@ std::vector<std::string> tone_names();
 constexpr size_t kMaxMelodyNotes = 400;
 bool melody_notes(const std::string &rtttl, std::vector<Note> &out, std::string *error = nullptr);
 
+/* Melodies of one's own (display.sound.melodies): at most this many, each at most this long, under a name that
+   tones and the play item take as a tone's. */
+constexpr size_t kMaxOwnMelodies = 8;
+constexpr size_t kMaxMelodyText = 2048;
+
+/* Whether `name` can name a melody of one's own: 1 to 24 of a-z, 0-9, "-" and "_", beginning with a letter or digit,
+   not "none" nor a tone's name; why not in `error`. */
+bool melody_name(const std::string &name, std::string *error = nullptr);
+
 /* A tone's name or a melody: what plays it; false for neither (and why, for a melody, in `error`). */
 bool sound_notes(const std::string &sound, std::vector<Note> &out, std::string *error = nullptr);
 
-}  // namespace appdisplay
+}  // namespace sound

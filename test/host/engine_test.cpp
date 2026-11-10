@@ -3274,7 +3274,8 @@ int main(int argc, char **argv) {
     cJSON_AddItemToObject(display, "notifications", cJSON_Parse(R"({"item": "Panel_Note"})"));
     cJSON_AddItemToObject(display, "sound", cJSON_Parse(
         R"({"touch_volume": {"value": 40, "item": "Panel_Vol"}, "touch": "click", "notification_volume": 90,
-            "notifications": {"info": "none"}, "play": {"item": "Panel_Sound"}})"));
+            "notifications": {"info": "none", "warning": "chime"}, "play": {"item": "Panel_Sound"},
+            "melodies": {"chime": "chime:d=8,o=6,b=180:e,c,4g"}})"));
     char *text = cJSON_PrintUnformatted(doc);
     set_state("Panel_Sound", "beep", "String");   // set while the panel was away
     set_state("Panel_Note", "", "String");
@@ -3327,6 +3328,11 @@ int main(int argc, char **argv) {
     set_state("Panel_Sound", "tune:d=8:c,x", "String");   // no melody: stays, nothing played
     e.on_state("Panel_Sound");
     CHECK(sounds.size() == 3 && updates.size() == 4);
+    set_state("Panel_Sound", "chime|20", "String");   // a melody of one's own by its name: its RTTTL plays
+    e.on_state("Panel_Sound");
+    CHECK(sounds.size() == 4 && sounds.back() == std::make_pair(std::string("chime:d=8,o=6,b=180:e,c,4g"), 20) &&
+          updates.size() == 5);
+    sounds.pop_back();
     set_state("Panel_Note", "info|Hello", "String");      // info set to none
     e.on_state("Panel_Note");
     CHECK(sounds.size() == 3);

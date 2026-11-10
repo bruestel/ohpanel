@@ -347,7 +347,11 @@ input[type=file]::file-selector-button{appearance:none;height:2rem;padding:0 .9r
 .screen .scnight > div{flex:1;min-width:0}
 .screen .sctone{display:flex;align-items:center;gap:.5rem;min-width:0}
 .screen .sctone select{flex:1;min-width:0}
-.screen textarea{width:100%;min-width:0;box-sizing:border-box;margin-top:.4rem}
+.screen textarea{width:100%;min-width:0;box-sizing:border-box}
+.screen .scmelodies{display:grid;gap:.6rem;margin-bottom:.4rem}
+.screen .scmelody{display:grid;gap:.35rem}
+.screen .scmelody input[type=text]{flex:1;min-width:0}
+.screen .scmelody .msg:empty{display:none}
 .themerow .th{display:flex;align-items:center;gap:.45rem;font-size:13px;color:var(--dim)}
 .themerow input[type=color]{width:2.2rem;height:1.7rem;padding:0;border:1px solid var(--line);border-radius:.35rem;background:none}
 .themerow .own{font-size:11px;color:var(--theme)}
@@ -1037,8 +1041,8 @@ pre.box{margin:0;padding:.6rem .7rem;max-height:18rem;overflow:auto;background:v
       <div class="card">
         <h2>Sound</h2>
         <p class="sub">The buzzer: a tone for each touch that does something and one for each level of
-          notification (by default info rising, warning falling, alert alarm), and an item that plays a tone or a
-          melody. Each
+          notification (by default info rising, warning falling, alert alarm), an item that plays a tone or a
+          melody, and melodies of your own. Each
           volume can be kept in step with an openHAB item, to mute the panel at night, for example. ▶ plays a tone on
           the panel, before it is saved.</p>
         <div id="vSound" class="screen"></div>
@@ -4374,7 +4378,7 @@ const VOLUMES = {touch_volume: {label: 'Touch volume', dflt: 12, example: 'Panel
                  notification_volume: {label: 'Notification volume', dflt: 65, example: 'Panel_Notification_Volume'}};
 /* The notifications' tones when none is set (Format.h SoundSettings); "none" silences one. */
 const NOTE_TONES = {info: 'rising', warning: 'falling', alert: 'alarm'};
-/* Melodies (RTTTL, Sound.h melody_notes) to try and to copy for the play item: public domain tunes only.
+/* Melodies (RTTTL, sound/Sound.h melody_notes) to start one's own from: public domain tunes only.
    test/host/sound_test.cpp checks each one plays. */
 const MELODIES = [
   ['Korobeiniki (Russian folk song)', 'korobeiniki:d=4,o=6,b=150:e,8b5,8c,d,8c,8b5,a5,8a5,8c,e,8d,8c,b5.,8c,d,e,c,a5,a5,p,' +
@@ -4395,6 +4399,7 @@ function editSound(change) {
   const so = Object.assign({}, cfg.display.sound);
   change(so);
   if (so.notifications && !Object.keys(so.notifications).length) delete so.notifications;
+  if (so.melodies && !Object.keys(so.melodies).length) delete so.melodies;
   if (Object.keys(so).length) cfg.display.sound = so; else delete cfg.display.sound;
   if (!Object.keys(cfg.display).length) delete cfg.display;
   $('pJson').value = JSON.stringify(cfg, null, 2);
@@ -4446,8 +4451,10 @@ function showSoundInputs(cfg) {
     const line = document.createElement('div');
     line.className = 'sctone';
     // a default tone first, as "" (left out of the configuration), and "none" for silence
-    const options = !dflt ? TONES : [['', TONES.find(([v]) => v === dflt)[1] + ' (default)'], ['none', 'none']]
+    let options = !dflt ? TONES : [['', TONES.find(([v]) => v === dflt)[1] + ' (default)'], ['none', 'none']]
       .concat(TONES.filter(([v]) => v && v !== dflt));
+    const own = Object.keys(so.melodies || {});   // the melodies of one's own, below
+    if (own.length) options = options.concat([{group: 'Own melodies', options: own.map(n => [n, n])}]);
     const sel = selectInput(options, value || '', onChange);
     const play = document.createElement('button');
     play.type = 'button'; play.className = 'b sec'; play.textContent = '▶';
@@ -4455,7 +4462,7 @@ function showSoundInputs(cfg) {
     play.addEventListener('click', () => {
       const t = sel.value || dflt;
       if (!t || t === 'none') return;
-      postJson('/sound', {tone: t, volume: volumes[key] || VOLUMES[key].dflt})
+      postJson('/sound', {tone: (so.melodies || {})[t] || t, volume: volumes[key] || VOLUMES[key].dflt})
         .catch(e => setMsg($('vMsg'), 'Playing the tone failed: ' + e.message, 'err'));
     });
     line.append(sel, play);
@@ -4479,48 +4486,100 @@ function showSoundInputs(cfg) {
   const hint = document.createElement('p');
   hint.className = 'sub';
   hint.innerHTML = 'A String item. A state such as <code>ding-dong</code> plays that tone at the notification volume, ' +
-                   '<code>ding-dong|30</code> at 30 %; a melody in RTTTL (below) plays as well. The panel then sets the ' +
-                   'item to NULL.';
+                   '<code>ding-dong|30</code> at 30 %; a melody of your own by its name (below) or one in RTTTL plays as ' +
+                   'well. The panel then sets the item to NULL.';
   holder.append('Play a tone from an item', play, hint);
   box.appendChild(holder);
-  box.appendChild(melodyTry(() => volumes.notification_volume || VOLUMES.notification_volume.dflt));
+  box.appendChild(melodiesEditor(so, () => volumes.notification_volume || VOLUMES.notification_volume.dflt));
 }
 
-/* A melody in RTTTL to try on the panel, an example to start from: what the play item takes. Not part of the
-   configuration; the text stays while the tiles are drawn again. */
-let melodyText = MELODIES[0][1];
-function melodyTry(volume) {
+/* display.sound.melodies: melodies of one's own in RTTTL, each under a name the tones above and the play item take
+   (sound/Sound.h melody_name, kMaxOwnMelodies); the examples to start from. ▶ plays one as it stands, before it is
+   saved, at the notification volume. */
+const MAX_MELODIES = 8;
+const MELODY_NAME = /^[a-z0-9][a-z0-9_-]{0,23}$/;
+function melodiesEditor(so, volume) {
+  const own = so.melodies || {}, names = Object.keys(own);
   const holder = document.createElement('div');
   holder.className = 'field';
-  const pick = selectInput([['', 'Examples...']].concat(MELODIES.map(([name], k) => [String(k), name])), '', v => {
+  const taken = name => name === 'none' || TONES.some(([v]) => v === name) || own[name] !== undefined;
+  const nameError = name => !MELODY_NAME.test(name) ? 'A name has 1 to 24 of a-z, 0-9, - and _, first a letter or digit.'
+    : taken(name) ? 'A tone or another melody has this name.' : '';
+  // a melody renamed or removed: the tones that named it follow (to: '' for none)
+  const follow = (x, from, to) => {
+    if (x.touch === from) { if (to) x.touch = to; else delete x.touch; }
+    x.notifications = Object.assign({}, x.notifications);
+    for (const l of Object.keys(x.notifications))
+      if (x.notifications[l] === from) { if (to) x.notifications[l] = to; else delete x.notifications[l]; }
+  };
+  const list = document.createElement('div');
+  list.className = 'scmelodies';
+  names.forEach(name => {
+    const row = document.createElement('div');
+    row.className = 'scmelody';
+    const head = document.createElement('div');
+    head.className = 'sctone';
+    const msg = document.createElement('p');
+    msg.className = 'msg';
+    const nm = document.createElement('input');
+    nm.type = 'text'; nm.value = name; nm.spellcheck = false;
+    nm.setAttribute('aria-label', 'The melody\'s name');
+    nm.addEventListener('change', () => {
+      const to = nm.value.trim();
+      if (to === name) return;
+      const err = nameError(to);
+      if (err) { setMsg(msg, err, 'err'); return; }
+      editSound(x => {   // in its place
+        const m = {};
+        for (const [k, v] of Object.entries(x.melodies || {})) m[k === name ? to : k] = v;
+        x.melodies = m;
+        follow(x, name, to);
+      });
+    });
+    const text = document.createElement('textarea');
+    text.rows = 3; text.spellcheck = false; text.value = own[name];
+    text.setAttribute('aria-label', 'Melody ' + name + ' (RTTTL)');
+    text.addEventListener('input', () => editSound(x => { x.melodies = Object.assign({}, x.melodies, {[name]: text.value.trim()}); }));
+    const play = document.createElement('button');
+    play.type = 'button'; play.className = 'b sec'; play.textContent = '▶';
+    play.setAttribute('aria-label', 'Play ' + name + ' on the panel');
+    play.addEventListener('click', () => {
+      setMsg(msg, '');
+      postJson('/sound', {tone: text.value.trim(), volume: volume()})
+        .catch(e => setMsg(msg, 'Playing the melody failed: ' + e.message, 'err'));
+    });
+    const del = document.createElement('button');
+    del.type = 'button'; del.className = 'b sec'; del.textContent = '✕';
+    del.title = 'Remove ' + name; del.setAttribute('aria-label', 'Remove ' + name);
+    del.addEventListener('click', () => editSound(x => {
+      const m = Object.assign({}, x.melodies);
+      delete m[name];
+      x.melodies = m;
+      follow(x, name, '');
+    }));
+    head.append(nm, play, del);
+    row.append(head, text, msg);
+    list.appendChild(row);
+  });
+  // another one: empty, or an example under its own name (made unique)
+  const add = selectInput([['', names.length < MAX_MELODIES ? 'Add a melody...' : 'At most ' + MAX_MELODIES + ' melodies'],
+                           ['new', 'a new one']].concat(MELODIES.map(([title], k) => [String(k), title])), '', v => {
     if (v === '') return;
-    melodyText = text.value = MELODIES[+v][1];
-    pick.value = '';
+    const rtttl = v === 'new' ? 'melody:d=4,o=6,b=120:c,e,g,2c7' : MELODIES[+v][1];
+    const base = rtttl.split(':')[0].toLowerCase().replace(/[^a-z0-9_-]+/g, '-').replace(/^[-_]+/, '').slice(0, 20) || 'melody';
+    let name = base;
+    for (let k = 2; taken(name); k++) name = base + '-' + k;
+    editSound(x => { x.melodies = Object.assign({}, x.melodies, {[name]: rtttl}); });
   });
-  const text = document.createElement('textarea');
-  text.rows = 3; text.spellcheck = false; text.value = melodyText;
-  text.setAttribute('aria-label', 'Melody (RTTTL)');
-  text.addEventListener('input', () => { melodyText = text.value; });
-  const msg = document.createElement('p');
-  msg.className = 'msg';
-  const play = document.createElement('button');
-  play.type = 'button'; play.className = 'b sec'; play.textContent = '▶';
-  play.setAttribute('aria-label', 'Play the melody on the panel');
-  play.addEventListener('click', () => {
-    setMsg(msg, '');
-    postJson('/sound', {tone: text.value.trim(), volume: volume()})
-      .catch(e => setMsg(msg, 'Playing the melody failed: ' + e.message, 'err'));
-  });
-  const line = document.createElement('div');
-  line.className = 'sctone';
-  line.append(pick, play);
+  add.disabled = names.length >= MAX_MELODIES;
   const hint = document.createElement('p');
   hint.className = 'sub';
-  hint.innerHTML = 'RTTTL, the ringtones\' notation: <code>name:d=4,o=6,b=120:8e,8d#,e,p,2c.7</code>: the default ' +
-                   'length (<code>d</code>, of a whole note), octave (<code>o</code>) and quarters a minute ' +
-                   '(<code>b</code>), then the notes. Set it on the play item as it is, or with <code>|30</code> for ' +
-                   'a volume. The buzzer sounds best from octave 6 up.';
-  holder.append('Try a melody (at the notification volume)', line, text, msg, hint);
+  hint.innerHTML = 'Each one can be chosen for a touch or a notification above, and played by its name on the play ' +
+                   'item (<code>doorbell|30</code>). In RTTTL, the ringtones\' notation: ' +
+                   '<code>name:d=4,o=6,b=120:8e,8d#,e,p,2c.7</code>: the default length (<code>d</code>, of a whole ' +
+                   'note), octave (<code>o</code>) and quarters a minute (<code>b</code>), then the notes. The buzzer ' +
+                   'sounds best from octave 6 up. The examples are public domain.';
+  holder.append('Own melodies', list, add, hint);
   return holder;
 }
 

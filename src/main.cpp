@@ -17,7 +17,7 @@
 #include "appcfg/Config.h"
 #include "appdisplay/Display.h"
 #include "appdisplay/Icons.h"
-#include "appdisplay/Sound.h"
+#include "sound/Sound.h"
 #include "appnet/Net.h"
 #include "appoh/OpenHab.h"
 #include "appstore/Store.h"
@@ -130,15 +130,27 @@ static void remember_screen(const std::string &key, int value) {
 /* A tone of display.sound or a melody (RTTTL) on the buzzer (the display's touches and notifications, the play
    item, the web interface trying one); false, and why in `error`, for neither. */
 static bool play_tone(const std::string &tone, int volume, std::string *error = nullptr) {
-  std::vector<appdisplay::Note> notes;
-  if (!appdisplay::sound_notes(tone, notes, error))
+  std::vector<sound::Note> notes;
+  if (!sound::sound_notes(tone, notes, error))
     return false;
   std::vector<buzzer::Note> out;
   out.reserve(notes.size());
-  for (const appdisplay::Note &n : notes)
+  for (const sound::Note &n : notes)
     out.push_back({n.hz, n.ms, n.level});
   buzzer::play(out, volume);
   return true;
+}
+
+/* The web interface trying a tone: also a melody of one's own by its name (display.sound.melodies, as saved). */
+static bool try_tone(const std::string &tone, int volume, std::string *error) {
+  if (sound::tone_notes(tone) || tone.find_first_of(":,") != std::string::npos)
+    return play_tone(tone, volume, error);
+  cJSON *cfg = cJSON_Parse(panel_config::load().c_str());
+  const cJSON *own = cJSON_GetObjectItem(
+      cJSON_GetObjectItem(cJSON_GetObjectItem(cJSON_GetObjectItem(cfg, "display"), "sound"), "melodies"), tone.c_str());
+  const std::string rtttl = cJSON_IsString(own) ? own->valuestring : "";
+  cJSON_Delete(cfg);
+  return play_tone(rtttl.empty() ? tone : rtttl, volume, error);
 }
 
 static void restart() {
@@ -380,7 +392,7 @@ extern "C" void app_main() {
                 return appweb::AssetsInfo{.version = i.version, .size = i.size, .icons = i.icons};
               },
           .assets_data = appdisplay::assets_data,
-          .sound = play_tone,
+          .sound = try_tone,
       });
 
   /* A freshly flashed image boots as PENDING_VERIFY. If it never marks itself

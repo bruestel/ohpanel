@@ -13,6 +13,7 @@
 #include <array>
 #include <cstdint>
 #include <ctime>
+#include <map>
 #include <string>
 
 namespace appdisplay {
@@ -80,13 +81,15 @@ struct ScreenSettings {
 /* display.screen and display.sound's volumes, resolved; a missing object yields the defaults. */
 ScreenSettings screen_settings(const cJSON *screen, const cJSON *sound = nullptr);
 
-/* display.sound: the tones (Sound.h) of a touch (none by default) and of the notifications' levels (by default
-   rising, falling, alarm; "none": none), and the String item a tone set on it plays from. Their volumes are in
-   ScreenSettings. The defaults are in the web interface too (www/index.html, NOTE_TONES). */
+/* display.sound: the tones (sound/Sound.h) of a touch (none by default) and of the notifications' levels (by
+   default rising, falling, alarm; "none": none), and the String item a tone set on it plays from; each may name a
+   melody of one's own (`melodies`: its name, its RTTTL). Their volumes are in ScreenSettings. The defaults are in
+   the web interface too (www/index.html, NOTE_TONES). */
 struct SoundSettings {
   std::string touch;
   std::string notify[3] = {"rising", "falling", "alarm"};   // info, warning, alert
   std::string play_item;
+  std::map<std::string, std::string> melodies;
 };
 
 /* Whether minute `now` of the day is in the night from..to (which may span

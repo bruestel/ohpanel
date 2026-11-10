@@ -12,14 +12,14 @@ if(NOT EXISTS ${ASSETS_C} OR NOT EXISTS ${ICON_SET})
 endif()
 
 idf_component_register(
-    SRCS "src/Format.cpp" "src/Sound.cpp" "src/Icons.cpp" "src/Logo.cpp" "src/Cover.cpp" "src/CoverLoad.cpp" "src/Png.cpp"
+    SRCS "src/Format.cpp" "src/Icons.cpp" "src/Logo.cpp" "src/Cover.cpp" "src/CoverLoad.cpp" "src/Png.cpp"
          "src/Engine.cpp"
          "src/EngineHome.cpp" "src/EngineLists.cpp" "src/EngineLight.cpp" "src/EngineCover.cpp"
          "src/EngineThermostat.cpp" "src/EngineKeypad.cpp" "src/EngineMedia.cpp" "src/EngineInfo.cpp"
          "src/Display.cpp" "src/display_assets.c"
     INCLUDE_DIRS "include"
     EMBED_FILES "src/icon_set.bin"
-    REQUIRES app_openhab nextion qrcodegen esp_rom heap
+    REQUIRES app_openhab nextion qrcodegen esp_rom heap sound
 )
 
 target_compile_features(${COMPONENT_LIB} PUBLIC cxx_std_20)

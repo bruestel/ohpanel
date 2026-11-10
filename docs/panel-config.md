@@ -121,11 +121,12 @@ also after a restart, and is kept in the configuration; a change made here
 
 | Member | Type | |
 |---|---|---|
-| `touch` | tone | played by a touch that does something: a button, a tile, a key, the close cross, a card closed; not a swipe or a slider. Default `none` |
+| `touch` | tone or melody | played by a touch that does something: a button, a tile, a key, the close cross, a card closed; not a swipe or a slider. Default `none` |
 | `touch_volume` | number or `{"value", "item"}` | the touch's volume, %, 0 to 100 (default 12); 0: silent |
-| `notifications` | `{"info"?, "warning"?, "alert"?}`, each a tone | played as a notification of that level shows (`display.notifications`): on a screen that is on, or one it wakes; one that waits for a touch on a screen that is off (at night, idle at 0 %) is quiet. `none`: silent. Default `rising`, `falling`, `alarm` |
+| `notifications` | `{"info"?, "warning"?, "alert"?}`, each a tone or melody | played as a notification of that level shows (`display.notifications`): on a screen that is on, or one it wakes; one that waits for a touch on a screen that is off (at night, idle at 0 %) is quiet. `none`: silent. Default `rising`, `falling`, `alarm` |
 | `notification_volume` | number or `{"value", "item"}` | the notifications' volume and that of `play`'s tones, %, 0 to 100 (default 65); 0: silent |
 | `play` | `{"item"}` | a String item: a tone's name or a melody set on it plays it, see below |
+| `melodies` | object: name → melody (RTTTL) | melodies of your own, at most 8, see below; `touch`, `notifications` and `play` take their names as a tone's |
 
 A volume with an `item` (a Dimmer or Number) is kept in step with it as the numbers of `display.screen`: what
 openHAB says wins, a change in the web interface is sent to the item.
@@ -166,7 +167,18 @@ the note `c`, `d`, `e`, `f`, `g`, `a`, `b` (or `h`), `#` a semitone higher, `.` 
 (`::c,e,g`). At most 400 notes; blanks and upper case do not matter. Each note ends in a short break, so that two of
 the same are heard as two. The buzzer is loudest from octave 6 up (about 1 to 4 kHz); lower notes come out quieter.
 
-The web interface's *Sound* tile plays a melody on the panel before it goes into a rule, and has examples to start
+`melodies` keeps up to 8 melodies under names of your own: 1 to 24 of `a`-`z`, `0`-`9`, `-` and `_`, beginning
+with a letter or digit, and none of a tone's names (nor `none`). Each can be the tone of a touch or of a
+notification's level, and the play item plays it by its name (`doorbell|30`). Each must be a melody, at most 2048
+characters; the configuration is not saved otherwise.
+
+```json
+"sound": {"notifications": {"alert": "siren"},
+          "melodies": {"doorbell": "westminster:d=4,o=6,b=100:e,g#,f#,2b5,e,f#,g#,2e",
+                       "siren": "siren:d=8,o=7,b=200:c,a6,c,a6,c,a6,c,a6"}}
+```
+
+The web interface's *Sound* tile edits them, plays each on the panel before it is saved, and has examples to start
 from, all of them public domain: Korobeiniki, *Für Elise*, *Ode to Joy*, *In the Hall of the Mountain King*,
 *The Entertainer* and the Westminster chimes. Melodies in RTTTL are found in many places on the internet; mind that
 a song may be protected by copyright.

@@ -8,9 +8,11 @@
 */
 
 #include "panel/Schema.h"
+#include "sound/Sound.h"
 
 #include <cJSON.h>
 
+#include <algorithm>
 #include <cctype>
 #include <cstdio>
 #include <cstring>
@@ -283,20 +285,42 @@ class Validator {
     }
   }
 
-  /* display.sound: the tones of a touch and of the notifications, their volumes, an item that plays one. */
+  /* display.sound: the tones of a touch and of the notifications, their volumes, an item that plays one, the
+     melodies of one's own that each of them may name. */
   void sound_settings(const cJSON *s, const std::string &path) {
     if (!object(s, path))
       return;
-    allowed(s, path, {"touch", "touch_volume", "notifications", "notification_volume", "play"});
+    allowed(s, path, {"touch", "touch_volume", "notifications", "notification_volume", "play", "melodies"});
     screen_number(s, "touch_volume", path, 0, 100, "0 (silent) to 100 (%)");
     screen_number(s, "notification_volume", path, 0, 100, "0 (silent) to 100 (%)");
-    tone(s, "touch", path);
+    std::vector<std::string> own;   // the melodies' names, for the tones
+    if (const cJSON *m = cJSON_GetObjectItem(s, "melodies")) {
+      const std::string p = member(path, "melodies");
+      if (object(m, p)) {
+        if (cJSON_GetArraySize(m) > static_cast<int>(sound::kMaxOwnMelodies))
+          fail(p, "at most " + std::to_string(sound::kMaxOwnMelodies) + " melodies");
+        for (const cJSON *e = m->child; e; e = e->next) {
+          const std::string name = e->string ? e->string : "", q = member(p, name.c_str());
+          std::string error;
+          std::vector<sound::Note> notes;
+          if (!sound::melody_name(name, &error))
+            fail(q, error);
+          else if (!cJSON_IsString(e) || std::strlen(e->valuestring) > sound::kMaxMelodyText)
+            fail(q, "must be a melody (RTTTL) of at most " + std::to_string(sound::kMaxMelodyText) + " characters");
+          else if (!sound::melody_notes(e->valuestring, notes, &error))
+            fail(q, "is no melody (RTTTL): " + error);
+          else
+            own.push_back(name);
+        }
+      }
+    }
+    tone(s, "touch", path, own);
     if (const cJSON *n = cJSON_GetObjectItem(s, "notifications")) {
       const std::string p = member(path, "notifications");
       if (object(n, p)) {
         allowed(n, p, {"info", "warning", "alert"});
         for (const char *level : {"info", "warning", "alert"})
-          tone(n, level, p);
+          tone(n, level, p, own);
       }
     }
     if (const cJSON *pl = cJSON_GetObjectItem(s, "play")) {
@@ -308,10 +332,21 @@ class Validator {
     }
   }
 
-  /* A tone of the buzzer (app_display's Sound.cpp), or none. */
-  void tone(const cJSON *obj, const char *name, const std::string &path) {
-    one_of(obj, name, path, {"none", "click", "tick", "beep", "double", "triple", "rising", "falling", "ding-dong",
-                             "alarm"});
+  /* A tone of the buzzer (sound/Sound.h), a melody of display.sound.melodies (`own`), or none. */
+  void tone(const cJSON *obj, const char *name, const std::string &path, const std::vector<std::string> &own) {
+    const cJSON *v = cJSON_GetObjectItem(obj, name);
+    if (!v)
+      return;
+    std::vector<std::string> names = {"none"};
+    for (const std::string &t : sound::tone_names())
+      names.push_back(t);
+    names.insert(names.end(), own.begin(), own.end());
+    if (cJSON_IsString(v) && std::find(names.begin(), names.end(), v->valuestring) != names.end())
+      return;
+    std::string list;
+    for (const std::string &x : names)
+      list += (list.empty() ? "" : ", ") + x;
+    fail(member(path, name), "must be one of: " + list);
   }
 
   /* A number of display.screen: the number, or {"value", "item"} -- the item

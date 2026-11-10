@@ -50,7 +50,8 @@ of languages; edit the JSON, then run it. `tools/gen_texts.py --check` (in `ci.y
 ## Layout
 
     components/        the firmware's parts, the same on every board: settings, network,
-                       openHAB, storage, web interface, panel configuration, display logic
+                       openHAB, storage, web interface, panel configuration, display logic,
+                       the buzzer's tones and melodies (sound/)
     src/               the application (main loop, buttons, recovery, diagnostics)
     boards/<board>/    what one device needs: its hardware as a component (board/: pins,
                        relays, buttons, sensors), its partition table, its display design
