@@ -178,8 +178,8 @@ characters; the configuration is not saved otherwise.
                        "siren": "siren:d=8,o=7,b=200:c,a6,c,a6,c,a6,c,a6"}}
 ```
 
-The web interface's *Sound* tile edits them, plays each on the panel before it is saved, and has examples to start
-from, all of them public domain: Korobeiniki, *Für Elise*, *Ode to Joy*, *In the Hall of the Mountain King*,
+The web interface's *Sound* tile edits them, checks each as it is typed, plays each on the panel before it is saved
+(■ stops it; `POST /api/v1/sound` with `"tone": "none"`), and has examples to start from, all of them public domain: Korobeiniki, *Für Elise*, *Ode to Joy*, *In the Hall of the Mountain King*,
 *The Entertainer* and the Westminster chimes. Melodies in RTTTL are found in many places on the internet; mind that
 a song may be protected by copyright.
 

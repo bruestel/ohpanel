@@ -100,6 +100,15 @@ bool begin() {
   return true;
 }
 
+void stop() {
+  if (!g_task)
+    return;
+  xSemaphoreTake(g_mx, portMAX_DELAY);
+  g_next.clear();   // nothing next: what plays is cut off, then silence
+  xSemaphoreGive(g_mx);
+  xTaskNotifyGive(g_task);
+}
+
 void play(const std::vector<Note> &notes, int volume) {
   if (!g_task || notes.empty() || volume <= 0)
     return;

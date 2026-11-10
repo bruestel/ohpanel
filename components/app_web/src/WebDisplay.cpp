@@ -122,7 +122,7 @@ esp_err_t post_display_command(httpd_req_t *req) {
 }
 
 /* {"tone": "...", "volume": 1..100} -- plays a tone of display.sound or a melody (RTTTL) on the buzzer, for
-   choosing one in the web interface before it is saved. */
+   choosing one in the web interface before it is saved; "none" stops what plays. */
 esp_err_t post_sound(httpd_req_t *req) {
   if (!check_auth(req))
     return deny(req);

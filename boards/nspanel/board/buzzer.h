@@ -24,4 +24,7 @@ bool begin();
 /* Plays the notes at `volume` (1 to 100; 0 plays nothing), each at its level of it. */
 void play(const std::vector<Note> &notes, int volume);
 
+/* Stops what plays. */
+void stop();
+
 }  // namespace buzzer

@@ -134,7 +134,7 @@ int main() {
     const size_t from = html.find("const MELODIES = ["), to = html.find("];", from);
     CHECK(from != std::string::npos && to != std::string::npos);
     const std::string list = from == std::string::npos ? "" : html.substr(from, to - from);
-    const std::regex melody(R"(\['([^']+)', ('[^\]]+')\])");
+    const std::regex melody(R"(\['([^']+)', '[^']*', ('[^\]]+')\])");   // title, where from, the melody
     int count = 0;
     for (auto it = std::sregex_iterator(list.begin(), list.end(), melody); it != std::sregex_iterator(); ++it) {
       std::string rtttl;   // its pieces joined
@@ -151,6 +151,39 @@ int main() {
       count++;
     }
     CHECK(count >= 5);
+  }
+
+  // the web interface's parser (parseMelody) is held to this one's results: the cases, with what this one makes of
+  // them, for test/host/melody_test.js
+  {
+    const char *const cases[] = {
+        "test:d=4,o=4,b=120:a,8p,c5,2e.5", "X: d=8, b=240 : C#.5, H, P", "::a", "d=4:a", "name:a,b", "x:d=4:a,x",
+        "x:q=4:a", "x:d=3:a", "x:b=10:a", "x::3a", "x::a9", "x::a##", "x::a..", "x::", "a:b:c:d", "x:d=8,o=5,b=63:",
+        "x:d=32,o=8,b=900:b#,c#.,1p,32h8.", "x:o=3,b=20:1c.,2d#3", "x:d=4,o=6,b=63:,,a,,", "x:d=4 ,o=6:16a,16a,16a",
+        "x:d=16:a,8,c", "x:d=4,o=6,b=00063:a", "x:d=4,b=12345:a", "x:dd=4:a", "x:d=:a", "x:d4:a", "nonotes",
+        "x::p,p", "x::c.6.", "x::c6.#", "x::#c", "x::00004c", "doorbell:d=8,o=6,b=180:e,c,4g",
+    };
+    std::string json = "[";
+    for (const char *c : cases) {
+      std::vector<sound::Note> n;
+      std::string error;
+      const bool ok = sound::melody_notes(c, n, &error);
+      json += std::string(json.size() > 1 ? ",\n" : "\n") + "{\"in\":\"" + c + "\",\"ok\":" + (ok ? "true" : "false");
+      if (ok) {
+        json += ",\"notes\":[";
+        for (size_t k = 0; k < n.size(); k++)
+          json += (k ? "," : "") + std::string("[") + std::to_string(n[k].hz) + "," + std::to_string(n[k].ms) + "]";
+        json += "]";
+      } else {
+        std::string quoted;
+        for (const char ch : error)
+          quoted += ch == '"' ? std::string("\\\"") : std::string(1, ch);
+        json += ",\"error\":\"" + quoted + "\"";
+      }
+      json += "}";
+    }
+    json += "\n]\n";
+    std::ofstream("test/host/build/melody_cases.json") << json;
   }
 
   // melodies of one's own: the web interface's limit is the firmware's, and its names are those melody_name takes

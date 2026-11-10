@@ -141,8 +141,13 @@ static bool play_tone(const std::string &tone, int volume, std::string *error = 
   return true;
 }
 
-/* The web interface trying a tone: also a melody of one's own by its name (display.sound.melodies, as saved). */
+/* The web interface trying a tone: also a melody of one's own by its name (display.sound.melodies, as saved);
+   "none" stops what plays. */
 static bool try_tone(const std::string &tone, int volume, std::string *error) {
+  if (tone == "none") {
+    buzzer::stop();
+    return true;
+  }
   if (sound::tone_notes(tone) || tone.find_first_of(":,") != std::string::npos)
     return play_tone(tone, volume, error);
   cJSON *cfg = cJSON_Parse(panel_config::load().c_str());

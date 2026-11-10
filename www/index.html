@@ -348,10 +348,54 @@ input[type=file]::file-selector-button{appearance:none;height:2rem;padding:0 .9r
 .screen .sctone{display:flex;align-items:center;gap:.5rem;min-width:0}
 .screen .sctone select{flex:1;min-width:0}
 .screen textarea{width:100%;min-width:0;box-sizing:border-box}
-.screen .scmelodies{display:grid;gap:.6rem;margin-bottom:.4rem}
-.screen .scmelody{display:grid;gap:.35rem}
-.screen .scmelody input[type=text]{flex:1;min-width:0}
-.screen .scmelody .msg:empty{display:none}
+/* Own melodies (melodiesEditor): a card each, its row, its strip; open, its editor */
+.msect{gap:.5rem;grid-template-columns:minmax(0,1fr)}
+.msect .mhead{display:flex;justify-content:space-between;align-items:baseline}
+.msect .mhead span{font-size:12px;color:var(--dim)}
+.msect .mempty{margin:0;font-size:13px;color:var(--dim);line-height:1.45}
+.msect .mlist{display:grid;gap:.45rem}
+.msect .mcard{border:1px solid var(--line);border-radius:.6rem;padding:.4rem .5rem .35rem;background:var(--surface);
+  display:grid;gap:.3rem;min-width:0}
+.msect .mcard.open{border-color:color-mix(in srgb,var(--theme) 55%,var(--line))}
+.msect .mrow{display:flex;align-items:center;gap:.45rem;min-width:0}
+.msect .mrow .b{height:1.9rem;padding:0 .55rem;flex:none}
+.msect .mname{flex:none;max-width:40%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;border:none;
+  background:none;padding:0;font-family:inherit;font-size:14px;font-weight:600;line-height:1.3;color:var(--fg);
+  cursor:pointer;text-align:left}
+.msect .mmeta{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;color:var(--dim)}
+.msect .mmeta.err{color:var(--err)}
+.msect .mchips{display:flex;gap:.25rem;flex:none}
+.msect .chip{font-size:11px;line-height:1.5;padding:0 .45rem;border-radius:999px;color:var(--theme);
+  border:1px solid color-mix(in srgb,var(--theme) 45%,transparent)}
+.msect .msg:empty{display:none}
+.msect .medit{display:grid;gap:.4rem;padding-top:.3rem}
+.msect .mline{display:flex;align-items:flex-end;gap:.5rem}
+.msect .mline .field{flex:1;min-width:0}
+.msect .mline .b{flex:none;white-space:nowrap}
+.msect .mstatus{margin:0;font-size:12px;color:var(--ok)}
+.msect .mstatus.err{color:var(--err)}
+.msect .mfoot{display:flex;align-items:center;gap:.5rem;flex-wrap:wrap}
+.msect .mundo{display:flex;align-items:center;justify-content:space-between;gap:.6rem;font-size:13px;color:var(--fg);
+  padding:.35rem .4rem .35rem .7rem;border-radius:.5rem;background:var(--surface2)}
+.msect .mundo .b{height:1.8rem;padding:0 .6rem;flex:none}
+button.link{border:none;background:none;padding:0;font:inherit;color:var(--theme);text-decoration:underline;cursor:pointer}
+svg.mstrip{display:block;width:100%;height:20px}
+svg.mstrip rect{fill:var(--theme)}
+svg.mstrip rect.low{fill:color-mix(in srgb,var(--theme) 40%,transparent)}
+svg.mstrip rect.cur{fill:var(--fg);display:none}
+button.b.sec.mplay{min-width:2.2rem;background:linear-gradient(to right,color-mix(in srgb,var(--theme) 22%,transparent) var(--p,0%),
+  transparent var(--p,0%))}
+dialog.mgallery{width:min(92vw,34rem)}
+.mgallery .mghead{display:flex;justify-content:space-between;align-items:center}
+.mgallery h2{margin:0;font-size:18px}
+.mgallery .mglist{display:grid;gap:.45rem;margin-top:.6rem}
+.mgallery .mgcard{border:1px solid var(--line);border-radius:.6rem;padding:.45rem .55rem .35rem;display:grid;gap:.3rem}
+.mgallery .mgrow{display:flex;align-items:center;gap:.6rem}
+.mgallery .mgrow .b{height:1.9rem;padding:0 .7rem;flex:none}
+.mgallery .mgt{flex:1;min-width:0;display:grid}
+.mgallery .mgt b{font-size:14px;color:var(--fg);font-weight:600}
+.mgallery .mgt span{font-size:12px;color:var(--dim)}
+@media (max-width:480px){.msect .mchips{display:none}}
 .themerow .th{display:flex;align-items:center;gap:.45rem;font-size:13px;color:var(--dim)}
 .themerow input[type=color]{width:2.2rem;height:1.7rem;padding:0;border:1px solid var(--line);border-radius:.35rem;background:none}
 .themerow .own{font-size:11px;color:var(--theme)}
@@ -4378,19 +4422,186 @@ const VOLUMES = {touch_volume: {label: 'Touch volume', dflt: 12, example: 'Panel
                  notification_volume: {label: 'Notification volume', dflt: 65, example: 'Panel_Notification_Volume'}};
 /* The notifications' tones when none is set (Format.h SoundSettings); "none" silences one. */
 const NOTE_TONES = {info: 'rising', warning: 'falling', alert: 'alarm'};
-/* Melodies (RTTTL, sound/Sound.h melody_notes) to start one's own from: public domain tunes only.
-   test/host/sound_test.cpp checks each one plays. */
+/* Melodies (RTTTL, sound/Sound.h melody_notes) to start one's own from: public domain tunes only. Each: its title,
+   where it comes from, the melody. test/host/sound_test.cpp checks each one plays. */
 const MELODIES = [
-  ['Korobeiniki (Russian folk song)', 'korobeiniki:d=4,o=6,b=150:e,8b5,8c,d,8c,8b5,a5,8a5,8c,e,8d,8c,b5.,8c,d,e,c,a5,a5,p,' +
-   '8p,d,8f,a,8g,8f,e.,8c,e,8d,8c,b5,8b5,8c,d,e,c,a5,a5,p'],
-  ['Für Elise (Beethoven)', 'fur_elise:d=8,o=6,b=140:e7,d#7,e7,d#7,e7,b,d7,c7,4a,p,c,e,a,4b,p,e,g#,b,4c7,p,e,' +
+  ['Korobeiniki', 'Russian folk song', 'korobeiniki:d=4,o=6,b=150:e,8b5,8c,d,8c,8b5,a5,8a5,8c,e,8d,8c,b5.,8c,d,e,c,' +
+   'a5,a5,p,8p,d,8f,a,8g,8f,e.,8c,e,8d,8c,b5,8b5,8c,d,e,c,a5,a5,p'],
+  ['Für Elise', 'Beethoven', 'fur_elise:d=8,o=6,b=140:e7,d#7,e7,d#7,e7,b,d7,c7,4a,p,c,e,a,4b,p,e,g#,b,4c7,p,e,' +
    'e7,d#7,e7,d#7,e7,b,d7,c7,4a,p,c,e,a,4b,p,e,c7,b,2a'],
-  ['Ode to Joy (Beethoven)', 'ode_to_joy:d=4,o=6,b=120:e,e,f,g,g,f,e,d,c,c,d,e,e.,8d,2d,e,e,f,g,g,f,e,d,c,c,d,e,d.,8c,2c'],
-  ['In the Hall of the Mountain King (Grieg)', 'mountain_king:d=8,o=6,b=120:a5,b5,c,d,e,c,4e,d#,b5,4d#,d,a#5,4d,' +
+  ['Ode to Joy', 'Beethoven', 'ode_to_joy:d=4,o=6,b=120:e,e,f,g,g,f,e,d,c,c,d,e,e.,8d,2d,e,e,f,g,g,f,e,d,c,c,d,e,' +
+   'd.,8c,2c'],
+  ['In the Hall of the Mountain King', 'Grieg', 'mountain_king:d=8,o=6,b=120:a5,b5,c,d,e,c,4e,d#,b5,4d#,d,a#5,4d,' +
    'a5,b5,c,d,e,c,e,a,g,e,c,e,4g'],
-  ['The Entertainer (Joplin)', 'entertainer:d=8,o=6,b=140:d,d#,e,4c7,e,4c7,e,2c.7,c7,d7,d#7,e7,c7,d7,4e7,b,4d7,2c7'],
-  ['Westminster chimes', 'westminster:d=4,o=6,b=100:e,g#,f#,2b5,e,f#,g#,2e,g#,e,f#,2b5,b5,f#,g#,2e'],
+  ['The Entertainer', 'Joplin', 'entertainer:d=8,o=6,b=140:d,d#,e,4c7,e,4c7,e,2c.7,c7,d7,d#7,e7,c7,d7,4e7,b,4d7,' +
+   '2c7'],
+  ['Westminster chimes', 'church bells', 'westminster:d=4,o=6,b=100:e,g#,f#,2b5,e,f#,g#,2e,g#,e,f#,2b5,b5,f#,g#,2e'],
 ];
+
+/* RTTTL as the panel reads it (sound/Sound.h melody_notes: the same rules, numbers and messages;
+   test/host/melody_test.js holds the two to the same cases): {notes: [{hz, ms}], count, ms} -- the notes as the
+   buzzer plays them, how many notes and pauses the text has, how long it plays -- or {error, at, len}: what is
+   wrong, and for a note where it is in the text. */
+function parseMelody(rtttl) {
+  const fail = (error, at, len) => ({error, at, len});
+  let text = '';
+  const pos = [];   // where each character of `text` is in `rtttl`, blanks left out
+  for (let i = 0; i < rtttl.length; i++) {
+    const c = rtttl[i];
+    if (' \t\n\v\f\r'.includes(c)) continue;
+    text += c >= 'A' && c <= 'Z' ? c.toLowerCase() : c;
+    pos.push(i);
+  }
+  const last = text.lastIndexOf(':'), from = last + 1;   // the notes begin there
+  const notes = text.slice(from);
+  let defaults = '';
+  if (last >= 0) {
+    const first = text.indexOf(':');
+    if (first === last) {
+      defaults = text.slice(0, last);
+      if (!defaults.includes('=')) defaults = '';   // "name:notes"
+    } else if (text.indexOf(':', first + 1) !== last) {
+      return fail('more than two colons');
+    } else {
+      defaults = text.slice(first + 1, last);
+    }
+  }
+  // a number of at most 4 digits at i: [it or -1, past it]
+  const numberAt = (t, i) => {
+    let j = i, n = 0;
+    while (j < t.length && t[j] >= '0' && t[j] <= '9' && j - i < 4) n = n * 10 + (t.charCodeAt(j++) - 48);
+    return [j === i || (t[j] >= '0' && t[j] <= '9') ? -1 : n, j];
+  };
+  const isLength = d => [1, 2, 4, 8, 16, 32].includes(d);
+  let length = 4, octave = 6, bpm = 63;
+  for (const d of defaults.split(',')) {
+    if (!d) continue;
+    let [v, i] = [-1, 2];
+    if (d.length > 2 && d[1] === '=') [v, i] = numberAt(d, 2);
+    if (v < 0 || i !== d.length) return fail('"' + d + '" is no default (d=4, o=6, b=63)');
+    if (d[0] === 'd' && isLength(v)) length = v;
+    else if (d[0] === 'o' && v >= 3 && v <= 8) octave = v;
+    else if (d[0] === 'b' && v >= 20 && v <= 900) bpm = v;
+    else return fail('"' + d + '": d is 1, 2, 4, 8, 16 or 32, o 3 to 8, b 20 to 900');
+  }
+  const whole = Math.floor(240000 / bpm), semitones = {c: 0, d: 2, e: 4, f: 5, g: 7, a: 9, b: 11, h: 11};
+  const out = [];
+  let count = 0, ms = 0, at = 0;
+  for (const n of notes.split(',')) {
+    const start = from + at;
+    at += n.length + 1;
+    if (!n) continue;
+    let i = 0, d = length;
+    if (n[0] >= '0' && n[0] <= '9') [d, i] = numberAt(n, 0);
+    const c = i < n.length ? n[i++] : '?', pause = c === 'p';
+    let semitone = semitones[c] === undefined ? -1 : semitones[c];
+    let ok = isLength(d) && (semitone >= 0 || pause);
+    if (ok && !pause && n[i] === '#') { semitone++; i++; }
+    let dotted = false, o = octave;
+    if (n[i] === '.') { dotted = true; i++; }
+    if (n[i] >= '0' && n[i] <= '9') { o = +n[i++]; ok = ok && o >= 3 && o <= 8; }
+    if (n[i] === '.' && !dotted) { dotted = true; i++; }
+    if (!ok || i !== n.length)
+      return fail('"' + n + '" is no note (e.g. 8c#6.)', pos[start], pos[start + n.length - 1] + 1 - pos[start]);
+    if (out.length >= 2 * MAX_MELODY_NOTES) return fail('more than ' + MAX_MELODY_NOTES + ' notes');
+    const len = Math.floor(Math.floor(whole / d) * (dotted ? 3 : 2) / 2);
+    count++;
+    ms += len;
+    if (pause) { out.push({hz: 0, ms: len}); continue; }
+    const gap = Math.min(Math.floor(len / 10), 20);   // a short break at its end (Sound.cpp)
+    out.push({hz: Math.round(440 * Math.pow(2, (semitone - 9) / 12 + (o - 4))), ms: len - gap});
+    if (gap) out.push({hz: 0, ms: gap});
+  }
+  if (!out.length) return fail('no notes');
+  return {notes: out, count, ms};
+}
+const MAX_MELODY_NOTES = 400;   // sound/Sound.h kMaxMelodyNotes
+
+/* "16 notes · 9.6 s" */
+function melodyMeta(p) {
+  return p.count + (p.count === 1 ? ' note' : ' notes') + ' · ' + (p.ms < 10000 ? (p.ms / 1000).toFixed(1) : Math.round(p.ms / 1000)) + ' s';
+}
+
+/* A melody's notes as a strip: a bar for each, as long as it sounds, as high as its pitch among the melody's own
+   (as the ear hears it, an octave at least), dim below 1 kHz, where the buzzer is quiet; a line where it plays
+   (paintPlaying). `key` names it for that. */
+function melodyStrip(p, key) {
+  const ns = 'http://www.w3.org/2000/svg', svg = document.createElementNS(ns, 'svg');
+  svg.setAttribute('class', 'mstrip');
+  svg.setAttribute('viewBox', '0 0 1000 20');
+  svg.setAttribute('preserveAspectRatio', 'none');
+  svg.setAttribute('aria-hidden', 'true');
+  svg.dataset.strip = key;
+  if (p && p.notes) {
+    const pitches = p.notes.filter(n => n.hz).map(n => Math.log2(n.hz));
+    const lo = Math.min(...pitches), span = Math.max(1, Math.max(...pitches) - lo);
+    let t = 0;
+    for (const n of p.notes) {
+      if (n.hz) {
+        const r = document.createElementNS(ns, 'rect'), up = (Math.log2(n.hz) - lo) / span;
+        r.setAttribute('x', (t / p.ms * 1000).toFixed(1));
+        r.setAttribute('width', Math.max(2, n.ms / p.ms * 1000 - 1.5).toFixed(1));
+        r.setAttribute('y', (16 - up * 15).toFixed(1));
+        r.setAttribute('height', '3');
+        r.setAttribute('rx', '1');
+        if (n.hz < 1000) r.setAttribute('class', 'low');
+        svg.appendChild(r);
+      }
+      t += n.ms;
+    }
+  }
+  const cur = document.createElementNS(ns, 'rect');
+  cur.setAttribute('class', 'cur');
+  cur.setAttribute('width', '3'); cur.setAttribute('y', '0'); cur.setAttribute('height', '20');
+  svg.appendChild(cur);
+  return svg;
+}
+
+/* What plays on the panel from here, to show it: its key (an own melody's name, "ex:<n>" an example), since when,
+   how long. ▶ buttons and strips with that key show it (paintPlaying); ■ stops it on the panel. */
+let melodyPlaying = null;
+function playMelody(key, rtttl, volume, msg) {
+  if (melodyPlaying && melodyPlaying.key === key) { stopMelody(); return; }
+  const p = parseMelody(rtttl);
+  if (p.error) { setMsg(msg, p.error, 'err'); return; }
+  setMsg(msg, '');
+  postJson('/sound', {tone: rtttl.trim(), volume})
+    .then(() => { melodyPlaying = {key, start: performance.now(), ms: p.ms}; requestAnimationFrame(tickPlaying); })
+    .catch(e => setMsg(msg, 'Playing the melody failed: ' + e.message, 'err'));
+}
+function stopMelody() {
+  if (!melodyPlaying) return;
+  melodyPlaying = null;
+  paintPlaying();
+  postJson('/sound', {tone: 'none', volume: 1}).catch(() => {});
+}
+function tickPlaying() {
+  if (melodyPlaying && performance.now() - melodyPlaying.start >= melodyPlaying.ms) melodyPlaying = null;
+  paintPlaying();
+  if (melodyPlaying) requestAnimationFrame(tickPlaying);
+}
+function paintPlaying() {
+  const f = melodyPlaying ? Math.min(1, (performance.now() - melodyPlaying.start) / melodyPlaying.ms) : 0;
+  document.querySelectorAll('button[data-play]').forEach(b => {
+    const on = !!melodyPlaying && b.dataset.play === melodyPlaying.key;
+    b.textContent = on ? '■' : '▶';
+    b.classList.toggle('playing', on);
+    b.style.setProperty('--p', on ? (f * 100).toFixed(1) + '%' : '0%');
+    b.setAttribute('aria-label', (on ? 'Stop ' : 'Play ') + b.dataset.what + (on ? '' : ' on the panel'));
+  });
+  document.querySelectorAll('svg[data-strip]').forEach(svg => {
+    const on = !!melodyPlaying && svg.dataset.strip === melodyPlaying.key, cur = svg.querySelector('.cur');
+    cur.style.display = on ? 'inline' : 'none';
+    if (on) cur.setAttribute('x', (f * 997).toFixed(1));
+  });
+}
+function playButton(key, what, onClick) {
+  const b = document.createElement('button');
+  b.type = 'button'; b.className = 'b sec mplay';
+  b.dataset.play = key; b.dataset.what = what;
+  b.addEventListener('click', onClick);
+  return b;
+}
 
 function editSound(change) {
   let cfg;
@@ -4491,96 +4702,320 @@ function showSoundInputs(cfg) {
   holder.append('Play a tone from an item', play, hint);
   box.appendChild(holder);
   box.appendChild(melodiesEditor(so, () => volumes.notification_volume || VOLUMES.notification_volume.dflt));
+  paintPlaying();
 }
 
 /* display.sound.melodies: melodies of one's own in RTTTL, each under a name the tones above and the play item take
-   (sound/Sound.h melody_name, kMaxOwnMelodies); the examples to start from. ▶ plays one as it stands, before it is
-   saved, at the notification volume. */
+   (sound/Sound.h melody_name, kMaxOwnMelodies). A row each: ▶ (■ while it plays, how far), its name, how many notes
+   and how long (or what is wrong), where it is used, ✎ and ✕, its notes as a strip; ✎ opens it: its name, its
+   RTTTL checked as it is typed, an example to put in. ✕ removes it at once, with an undo (the tones that named it go
+   back to their defaults, and come back with it). ▶ plays one as it stands, before it is saved, at the notification
+   volume. What is open, the undo and the gallery's target outlive the tile being drawn again. */
 const MAX_MELODIES = 8;
 const MELODY_NAME = /^[a-z0-9][a-z0-9_-]{0,23}$/;
+const melodyUi = {open: null, focus: null, undo: null};
+const LEVEL_NAMES = {info: 'Info', warning: 'Warning', alert: 'Alert'};
+
+function redrawSound() {
+  // a field of the tile with the focus would keep it as it is (showSoundInputs): what was typed is in the configuration
+  if ($('vSound').contains(document.activeElement)) document.activeElement.blur();
+  try { showSoundInputs(JSON.parse($('pJson').value)); } catch (e) { /* the JSON being typed */ }
+}
+
 function melodiesEditor(so, volume) {
   const own = so.melodies || {}, names = Object.keys(own);
   const holder = document.createElement('div');
-  holder.className = 'field';
-  const taken = name => name === 'none' || TONES.some(([v]) => v === name) || own[name] !== undefined;
-  const nameError = name => !MELODY_NAME.test(name) ? 'A name has 1 to 24 of a-z, 0-9, - and _, first a letter or digit.'
-    : taken(name) ? 'A tone or another melody has this name.' : '';
-  // a melody renamed or removed: the tones that named it follow (to: '' for none)
+  holder.className = 'field msect';
+  const taken = (name, self) => name === 'none' || TONES.some(([v]) => v === name) || (name !== self && own[name] !== undefined);
+  const nameError = (name, self) => !MELODY_NAME.test(name)
+    ? 'A name has 1 to 24 of a-z, 0-9, - and _, first a letter or digit.'
+    : taken(name, self) ? 'A tone or another melody has this name.' : '';
+  const unique = base => { let n = base; for (let k = 2; taken(n); k++) n = base + '-' + k; return n; };
+  // where it is used: the touch, the notifications' levels
+  const usedBy = name => [so.touch === name ? 'Touch' : null]
+    .concat(Object.keys(LEVEL_NAMES).map(l => (so.notifications || {})[l] === name ? LEVEL_NAMES[l] : null)).filter(Boolean);
+  // a melody renamed (to) or removed (to: ''): the tones that named it follow
   const follow = (x, from, to) => {
     if (x.touch === from) { if (to) x.touch = to; else delete x.touch; }
     x.notifications = Object.assign({}, x.notifications);
     for (const l of Object.keys(x.notifications))
       if (x.notifications[l] === from) { if (to) x.notifications[l] = to; else delete x.notifications[l]; }
   };
+  const setMelody = (name, rtttl) => editSound(x => { x.melodies = Object.assign({}, x.melodies, {[name]: rtttl}); });
+  const rename = (from, to) => editSound(x => {   // in its place
+    const m = {};
+    for (const [k, v] of Object.entries(x.melodies || {})) m[k === from ? to : k] = v;
+    x.melodies = m;
+    follow(x, from, to);
+  });
+  const add = (base, rtttl) => {
+    const name = unique(base);
+    melodyUi.open = name;
+    melodyUi.focus = rtttl ? null : name;
+    melodyUi.undo = null;
+    setMelody(name, rtttl);
+    redrawSound();
+  };
+  const remove = name => {
+    const refs = {touch: so.touch === name, levels: Object.keys(LEVEL_NAMES).filter(l => (so.notifications || {})[l] === name)};
+    const back = [refs.touch ? 'Touch goes back to none' : null]
+      .concat(refs.levels.map(l => LEVEL_NAMES[l] + ' goes back to ' + NOTE_TONES[l])).filter(Boolean);
+    melodyUi.undo = {name, rtttl: own[name], index: names.indexOf(name), refs, back};
+    if (melodyUi.open === name) melodyUi.open = null;
+    editSound(x => { const m = Object.assign({}, x.melodies); delete m[name]; x.melodies = m; follow(x, name, ''); });
+    redrawSound();
+  };
+  const undo = () => {
+    const u = melodyUi.undo;
+    melodyUi.undo = null;
+    editSound(x => {
+      const entries = Object.entries(x.melodies || {});
+      entries.splice(Math.min(u.index, entries.length), 0, [unique(u.name), u.rtttl]);
+      x.melodies = Object.fromEntries(entries);
+      if (u.refs.touch) x.touch = u.name;
+      if (u.refs.levels.length) x.notifications = Object.assign({}, x.notifications);
+      for (const l of u.refs.levels) x.notifications[l] = u.name;
+    });
+    redrawSound();
+  };
+
+  // the head: a title and how many of the 8
+  const head = document.createElement('div');
+  head.className = 'mhead';
+  const count = document.createElement('span');
+  count.textContent = names.length + ' / ' + MAX_MELODIES;
+  head.append('Own melodies', count);
+  holder.appendChild(head);
+
+  if (melodyUi.undo) {
+    const u = melodyUi.undo, bar = document.createElement('div');
+    bar.className = 'mundo';
+    const what = document.createElement('span');
+    what.textContent = '"' + u.name + '" removed.' + (u.back.length ? ' ' + u.back.join(', ') + '.' : '');
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'b sec'; b.textContent = 'Undo';
+    b.addEventListener('click', undo);
+    bar.append(what, b);
+    holder.appendChild(bar);
+  }
+
+  if (!names.length) {
+    const empty = document.createElement('p');
+    empty.className = 'mempty';
+    empty.textContent = 'No melodies yet. A melody of your own can sound for a touch or a notification, or play from ' +
+                        'openHAB by its name: a doorbell, a timer that is done, the washing machine finished.';
+    holder.appendChild(empty);
+  }
+
   const list = document.createElement('div');
-  list.className = 'scmelodies';
+  list.className = 'mlist';
   names.forEach(name => {
-    const row = document.createElement('div');
-    row.className = 'scmelody';
-    const head = document.createElement('div');
-    head.className = 'sctone';
+    const rtttl = own[name], open = melodyUi.open === name;
+    let parsed = parseMelody(rtttl);
+    const card = document.createElement('div');
+    card.className = 'mcard' + (open ? ' open' : '');
     const msg = document.createElement('p');
     msg.className = 'msg';
-    const nm = document.createElement('input');
-    nm.type = 'text'; nm.value = name; nm.spellcheck = false;
-    nm.setAttribute('aria-label', 'The melody\'s name');
-    nm.addEventListener('change', () => {
-      const to = nm.value.trim();
-      if (to === name) return;
-      const err = nameError(to);
-      if (err) { setMsg(msg, err, 'err'); return; }
-      editSound(x => {   // in its place
-        const m = {};
-        for (const [k, v] of Object.entries(x.melodies || {})) m[k === name ? to : k] = v;
-        x.melodies = m;
-        follow(x, name, to);
-      });
-    });
-    const text = document.createElement('textarea');
-    text.rows = 3; text.spellcheck = false; text.value = own[name];
-    text.setAttribute('aria-label', 'Melody ' + name + ' (RTTTL)');
-    text.addEventListener('input', () => editSound(x => { x.melodies = Object.assign({}, x.melodies, {[name]: text.value.trim()}); }));
-    const play = document.createElement('button');
-    play.type = 'button'; play.className = 'b sec'; play.textContent = '▶';
-    play.setAttribute('aria-label', 'Play ' + name + ' on the panel');
-    play.addEventListener('click', () => {
-      setMsg(msg, '');
-      postJson('/sound', {tone: text.value.trim(), volume: volume()})
-        .catch(e => setMsg(msg, 'Playing the melody failed: ' + e.message, 'err'));
-    });
+    const row = document.createElement('div');
+    row.className = 'mrow';
+    let text = null;   // the RTTTL while open
+    const play = playButton(name, name, () => playMelody(name, text ? text.value : rtttl, volume(), msg));
+    const nm = document.createElement('button');
+    nm.type = 'button'; nm.className = 'mname'; nm.textContent = name;
+    nm.title = open ? 'Close' : 'Edit';
+    const meta = document.createElement('span');
+    meta.className = 'mmeta';
+    const showMeta = () => {
+      meta.classList.toggle('err', !!parsed.error);
+      meta.textContent = parsed.error ? '✗ ' + parsed.error : melodyMeta(parsed);
+    };
+    showMeta();
+    const chips = document.createElement('span');
+    chips.className = 'mchips';
+    usedBy(name).forEach(u => { const c = document.createElement('span'); c.className = 'chip'; c.textContent = u; chips.appendChild(c); });
+    const toggle = () => { melodyUi.open = open ? null : name; redrawSound(); };
+    nm.addEventListener('click', toggle);
+    const edit = document.createElement('button');
+    edit.type = 'button'; edit.className = 'b sec'; edit.textContent = open ? 'Done' : '✎';
+    edit.title = open ? 'Close' : 'Edit ' + name;
+    edit.setAttribute('aria-label', open ? 'Close ' + name : 'Edit ' + name);
+    edit.addEventListener('click', toggle);
     const del = document.createElement('button');
     del.type = 'button'; del.className = 'b sec'; del.textContent = '✕';
     del.title = 'Remove ' + name; del.setAttribute('aria-label', 'Remove ' + name);
-    del.addEventListener('click', () => editSound(x => {
-      const m = Object.assign({}, x.melodies);
-      delete m[name];
-      x.melodies = m;
-      follow(x, name, '');
-    }));
-    head.append(nm, play, del);
-    row.append(head, text, msg);
-    list.appendChild(row);
+    del.addEventListener('click', () => remove(name));
+    row.append(play, nm, meta, chips, edit, del);
+    let strip = melodyStrip(parsed, name);
+    card.append(row, strip);
+
+    if (open) {
+      const ed = document.createElement('div');
+      ed.className = 'medit';
+      const nameLine = document.createElement('div');
+      nameLine.className = 'mline';
+      const nameIn = document.createElement('input');
+      nameIn.type = 'text'; nameIn.value = name; nameIn.spellcheck = false;
+      nameIn.setAttribute('aria-label', 'The melody\'s name');
+      const nameMsg = document.createElement('p');
+      nameMsg.className = 'msg';
+      nameIn.addEventListener('input', () => {
+        const to = nameIn.value.trim();
+        setMsg(nameMsg, to === name ? '' : nameError(to, name), 'err');
+      });
+      nameIn.addEventListener('change', () => {
+        const to = nameIn.value.trim();
+        if (to === name || nameError(to, name)) return;
+        melodyUi.open = to;
+        rename(name, to);
+        redrawSound();
+      });
+      const example = document.createElement('button');
+      example.type = 'button'; example.className = 'b sec'; example.textContent = 'Insert example';
+      example.addEventListener('click', () => openMelodyGallery(volume, k => {
+        const ex = MELODIES[k][2], base = ex.split(':')[0];
+        // a name not chosen yet ("melody", "melody-2") takes the example's
+        const to = /^melody(-\d+)?$/.test(name) && !taken(base, name) ? base : name;
+        melodyUi.open = to;
+        editSound(x => {
+          const m = {};
+          for (const [kk, v] of Object.entries(x.melodies || {})) m[kk === name ? to : kk] = kk === name ? ex : v;
+          x.melodies = m;
+          if (to !== name) follow(x, name, to);
+        });
+        redrawSound();
+      }));
+      nameLine.append(field('Name', nameIn), example);
+      text = document.createElement('textarea');
+      text.rows = 3; text.spellcheck = false; text.value = rtttl;
+      text.placeholder = 'name:d=4,o=6,b=120:8e,8d#,e,p,2c.7';
+      text.setAttribute('aria-label', 'Melody ' + name + ' (RTTTL)');
+      const status = document.createElement('p');
+      status.className = 'mstatus';
+      const showStatus = () => {
+        status.innerHTML = '';
+        status.classList.toggle('err', !!parsed.error);
+        if (!parsed.error) {
+          status.textContent = '✓ ' + melodyMeta(parsed) + (parsed.notes.some(n => n.hz && n.hz < 1000)
+            ? ' · some notes below 1 kHz, where the buzzer is quiet' : '');
+          return;
+        }
+        status.append('✗ ' + parsed.error);
+        if (parsed.at !== undefined) {   // the note marked in the text
+          const show = document.createElement('button');
+          show.type = 'button'; show.className = 'link'; show.textContent = 'Show';
+          show.addEventListener('click', () => { text.focus(); text.setSelectionRange(parsed.at, parsed.at + parsed.len); });
+          status.append(' ', show);
+        }
+      };
+      showStatus();
+      text.addEventListener('input', () => {
+        parsed = parseMelody(text.value);
+        showMeta();
+        showStatus();
+        const fresh = melodyStrip(parsed, name);
+        strip.replaceWith(fresh);
+        strip = fresh;
+        setMelody(name, text.value.trim());   // the tile stays as it is while the text has the focus
+      });
+      const hint = document.createElement('p');
+      hint.className = 'sub';
+      hint.innerHTML = 'RTTTL, the ringtones\' notation: a name, then <code>d</code> a note\'s length (4: a quarter), ' +
+                       '<code>o</code> its octave and <code>b</code> quarters a minute, then the notes: ' +
+                       '<code>8c#7.</code> is a dotted eighth C sharp in octave 7, <code>p</code> a pause. The buzzer ' +
+                       'sounds best from octave 6 up. On the play item: <code>' + name + '|30</code>.';
+      ed.append(nameLine, nameMsg, text, status, hint);
+      card.appendChild(ed);
+      if (melodyUi.focus === name)   // a new one: its name to type (in the tile as last drawn)
+        setTimeout(() => {
+          const input = $('vSound').querySelector('.mcard.open .medit input[type=text]');
+          if (!input || melodyUi.focus !== name) return;
+          melodyUi.focus = null;
+          input.focus();
+          input.select();
+        }, 0);
+    }
+    card.appendChild(msg);
+    list.appendChild(card);
   });
-  // another one: empty, or an example under its own name (made unique)
-  const add = selectInput([['', names.length < MAX_MELODIES ? 'Add a melody...' : 'At most ' + MAX_MELODIES + ' melodies'],
-                           ['new', 'a new one']].concat(MELODIES.map(([title], k) => [String(k), title])), '', v => {
-    if (v === '') return;
-    const rtttl = v === 'new' ? 'melody:d=4,o=6,b=120:c,e,g,2c7' : MELODIES[+v][1];
-    const base = rtttl.split(':')[0].toLowerCase().replace(/[^a-z0-9_-]+/g, '-').replace(/^[-_]+/, '').slice(0, 20) || 'melody';
-    let name = base;
-    for (let k = 2; taken(name); k++) name = base + '-' + k;
-    editSound(x => { x.melodies = Object.assign({}, x.melodies, {[name]: rtttl}); });
-  });
-  add.disabled = names.length >= MAX_MELODIES;
+  holder.appendChild(list);
+
+  const foot = document.createElement('div');
+  foot.className = 'mfoot';
+  const full = names.length >= MAX_MELODIES;
+  const addB = document.createElement('button');
+  addB.type = 'button'; addB.className = 'b'; addB.textContent = '＋ Add melody';
+  addB.disabled = full;
+  addB.addEventListener('click', () => add('melody', ''));
+  const exB = document.createElement('button');
+  exB.type = 'button'; exB.className = 'b sec'; exB.textContent = 'Start from an example';
+  exB.disabled = full;
+  exB.addEventListener('click', () => openMelodyGallery(volume, k => add(MELODIES[k][2].split(':')[0], MELODIES[k][2])));
+  foot.append(addB, exB);
+  if (full) {
+    const n = document.createElement('span');
+    n.className = 'sub';
+    n.textContent = 'At most ' + MAX_MELODIES + ' melodies.';
+    foot.appendChild(n);
+  }
+  holder.appendChild(foot);
   const hint = document.createElement('p');
   hint.className = 'sub';
-  hint.innerHTML = 'Each one can be chosen for a touch or a notification above, and played by its name on the play ' +
-                   'item (<code>doorbell|30</code>). In RTTTL, the ringtones\' notation: ' +
-                   '<code>name:d=4,o=6,b=120:8e,8d#,e,p,2c.7</code>: the default length (<code>d</code>, of a whole ' +
-                   'note), octave (<code>o</code>) and quarters a minute (<code>b</code>), then the notes. The buzzer ' +
-                   'sounds best from octave 6 up. The examples are public domain.';
-  holder.append('Own melodies', list, add, hint);
+  hint.innerHTML = 'Each can be chosen for a touch or a notification above, and plays by its name on the play item ' +
+                   '(<code>doorbell|30</code>).';
+  holder.appendChild(hint);
   return holder;
+}
+
+/* The examples, each with ▶ to hear it on the panel and Use; `use(k)` takes the one chosen. */
+function openMelodyGallery(volume, use) {
+  let dlg = $('melodyGallery');
+  if (!dlg) {
+    dlg = document.createElement('dialog');
+    dlg.id = 'melodyGallery';
+    dlg.className = 'icons mgallery';
+    dlg.addEventListener('close', () => { if (melodyPlaying && melodyPlaying.key.startsWith('ex:')) stopMelody(); });
+    document.body.appendChild(dlg);
+  }
+  dlg.innerHTML = '';
+  const head = document.createElement('div');
+  head.className = 'mghead';
+  const h = document.createElement('h2');
+  h.textContent = 'Examples';
+  const x = document.createElement('button');
+  x.type = 'button'; x.className = 'b sec'; x.textContent = '✕';
+  x.setAttribute('aria-label', 'Close');
+  x.addEventListener('click', () => dlg.close());
+  head.append(h, x);
+  const sub = document.createElement('p');
+  sub.className = 'sub';
+  sub.textContent = 'All of them public domain. ▶ plays one on the panel, at the notification volume.';
+  const msg = document.createElement('p');
+  msg.className = 'msg';
+  const list = document.createElement('div');
+  list.className = 'mglist';
+  MELODIES.forEach(([title, by, rtttl], k) => {
+    const p = parseMelody(rtttl), card = document.createElement('div');
+    card.className = 'mgcard';
+    const t = document.createElement('div');
+    t.className = 'mgt';
+    const b = document.createElement('b');
+    b.textContent = title;
+    const small = document.createElement('span');
+    small.textContent = by + ' · ' + melodyMeta(p);
+    t.append(b, small);
+    const play = playButton('ex:' + k, title, () => playMelody('ex:' + k, rtttl, volume(), msg));
+    const ok = document.createElement('button');
+    ok.type = 'button'; ok.className = 'b'; ok.textContent = 'Use';
+    ok.addEventListener('click', () => { dlg.close(); use(k); });
+    const row = document.createElement('div');
+    row.className = 'mgrow';
+    row.append(play, t, ok);
+    card.append(row, melodyStrip(p, 'ex:' + k));
+    list.appendChild(card);
+  });
+  dlg.append(head, sub, list, msg);
+  paintPlaying();
+  dlg.showModal();
 }
 
 function editTheme(key, value) {

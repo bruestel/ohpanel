@@ -49,4 +49,5 @@ test/host/build/png_test
 test/host/build/nextion_test
 test/host/build/schema_test
 test/host/build/sound_test
+node test/host/melody_test.js
 python3 tools/check_names.py
