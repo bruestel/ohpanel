@@ -191,6 +191,9 @@ esp_err_t get_openhab_options(httpd_req_t *req) {
   const bool known = appoh::options(item, options, query_param(req, "refresh") == "1");
   cJSON *r = cJSON_CreateObject();
   cJSON_AddBoolToObject(r, "known", known);
+  // the item's own label (an entity page's row without one of its own shows it)
+  if (std::string label; appoh::label(item, label))
+    cJSON_AddStringToObject(r, "label", label.c_str());
   // the item's range (stateDescription), where openHAB gives one: the light page's colour temperature ends
   appoh::Limits range;
   appoh::limits(item, range);

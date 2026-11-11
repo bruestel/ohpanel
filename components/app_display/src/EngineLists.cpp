@@ -288,6 +288,35 @@ void Engine::forget_group_rows() {
   group_rows_.clear();
 }
 
+namespace {
+constexpr int kLabelAgeS = 60;   // a row's openHAB label asked for again as its page opens, when cached longer
+}  // namespace
+
+/* What a row of an entity page is called: its own "label", else its item's label in openHAB as known
+   (Callbacks::label), else -- not known yet, or none -- the item's name. */
+std::string Engine::row_label(const cJSON *row) const {
+  if (const cJSON *own = member(row, "label"); cJSON_IsString(own))
+    return own->valuestring;
+  const std::string item = str(row, "item");
+  std::string label;
+  if (!item.empty() && cb_.label && cb_.label(item, label, -1) && !label.empty())
+    return label;
+  return item;
+}
+
+/* The fixed rows of an entity page that show their item's label in openHAB: no label of their own, not wide (a
+   wide row shows none). */
+std::vector<const cJSON *> Engine::unlabelled_rows(const cJSON *page) const {
+  std::vector<const cJSON *> out;
+  if (type_of(page) != PageType::Entities || member(page, "group") || member(page, "feed") || flag(page, "wide"))
+    return out;
+  const cJSON *rows = member(page, "rows");
+  for (const cJSON *r = cJSON_IsArray(rows) ? rows->child : nullptr; r; r = r->next)
+    if (cJSON_IsObject(r) && !str(r, "item").empty() && !cJSON_IsString(member(r, "label")) && !flag(r, "wide"))
+      out.push_back(r);
+  return out;
+}
+
 /* The entity page in its style (boards/nspanel/nextion/ohpanel_hmi.py entities_pages()):
    a row is an icon with the label and the value, or with one wide field (the
    cards: the value without a label); the list draws a thin line between rows,
@@ -306,6 +335,15 @@ void Engine::draw_entities(const cJSON *page, const std::string &physical) {
   if (member(page, "feed"))
     ask_feed(page);   // as the page opens: "Loading..." until the list comes
   const cJSON *all = rows_of(page);
+  // fixed rows without a label of their own: their items' labels in openHAB, asked for again as the page opens
+  // (all its rows, not only the sheet shown) when older than a minute
+  if (!labels_asked_) {
+    labels_asked_ = true;
+    std::string label;
+    for (const cJSON *r : unlabelled_rows(page))
+      if (cb_.label)
+        cb_.label(str(r, "item"), label, kLabelAgeS);
+  }
   const int sheets = sheets_of(page);
   // the sheets as dots at the bottom, the one shown full -- in the swipe row its dots instead (draw_dots), not these
   // first
@@ -339,7 +377,7 @@ void Engine::draw_entities(const cJSON *page, const std::string &physical) {
     if (!list)
       if (const int pic = picture(cards ? n : "rowcard" + std::to_string(r + 1), "box"); pic >= 0)
         num(n + "_pic", "pic", pic);
-    const std::string label = wide ? "" : str(row, "label", str(row, "item"));
+    const std::string label = wide ? "" : row_label(row);
     if (!list)
       vis(n + "_pic", true);
     vis(n + "_icon", true);

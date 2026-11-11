@@ -51,6 +51,7 @@ struct Cached {
   std::vector<Member> members;
   int64_t at = 0;
   std::map<std::string, Metadata> metadata;   // the item's own, by namespace
+  std::string label;                          // the item's own ("" without)
 };
 
 /* An item's metadata as openHAB lists it ({"ns": {"value", "config"}}), by namespace. */
@@ -81,6 +82,8 @@ std::map<std::string, Cached> g_cache;
 std::set<std::string> g_fetching;    // being fetched (one at a time) or waiting for it
 std::deque<std::string> g_waiting;   // ... in this order
 bool g_fetcher = false;              // the fetch task runs
+std::map<std::string, int64_t> g_failed;   // fetches that failed (openHAB away, an error), when: not again so soon
+constexpr int64_t kRetryUs = 30 * 1000000LL;
 
 void start_next_locked();
 std::function<void(const std::string &)> g_listener;
@@ -114,6 +117,7 @@ void fetch_item(void *arg) {
   Limits range;
   std::vector<Member> members;
   std::map<std::string, Metadata> own;
+  std::string own_label;
   bool ok = false;
   if (cfg.configured()) {
     std::string selector;
@@ -163,6 +167,7 @@ void fetch_item(void *arg) {
         members.push_back(std::move(member));
       }
       own = metadata_of(cJSON_GetObjectItem(root, "metadata"));
+      own_label = text_of(root, "label");
       std::stable_sort(members.begin(), members.end(),
                        [](const Member &a, const Member &b) { return strcasecmp(a.label.c_str(), b.label.c_str()) < 0; });
       ok = root != nullptr;
@@ -171,12 +176,17 @@ void fetch_item(void *arg) {
     } else {
       ESP_LOGW(TAG, "Options of %s: %s", item->c_str(),
                r.status ? ("HTTP " + std::to_string(r.status)).c_str() : esp_err_to_name(r.err));
+      ok = r.status == 404;   // no such item: known as one without options, label, members (not asked again and again)
     }
   }
   std::function<void(const std::string &)> listener;
   bool regrouped = false, moving_changed = false;
   {
     std::lock_guard<std::mutex> lock(g_mx);
+    if (ok)
+      g_failed.erase(*item);
+    else
+      g_failed[*item] = esp_timer_get_time();
     g_fetching.erase(*item);
     g_fetcher = false;
     start_next_locked();   // the next one waiting -- one at a time: a TLS handshake each, the CPU's for seconds
@@ -187,9 +197,9 @@ void fetch_item(void *arg) {
       moving_changed = moving_items(own) != (it == g_cache.end() ? std::vector<std::string>()
                                                                  : moving_items(it->second.metadata));
       if (it == g_cache.end() || it->second.options != out || !(it->second.limits == range) || regrouped ||
-          it->second.metadata != own)
+          it->second.metadata != own || it->second.label != own_label)
         listener = g_listener;   // only news: a page redrawn for nothing would flicker
-      g_cache[*item] = {out, range, members, esp_timer_get_time(), own};
+      g_cache[*item] = {out, range, members, esp_timer_get_time(), own, own_label};
     }
   }
   if (ok) {
@@ -230,7 +240,9 @@ void start_next_locked() {
 const Cached *cached_locked(const std::string &item, bool refresh) {
   const auto it = g_cache.find(item);
   const bool known = it != g_cache.end();
-  if ((refresh || !known) && !g_fetching.count(item) && g_waiting.size() < 16) {
+  const auto failed = g_failed.find(item);
+  const bool resting = failed != g_failed.end() && esp_timer_get_time() - failed->second < kRetryUs;
+  if ((refresh || !known) && !resting && !g_fetching.count(item) && g_waiting.size() < 16) {
     g_fetching.insert(item);
     g_waiting.push_back(item);
     start_next_locked();
@@ -239,6 +251,11 @@ const Cached *cached_locked(const std::string &item, bool refresh) {
 }
 
 }  // namespace
+
+void fetches_may_retry() {
+  std::lock_guard<std::mutex> lock(g_mx);
+  g_failed.clear();
+}
 
 bool options(const std::string &item, std::vector<Option> &out, bool refresh) {
   if (item.empty())
@@ -276,6 +293,19 @@ bool metadata(const std::string &item, std::map<std::string, Metadata> &out, boo
   const Cached *c = cached_locked(item, refresh);
   if (c)
     out = c->metadata;
+  return c != nullptr;
+}
+
+bool label(const std::string &item, std::string &out, int max_age_s) {
+  if (item.empty())
+    return false;
+  std::lock_guard<std::mutex> lock(g_mx);
+  const auto it = g_cache.find(item);
+  const bool old = it != g_cache.end() && max_age_s >= 0 &&
+                   esp_timer_get_time() - it->second.at > static_cast<int64_t>(max_age_s) * 1000000;
+  const Cached *c = cached_locked(item, old);
+  if (c)
+    out = c->label;
   return c != nullptr;
 }
 

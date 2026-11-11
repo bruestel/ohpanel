@@ -171,6 +171,11 @@ bool members(const std::string &group, std::vector<Member> &out, bool refresh = 
    cache -- fetched when not cached (and asked afresh with `refresh`); false while not known. */
 bool metadata(const std::string &item, std::map<std::string, Metadata> &out, bool refresh = false);
 
+/* An item's label in openHAB ("" if it has none), from the same cache -- fetched when not cached, or when cached
+   longer ago than `max_age_s` (< 0: never again); false while not known. openHAB tells nobody when a label changes,
+   so an entity page's rows without a label of their own ask with an age as the page opens. */
+bool label(const std::string &item, std::string &out, int max_age_s = -1);
+
 /* A file from the web (a cover picture): an http(s) address, or a path on
    the openHAB server ("/..."), which -- like an address on it -- goes with
    the configured token. Blocking; false (and why in `error`) when it did

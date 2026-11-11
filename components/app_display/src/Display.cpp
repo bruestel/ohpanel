@@ -365,6 +365,7 @@ void task(void *) {
   cb.state = [](const std::string &item, appoh::ItemState &out) { return appoh::state(item, out); };
   cb.command = [](const std::string &item, const std::string &command) { appoh::send_command(item, command); };
   cb.request = [](const std::string &item, const std::string &command) { appoh::send_request(item, command); };
+  cb.label = [](const std::string &item, std::string &out, int max_age_s) { return appoh::label(item, out, max_age_s); };
   cb.secret_command = [](const std::string &item, const std::string &command) {
     appoh::send_command(item, command, true);
   };

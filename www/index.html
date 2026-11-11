@@ -3503,7 +3503,7 @@ function fillEntities(page) {
       const o = objects.find(x => x.n === name), w = o ? textWidth(text, o.f) : null;
       return scroll && w !== null && w > o.w;
     };
-    const label = r.label || (r.item || '');
+    const label = typeof r.label === 'string' ? r.label : itemLabel(r.item) || r.item || '';
     if (!page.wide && !r.wide) {
       const base = n + (narrow ? '_longtext' : '_text');
       const rolls = tooLong(base, label);
@@ -6912,10 +6912,19 @@ function loadOptions(item, refresh, then) {
       o.min = r.min; o.max = r.max; o.step = r.step;   // the item's range in openHAB (stateDescription), where it gives one
       o.members = r.members || [];    // a group's, with their metadata
       o.metadata = r.metadata || {};  // the item's own (a cover's style, presets)
+      o.label = r.label || '';        // the item's own label (a fixed row without one shows it)
       if (then) then(); else renderPreview();
     })
     .catch(() => { o.busy = false; o.at = Date.now(); });
   ask(!!refresh);
+}
+/* An item's label in openHAB, as the panel has it (Engine::row_label): asked for once, '' until it is known --
+   a fixed row of an entity page without a label of its own shows it, else the item's name. */
+function itemLabel(item) {
+  if (!item) return '';
+  const o = OPTS[item];
+  if (!o || (!o.known && !o.busy && Date.now() - o.at > 10000)) loadOptions(item);
+  return (o && o.label) || '';
 }
 function stationsOf(page) {
   const item = page && page.stations && page.stations.item;

@@ -1038,6 +1038,7 @@ void Engine::open(const std::string &id, bool remember, bool last_sheet) {
   station_sheet_ = 0;
   favorites_asked_ = false;
   group_asked_ = false;
+  labels_asked_ = false;
   show_physical(page ? template_of(page) : "home");
 }
 
@@ -1222,6 +1223,7 @@ void Engine::on_page_loaded(const std::string &name) {
   if (name == "blank") {  // the black page of the night: nothing on it
     expected_.clear();
     feed_.asked = false;   // woken, a feed's list is asked for again
+    labels_asked_ = false; // ... and the rows' labels, if old
     return;
   }
   if (!started_ && name != expected_) {
@@ -1372,6 +1374,12 @@ void Engine::prefetch_options() {
         cb_.metadata(str(pg, "group"), md, false);
     }
   }
+  // fixed rows without a label: their items' labels -- last, so that they crowd out none of the above (the fetches
+  // wait in a short queue); what does not fit is asked for as its page opens
+  std::string label;
+  for (const cJSON *pg = cJSON_IsArray(pages) ? pages->child : nullptr; pg && cb_.label; pg = pg->next)
+    for (const cJSON *r : unlabelled_rows(pg))
+      cb_.label(str(r, "item"), label, -1);
 }
 
 /* The volume page (boards/nspanel/nextion/ohpanel_hmi.py volume_page()), over the media
@@ -1390,6 +1398,13 @@ void Engine::on_options(const std::string &item) {
       }
   if (page && str(page, "group") == item && shown_ == template_of(page))
     redraw_rows(page);
+  // an item's label: fixed rows without one of their own show it
+  if (page && shown_ == template_of(page))
+    for (const cJSON *r : unlabelled_rows(page))
+      if (str(r, "item") == item) {
+        redraw_rows(page);
+        break;
+      }
   // a cover group's members: the rows drawn again where they are (no page anew: no flicker)
   if (page && type_of(page) == PageType::Cover && shown_ == "covers" && str(page, "group") == item) {
     drawn_.clear();

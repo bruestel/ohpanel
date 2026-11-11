@@ -3575,6 +3575,76 @@ int main(int argc, char **argv) {
     if (g_failures) r.dump();
   }
 
+  {  // fixed rows without a label of their own: their items' labels in openHAB (Callbacks::label) -- asked for at
+     // the start, and again as the page opens when older than a minute; until known, the item's name
+    Callbacks cb3 = cb;
+    static std::map<std::string, std::string> labels;   // the items' labels in openHAB, once known
+    static std::vector<std::pair<std::string, int>> label_asks;   // item, max_age_s
+    cb3.label = [](const std::string &item, std::string &out, int max_age_s) {
+      label_asks.push_back({item, max_age_s});
+      const auto it = labels.find(item);
+      if (it != labels.end())
+        out = it->second;
+      return it != labels.end();
+    };
+    Recorder r;
+    Engine l(r, cb3);
+    l.release_wait(0);
+    CHECK(l.load_design(read("boards/nspanel/nextion/display-manifest-eu.json").c_str(),
+                        read("boards/nspanel/nextion/weather-icons.json").c_str()));
+    set_state("Lbl_A", "1", "Decimal", "1", 1, true);
+    set_state("Lbl_B", "2", "Decimal", "2", 2, true);
+    l.set_config(R"({"version": 1, "swipe": ["labels", "home"], "pages": [
+      {"id": "labels", "type": "entities", "title": "Labels", "style": "list",
+       "rows": [{"item": "Lbl_A"}, {"item": "Lbl_B", "label": "Own"}, {"item": "Lbl_W", "wide": true},
+                {"item": "Lbl_1"}, {"item": "Lbl_2"}, {"item": "Lbl_3"}, {"item": "Lbl_4"}, {"item": "Lbl_Late"}]}]})");
+    int64_t t = 1000;
+    l.idle(t);
+    l.start();
+    PanelStatus up;
+    up.openhab = true;
+    l.set_status(up);
+    l.idle(t += 5000);
+    l.idle(t += 5000);   // the prefetch: the label asked for, as it is cached (no age)
+    CHECK(std::count(label_asks.begin(), label_asks.end(), std::make_pair(std::string("Lbl_A"), -1)) >= 1);
+    // not a row with a label of its own, nor a wide one (it shows none)
+    CHECK(std::none_of(label_asks.begin(), label_asks.end(), [](const auto &a) { return a.first == "Lbl_B" || a.first == "Lbl_W"; }));
+    label_asks.clear();
+    l.on_message(loaded("entities"));
+    CHECK(l.current() == "labels");
+    CHECK(r.has("row1_longtext.txt=\"Lbl_A\"") && r.has("row2_longtext.txt=\"Own\""));   // not known yet: the name
+    // opening: every row's label if old -- the one on the second sheet too --, drawn from what is known
+    const auto asked_aged = [&](const char *item) {
+      return std::count(label_asks.begin(), label_asks.end(), std::make_pair(std::string(item), 60)) == 1;
+    };
+    CHECK(asked_aged("Lbl_A") && asked_aged("Lbl_Late") && !asked_aged("Lbl_B") && !asked_aged("Lbl_W"));
+    // the label came: the page drawn again with it, not asked for afresh while it shows
+    labels["Lbl_A"] = "Alpha";
+    label_asks.clear();
+    r.out.clear();
+    l.on_options("Lbl_A");
+    CHECK(r.has("row1_longtext.txt=\"Alpha\"") && !r.has_prefix("row2_longtext"));
+    CHECK(!label_asks.empty() && std::all_of(label_asks.begin(), label_asks.end(), [](const auto &a) { return a.second == -1; }));
+    // another item's news: nothing drawn
+    r.out.clear();
+    l.on_options("Lbl_B");
+    CHECK(!r.has_prefix("row1_longtext"));
+    // the second sheet: drawn from what is known, nothing asked for anew
+    label_asks.clear();
+    l.on_message(event("entities", "swipe", "left"));
+    l.on_message(loaded("entities"));
+    CHECK(r.has("row1_longtext.txt=\"Lbl_Late\""));
+    CHECK(std::none_of(label_asks.begin(), label_asks.end(), [](const auto &a) { return a.second != -1; }));
+    // opened again (from home, on its last sheet): every row's label asked for again if old
+    l.on_message(event("entities", "swipe", "left"));   // past the last sheet -> home
+    l.on_message(loaded("home"));
+    l.on_message(event("home", "swipe", "right"));      // -> labels
+    label_asks.clear();
+    l.on_message(loaded("entities"));
+    CHECK(asked_aged("Lbl_A") && asked_aged("Lbl_Late"));
+    if (g_failures) r.dump();
+  }
+
   if (g_failures) {
     std::fprintf(stderr, "%d engine check(s) failed\n", g_failures);
     return 1;

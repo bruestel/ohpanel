@@ -95,7 +95,7 @@
   }
   function optionsOf(d, item) {
     const it = d.items.items[item];
-    const r = {known: true, options: d.items.options[item] || [], members: [], metadata: {}};
+    const r = {known: true, options: d.items.options[item] || [], members: [], metadata: {}, label: it ? it.label : ''};
     if (it && it.min !== undefined) { r.min = it.min; r.max = it.max; r.step = it.step; }
     const g = d.items.groups[item];
     if (g) {

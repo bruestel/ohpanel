@@ -30,6 +30,10 @@ void members_changed();
 /* An item's own metadata if it is cached -- nothing fetched (the subscription asks it of every item). */
 bool cached_metadata(const std::string &item, std::map<std::string, Metadata> &out);
 
+/* openHAB answers again (subscribed): the items whose fetch failed may be fetched at once, not after their rest
+   (Options.cpp). */
+void fetches_may_retry();
+
 /* The metadata namespaces to ask openHAB for, besides "ohpanel" (Options.cpp). */
 void set_namespaces(const std::vector<std::string> &namespaces);
 

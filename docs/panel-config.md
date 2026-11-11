@@ -416,7 +416,9 @@ A **row** is `{"item", "label"?, "icon"?, "color"?, "value_color"?, "value_style
 `color` is the icon's, `value_color` the value's (a matching rule's colour comes first);
 `"wide": true` puts this row alone in the wide layout (a day's date above its lessons, say);
 `"scroll"` decides for this row whether a label too long for its field scrolls (else the page's `scroll` counts).
-Without a label the item's openHAB label is used.
+Without a label the item's openHAB label is used (its name while openHAB has not told it yet). The panel asks
+for it as it starts and again as the page opens, if it has had it longer than a minute: openHAB tells nobody
+when a label changes, so a label changed in openHAB shows the next time the page opens.
 
 `format` and `factor` write the value as [Formatting values](#formatting-values)
 says. More rows than fit on the display are shown on further sheets of the

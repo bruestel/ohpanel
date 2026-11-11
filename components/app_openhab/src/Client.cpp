@@ -415,6 +415,7 @@ void do_subscribe(bool again = false) {
   const int status = post(appcfg::openhab(), "/rest/events/states/" + conn_id, "application/json", body);
   if (status == 200) {
     ESP_LOGI(TAG, "Subscribed to %u items", static_cast<unsigned>(items.size()));
+    fetches_may_retry();   // openHAB answers: what failed while it was away may be asked for again (the prefetch)
     Lock l;
     if (g_conn_id == conn_id)
       g_subscribed = true;

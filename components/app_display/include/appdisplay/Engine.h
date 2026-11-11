@@ -113,6 +113,9 @@ struct Callbacks {
   /* An item's own metadata, by namespace (appoh::metadata), from the same cache: false while not known;
      `refresh`: asked of openHAB again (in the background). */
   std::function<bool(const std::string &item, std::map<std::string, appoh::Metadata> &out, bool refresh)> metadata;
+  /* An item's label in openHAB (appoh::label), from the same cache: false while not known; asked of openHAB again
+     when cached longer ago than `max_age_s` (< 0: never). */
+  std::function<bool(const std::string &item, std::string &out, int max_age_s)> label;
   /* The state an item will most likely have soon (appoh::expect). */
   std::function<void(const std::string &item, const std::string &state)> expect;
   /* Loads a cover picture (cover_source) as size x size pixels, each scale
@@ -488,6 +491,9 @@ class Engine {
   void forget_group_rows();
   std::map<std::string, cJSON *> group_rows_;   // an entity page's group: its members as rows, by page id
   bool group_asked_ = false;                     // the page's group asked for again since it opened
+  bool labels_asked_ = false;                    // the rows' labels asked for (if old) since the page opened
+  std::string row_label(const cJSON *row) const;
+  std::vector<const cJSON *> unlabelled_rows(const cJSON *page) const;
   /* An entity page's "feed" (EngineFeed.cpp): the list a String item holds as JSON, asked for with the command
      "refresh" as the page opens (and every "refresh" seconds), drawn once it is there. Only the page shown has
      one: its list as text (to see the same come again), and the rows drawn, made from it when needed. */
