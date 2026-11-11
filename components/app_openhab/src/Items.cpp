@@ -46,7 +46,7 @@ bool fetch(std::string &error) {
 
   /* Only what the editor shows; metadata= turns off the metadata openHAB
      would otherwise attach to every item. */
-  Response r = http_get(cfg, "/rest/items?recursive=false&metadata=&fields=name,label,type", kMaxListBytes);
+  Response r = http_get_resumed(cfg, "/rest/items?recursive=false&metadata=&fields=name,label,type", kMaxListBytes);
   if (r.status == 0) {
     error = std::string("openHAB not reachable (") + esp_err_to_name(r.err) + ")";
     return false;

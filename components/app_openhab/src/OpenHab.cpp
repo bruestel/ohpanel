@@ -11,8 +11,11 @@
 #include <esp_http_client.h>
 #include <esp_log.h>
 
+#include <esp_timer.h>
+
 #include <algorithm>
 #include <functional>
+#include <mutex>
 
 namespace appoh {
 namespace {
@@ -63,47 +66,127 @@ void apply_tls(esp_http_client_config_t &hc, const appcfg::OpenHab &cfg) {
 
 /* A small blocking GET. Never asks for gzip: esp_http_client does not decode
    it, and openHAB compresses JSON for clients that ask. */
-Response http_get(const appcfg::OpenHab &cfg, const std::string &path, size_t limit, int timeout_ms) {
-  Response r;
-  const std::string url = cfg.url + path;
+bool same_settings(const appcfg::OpenHab &a, const appcfg::OpenHab &b) {
+  return a.url == b.url && a.token == b.token && a.tls == b.tls && a.ca == b.ca && a.check_name == b.check_name;
+}
 
+namespace {
+/* A client for GETs from `cfg` (its credentials, JSON asked for); null without memory. */
+esp_http_client_handle_t get_client(const appcfg::OpenHab &cfg, const std::string &url, int timeout_ms,
+                                    bool keep_session) {
   esp_http_client_config_t hc = {};
   hc.url = url.c_str();
   hc.timeout_ms = timeout_ms > 0 ? timeout_ms : kTimeoutMs;
   apply_tls(hc, cfg);
+  hc.save_client_session = keep_session;
   esp_http_client_handle_t client = esp_http_client_init(&hc);
+  if (!client)
+    return nullptr;
+  esp_http_client_set_header(client, "Accept", "application/json");
+  if (!cfg.token.empty()) {
+    const std::string auth = "Bearer " + cfg.token;   // copied by the client
+    esp_http_client_set_header(client, "Authorization", auth.c_str());
+  }
+  return client;
+}
+
+/* The response of a client opened for it, into r (status, body up to `limit`). */
+void read_response(esp_http_client_handle_t client, size_t limit, Response &r) {
+  const int64_t announced = esp_http_client_fetch_headers(client);
+  r.status = esp_http_client_get_status_code(client);
+  char buf[1024];
+  int n;
+  while ((n = esp_http_client_read(client, buf, sizeof(buf))) > 0) {
+    if (r.body.size() + n > limit) {
+      r.err = ESP_ERR_INVALID_SIZE;
+      break;
+    }
+    if (!make_room(r.body, n, limit, announced)) {
+      r.err = ESP_ERR_NO_MEM;
+      r.body.clear();   // not a part of it to parse
+      break;
+    }
+    r.body.append(buf, n);
+  }
+}
+
+/* http_get_resumed's client, kept between GETs for the TLS session saved on it (not for the connection: closed
+   after each); one GET at a time. */
+std::mutex g_resume_mx;
+esp_http_client_handle_t g_resume = nullptr;
+appcfg::OpenHab g_resume_cfg;   // what g_resume was made with; holds the CA it points into (set only without one)
+int64_t g_resume_made_at = 0;    // its full handshake: the session each GET resumes dates from it
+/* A server forgets a TLS session a while after its full handshake, however often it was resumed since (openHAB's
+   Jetty: a day; a proxy before it maybe sooner): an hour old, the next GET makes it anew. */
+constexpr int64_t kResumeRenewUs = 3600 * 1000000LL;
+}  // namespace
+
+Response http_get(const appcfg::OpenHab &cfg, const std::string &path, size_t limit, int timeout_ms) {
+  Response r;
+  esp_http_client_handle_t client = get_client(cfg, cfg.url + path, timeout_ms, false);
   if (!client) {
     r.err = ESP_ERR_NO_MEM;
     return r;
   }
-
-  esp_http_client_set_header(client, "Accept", "application/json");
-  const std::string auth = "Bearer " + cfg.token;
-  if (!cfg.token.empty())
-    esp_http_client_set_header(client, "Authorization", auth.c_str());
-
   r.err = esp_http_client_open(client, 0);
-  if (r.err == ESP_OK) {
-    const int64_t announced = esp_http_client_fetch_headers(client);
-    r.status = esp_http_client_get_status_code(client);
-    char buf[1024];
-    int n;
-    while ((n = esp_http_client_read(client, buf, sizeof(buf))) > 0) {
-      if (r.body.size() + n > limit) {
-        r.err = ESP_ERR_INVALID_SIZE;
-        break;
-      }
-      if (!make_room(r.body, n, limit, announced)) {
-        r.err = ESP_ERR_NO_MEM;
-        r.body.clear();   // not a part of it to parse
-        break;
-      }
-      r.body.append(buf, n);
-    }
-  }
+  if (r.err == ESP_OK)
+    read_response(client, limit, r);
   esp_http_client_close(client);
   esp_http_client_cleanup(client);
   return r;
+}
+
+Response http_get_resumed(const appcfg::OpenHab &cfg, const std::string &path, size_t limit, int timeout_ms) {
+  if (cfg.url.rfind("https:", 0) != 0)
+    return http_get(cfg, path, limit, timeout_ms);   // no TLS, nothing to resume
+  const std::string url = cfg.url + path;
+  const int timeout = timeout_ms > 0 ? timeout_ms : kTimeoutMs;
+  std::lock_guard<std::mutex> lock(g_resume_mx);
+  // other settings, or an old session: a new client, a full handshake
+  if (g_resume && (!same_settings(cfg, g_resume_cfg) || esp_timer_get_time() - g_resume_made_at > kResumeRenewUs)) {
+    esp_http_client_cleanup(g_resume);
+    g_resume = nullptr;
+  }
+  const bool resumed = g_resume != nullptr;
+  if (!g_resume) {
+    g_resume_cfg = cfg;
+    g_resume = get_client(g_resume_cfg, url, timeout, true);
+    if (!g_resume)
+      return Response{0, {}, ESP_ERR_NO_MEM};
+    g_resume_made_at = esp_timer_get_time();
+  } else {
+    esp_http_client_set_url(g_resume, url.c_str());
+    esp_http_client_set_timeout_ms(g_resume, timeout);
+  }
+  Response r;
+  const int64_t began = esp_timer_get_time();
+  r.err = esp_http_client_open(g_resume, 0);
+  if (r.err == ESP_OK)
+    read_response(g_resume, limit, r);
+  esp_http_client_close(g_resume);   // no keep-alive: only the session stays
+  /* No connection on a resumed session, and soon: perhaps the server did not take the session -- once more with a
+     full handshake, on a client of its own, which keeps its session only if it gets through. Not after a timeout:
+     openHAB away, a second one would only wait as long again. */
+  if (r.err != ESP_ERR_HTTP_CONNECT || !resumed || esp_timer_get_time() - began > timeout * 1000LL / 2)
+    return r;
+  ESP_LOGW(TAG, "GET %s: no connection on the saved TLS session, once more with a full handshake", path.c_str());
+  // the same settings as g_resume's (else it would be gone): the new client points into the same CA
+  esp_http_client_handle_t fresh = get_client(g_resume_cfg, url, timeout, true);
+  if (!fresh)
+    return r;
+  Response again;
+  again.err = esp_http_client_open(fresh, 0);
+  if (again.err == ESP_OK)
+    read_response(fresh, limit, again);
+  esp_http_client_close(fresh);
+  if (again.err == ESP_ERR_HTTP_CONNECT) {   // not this way either: openHAB away, the old session kept
+    esp_http_client_cleanup(fresh);
+    return again;
+  }
+  esp_http_client_cleanup(g_resume);   // the new session from now on
+  g_resume = fresh;
+  g_resume_made_at = esp_timer_get_time();
+  return again;
 }
 
 namespace {

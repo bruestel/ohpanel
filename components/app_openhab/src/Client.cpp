@@ -146,7 +146,8 @@ esp_http_client_handle_t make_client(const appcfg::OpenHab &cfg, const std::stri
 /* The worker's connection, kept open between requests: over https a new
    connection costs a TLS handshake of a few seconds on this chip, so commands
    and subscriptions reuse one (HTTP keep-alive). Made anew when the settings
-   change or a request fails. Worker task only. */
+   change, the session is an hour old (renew_session) or openHAB did not take
+   it (post); a request that fails otherwise keeps it. Worker task only. */
 esp_http_client_handle_t g_keep = nullptr;
 appcfg::OpenHab g_keep_cfg;  // what g_keep was made with; holds the CA it points into
 int64_t g_keep_used_at = 0;
@@ -156,10 +157,6 @@ int64_t g_keep_made_at = 0;   // its full handshake: the session every reconnect
    it keeps the TLS session, and the next request resumes it in a fraction of
    the full handshake (the first switch after a pause waited seconds). */
 constexpr int64_t kKeepIdleUs = 25 * 1000000LL;
-
-bool same_settings(const appcfg::OpenHab &a, const appcfg::OpenHab &b) {
-  return a.url == b.url && a.token == b.token && a.tls == b.tls && a.ca == b.ca && a.check_name == b.check_name;
-}
 
 void drop_keep() {
   if (g_keep)
@@ -172,54 +169,74 @@ void close_keep() {
     esp_http_client_close(g_keep);
 }
 
+/* One request on `client`: the address, the method, the headers, the body. */
+esp_err_t perform(esp_http_client_handle_t client, const std::string &url, esp_http_client_method_t method,
+                  const char *content_type, const std::string &body) {
+  esp_http_client_set_url(client, url.c_str());
+  esp_http_client_set_method(client, method);
+  esp_http_client_set_header(client, "Content-Type", content_type);
+  esp_http_client_set_header(client, "X-OpenHAB-Source", "ohpanel");
+  esp_http_client_set_post_field(client, body.data(), static_cast<int>(body.size()));
+  return esp_http_client_perform(client);
+}
+
 /* A short POST (or PUT) from the worker task; returns the HTTP status, or 0
    if the request did not get through at all. */
 int post(const appcfg::OpenHab &cfg, const std::string &path, const char *content_type, const std::string &body,
          esp_http_client_method_t method = HTTP_METHOD_POST) {
   const std::string url = cfg.url + path;
+  if (g_keep && !same_settings(cfg, g_keep_cfg))
+    drop_keep();
   esp_err_t err = ESP_FAIL;
-  bool kept = false;       // the attempt ran on the kept handle: over https with the session saved on it
-  bool fallback = false;   // that failed to connect, the next attempt does a full handshake
+  bool resumed = false;   // the last attempt connected anew on the kept handle: over https, resuming its session
+  int64_t began = 0;
   for (int attempt = 0; attempt < 2 && err != ESP_OK; attempt++) {
-    /* A kept connection may have been closed by the server: once more on a new one. A connection that could
-       not be made at all may be the saved session the server does not take (one failed every resumed
-       handshake, and every command with it): then once more with a full handshake, the session made anew. */
-    if (g_keep && err == ESP_ERR_HTTP_CONNECT && kept && cfg.url.rfind("https:", 0) == 0) {
-      ESP_LOGW(TAG, "%s: no connection on the saved TLS session, once more with a full handshake", path.c_str());
-      fallback = true;
-    }
-    if (g_keep && (!same_settings(cfg, g_keep_cfg) || err == ESP_ERR_HTTP_CONNECT))
-      drop_keep();
-    else if (attempt > 0 || esp_timer_get_time() - g_keep_used_at > kKeepIdleUs)
+    /* A kept connection may have been closed by the server: once more on a new one, the session resumed. One
+       that could not be made at all is not tried again here (below). */
+    if (attempt > 0 && err == ESP_ERR_HTTP_CONNECT)
+      break;
+    if (g_keep && (attempt > 0 || esp_timer_get_time() - g_keep_used_at > kKeepIdleUs))
       close_keep();
-    kept = g_keep != nullptr;
+    resumed = g_keep != nullptr && cfg.url.rfind("https:", 0) == 0;
     if (!g_keep) {
-      g_keep_cfg = cfg;
+      g_keep_cfg = cfg;   // no handle points into it now
       g_keep = make_client(g_keep_cfg, url, kRequestTimeoutMs, true);
       if (!g_keep)
         return 0;
       g_keep_made_at = esp_timer_get_time();
-    } else {
-      esp_http_client_set_url(g_keep, url.c_str());
     }
-    esp_http_client_set_method(g_keep, method);
-    esp_http_client_set_header(g_keep, "Content-Type", content_type);
-    esp_http_client_set_header(g_keep, "X-OpenHAB-Source", "ohpanel");
-    esp_http_client_set_post_field(g_keep, body.data(), static_cast<int>(body.size()));
-    err = esp_http_client_perform(g_keep);
+    began = esp_timer_get_time();
+    err = perform(g_keep, url, method, content_type, body);
     g_keep_used_at = esp_timer_get_time();
   }
+  /* No connection on the resumed session, and soon: perhaps the server did not take it (one failed every resumed
+     handshake, and every command with it) -- once more with a full handshake, on a handle of its own, which takes
+     the kept one's place only if it gets through. Not after a timeout: openHAB away, a second one would only wait
+     as long again, and the session stays for when it is back. */
+  if (err == ESP_ERR_HTTP_CONNECT && resumed && esp_timer_get_time() - began < kRequestTimeoutMs * 1000LL / 2) {
+    ESP_LOGW(TAG, "%s: no connection on the saved TLS session, once more with a full handshake", path.c_str());
+    // the same settings as the kept handle's (else it would be gone): the new one points into the same CA
+    if (esp_http_client_handle_t fresh = make_client(g_keep_cfg, url, kRequestTimeoutMs, true)) {
+      const esp_err_t again = perform(fresh, url, method, content_type, body);
+      if (again == ESP_ERR_HTTP_CONNECT) {
+        esp_http_client_cleanup(fresh);   // not this way either: the old session kept
+      } else {
+        drop_keep();
+        g_keep = fresh;
+        g_keep_made_at = esp_timer_get_time();
+        err = again;
+        if (err == ESP_OK)
+          ESP_LOGW(TAG, "%s: the full handshake went through, so openHAB (or a proxy before it) did not take the "
+                        "resumed TLS session", path.c_str());
+      }
+      g_keep_used_at = esp_timer_get_time();
+    }
+  }
   const int status = err == ESP_OK ? esp_http_client_get_status_code(g_keep) : 0;
-  if (fallback && err == ESP_OK)
-    ESP_LOGW(TAG, "%s: the full handshake went through, so openHAB (or a proxy before it) did not take the resumed "
-                  "TLS session", path.c_str());
   if (err != ESP_OK) {
     ESP_LOGW(TAG, "%s %s failed: %s", method == HTTP_METHOD_PUT ? "PUT" : "POST", path.c_str(),
              esp_err_to_name(err));
-    if (err == ESP_ERR_HTTP_CONNECT)
-      drop_keep();   // the next command without the session that failed
-    else
-      close_keep();
+    close_keep();   // the handle and its session stay: the next command resumes it
   }
   return status;
 }

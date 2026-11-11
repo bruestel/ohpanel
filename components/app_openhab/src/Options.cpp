@@ -125,7 +125,7 @@ void fetch_item(void *arg) {
       std::lock_guard<std::mutex> lock(g_mx);
       selector = g_selector;
     }
-    Response r = http_get(cfg, "/rest/items/" + *item + "?metadata=" + selector + "&recursive=true", kMaxItemBytes);  // A-Z a-z 0-9 _; recursive: a group lists
+    Response r = http_get_resumed(cfg, "/rest/items/" + *item + "?metadata=" + selector + "&recursive=true", kMaxItemBytes);  // A-Z a-z 0-9 _; recursive: a group lists
                                                                                        // its members (with their metadata) only so
     if (r.status == 200) {
       cJSON *root = cJSON_ParseWithLength(r.body.data(), r.body.size());

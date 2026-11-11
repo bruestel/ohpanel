@@ -39,4 +39,12 @@ void set_namespaces(const std::vector<std::string> &namespaces);
 
 Response http_get(const appcfg::OpenHab &cfg, const std::string &path, size_t limit, int timeout_ms = 0);
 
+/* The same from the configured openHAB, resuming the TLS session of the GET before (no keep-alive: the connection
+   is closed after each, only the session is kept): a resumed handshake instead of a full one, which takes this
+   chip a second or more -- the item details (options, labels, members, metadata) come one after the other. */
+Response http_get_resumed(const appcfg::OpenHab &cfg, const std::string &path, size_t limit, int timeout_ms = 0);
+
+/* Two openHAB settings reach the same server the same way (address, token, certificate check). */
+bool same_settings(const appcfg::OpenHab &a, const appcfg::OpenHab &b);
+
 }  // namespace appoh
