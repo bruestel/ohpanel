@@ -847,6 +847,34 @@ class Validator {
       fail(member(p, "open"), "is required for action \"open\"");
   }
 
+  /* An entity page's "feed": the String item whose state is the list (JSON), whether the panel asks for it with
+     the command "refresh" as the page opens ("ask", default true), every how many seconds while it shows
+     ("refresh") and how long it waits for it ("timeout"). */
+  void feed_settings(const cJSON *f, const std::string &p) {
+    if (!object(f, p))
+      return;
+    allowed(f, p, {"item", "ask", "refresh", "timeout"});
+    const cJSON *item = cJSON_GetObjectItem(f, "item");
+    if (!item)
+      fail(member(p, "item"), "is required");
+    else
+      item_name(item, member(p, "item"));
+    boolean(f, "ask", p);
+    const auto whole = [&](const char *key, int low, int high, const char *range) {
+      const cJSON *v = cJSON_GetObjectItem(f, key);
+      if (v && (!cJSON_IsNumber(v) || v->valuedouble != v->valueint || v->valueint < low || v->valueint > high))
+        fail(member(p, key), std::string("must be ") + range);
+    };
+    whole("timeout", 2, 120, "2 to 120 (seconds)");
+    if (const cJSON *r = cJSON_GetObjectItem(f, "refresh"); r && !(cJSON_IsNumber(r) && r->valueint == 0 && r->valuedouble == 0))
+      whole("refresh", 10, 3600, "0 (only as the page opens) or 10 to 3600 (seconds)");
+    if (const cJSON *r = cJSON_GetObjectItem(f, "refresh");
+        cJSON_IsFalse(cJSON_GetObjectItem(f, "ask")) && r && !(cJSON_IsNumber(r) && r->valuedouble == 0))
+      fail(member(p, "refresh"), "needs \"ask\": the panel asks for the list again");
+    if (cJSON_IsFalse(cJSON_GetObjectItem(f, "ask")) && cJSON_GetObjectItem(f, "timeout"))
+      fail(member(p, "timeout"), "needs \"ask\": the panel waits for an answer only when it asked");
+  }
+
   void row(const cJSON *r, const std::string &p) {
     allowed(r, p, {"item", "label", "icon", "color", "value_color", "value_style", "format", "factor", "wide",
                    "scroll"});
@@ -902,14 +930,21 @@ class Validator {
             fail(member(p, k), "goes with \"group\"");
       }
     } else if (t == "entities") {
-      allowed(pg, p, {"id", "type", "title", "rows", "group", "icon", "color", "value_style", "format", "factor",
-                       "wide", "style", "metadata", "label", "value_color", "scroll"});
+      allowed(pg, p, {"id", "type", "title", "rows", "group", "feed", "icon", "color", "value_style", "format",
+                       "factor", "wide", "style", "metadata", "label", "value_color", "scroll"});
       const bool has_rows = cJSON_GetObjectItem(pg, "rows") != nullptr;
       const cJSON *group = cJSON_GetObjectItem(pg, "group");
-      if (has_rows == (group != nullptr))
-        fail(p, "needs either \"rows\" or \"group\"");
+      const cJSON *feed = cJSON_GetObjectItem(pg, "feed");
+      if (int(has_rows) + int(group != nullptr) + int(feed != nullptr) != 1)
+        fail(p, "needs one of \"rows\", \"group\" or \"feed\"");
       if (group)
         item_name(group, member(p, "group"));
+      if (feed) {
+        feed_settings(feed, member(p, "feed"));
+        for (const char *k : {"value_style", "format", "factor"})
+          if (cJSON_GetObjectItem(pg, k))
+            fail(member(p, k), "is not for \"feed\": its list gives each row's value as text");
+      }
       slots(pg, "rows", p, kMaxRows, [&](const cJSON *r, const std::string &rp) { row(r, rp); });
       icon(pg, p);
       color(pg, p);

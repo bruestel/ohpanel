@@ -85,6 +85,8 @@ struct Callbacks {
   std::function<void(const std::string &item, const std::string &command)> command;
   /* ... one holding a code (the keypad page's): not logged (else: command). */
   std::function<void(const std::string &item, const std::string &command)> secret_command;
+  /* ... one whose state is not predicted (appoh::send_request): a feed's "refresh". */
+  std::function<void(const std::string &item, const std::string &command)> request;
   /* Sets an item's state in openHAB (no command to its devices): display.open_page's NULL. */
   std::function<void(const std::string &item, const std::string &state)> update;
   /* Switches a relay (index 0/1) the panel controls directly. */
@@ -480,11 +482,37 @@ class Engine {
   std::vector<const cJSON *> days_of(const cJSON *page) const;
   static constexpr int kWeatherChips = 6;   // the weather page's cards of an extra
   const cJSON *rows_of(const cJSON *page);
+  void redraw_rows(const cJSON *page);
   void ask_group(const cJSON *page);
   const cJSON *button_at(const cJSON *page, int i);
   void forget_group_rows();
   std::map<std::string, cJSON *> group_rows_;   // an entity page's group: its members as rows, by page id
   bool group_asked_ = false;                     // the page's group asked for again since it opened
+  /* An entity page's "feed" (EngineFeed.cpp): the list a String item holds as JSON, asked for with the command
+     "refresh" as the page opens (and every "refresh" seconds), drawn once it is there. Only the page shown has
+     one: its list as text (to see the same come again), and the rows drawn, made from it when needed. */
+  struct Feed {
+    enum class Wait { None, Shown, Quiet };   // asked: "Loading..." instead of the list, or the list stays
+    std::string page;        // the page it belongs to ("": none)
+    std::string raw;         // the item's state the rows come from
+    bool have = false;       // raw holds one (else nothing came yet, or only "refresh")
+    bool asked = false;      // asked since the page opened (or the screen woke)
+    bool failed = false;     // asked, and no answer came in time
+    Wait wait = Wait::None;
+    int64_t since_ms = 0;    // asked then
+    int64_t next_ms = 0;     // asked again then ("refresh")
+    cJSON *view = nullptr;   // the rows drawn: a note first (loading, no answer, a text), then the list's
+  };
+  Feed feed_;
+  const cJSON *feed_rows(const cJSON *page);
+  void feed_reset();
+  std::optional<std::string> feed_state_of(const cJSON *page) const;
+  void feed_build(const cJSON *page);
+  void ask_feed(const cJSON *page);
+  void feed_state(const std::string &item);
+  void feed_tick();
+  void feed_redraw(const cJSON *page);
+  const cJSON *feed_page();
   void draw_boot();
   void draw_home();
   void draw_clock();

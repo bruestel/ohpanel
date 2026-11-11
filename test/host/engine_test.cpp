@@ -3392,6 +3392,189 @@ int main(int argc, char **argv) {
     e.set_config(read("test/host/data/office.json"));
   }
 
+  {  // an entity page's feed: the list one String item holds as JSON, asked for with "refresh" as the page opens
+    Callbacks cb2 = cb;
+    std::vector<std::pair<std::string, std::string>> sent;
+    cb2.command = [&](const std::string &item, const std::string &cmd) { sent.push_back({item, cmd}); };
+    cb2.request = cb2.command;   // asked without a predicted state (appoh::send_request)
+    Recorder r;
+    Engine f(r, cb2);
+    f.release_wait(0);
+    CHECK(f.load_design(read("boards/nspanel/nextion/display-manifest-eu.json").c_str(),
+                        read("boards/nspanel/nextion/weather-icons.json").c_str()));
+    g_states.erase("Bus_Departures");
+    const std::string feed_cfg = R"({"version": 1, "swipe": ["buses", "home"], "pages": [
+      {"id": "buses", "type": "entities", "title": "Departures", "icon": "bus", "style": "list",
+       "feed": {"item": "Bus_Departures", "refresh": 60, "timeout": 15}},
+      {"id": "push", "type": "entities", "title": "Pushed", "feed": {"item": "Bus_Push", "ask": false}}]})";
+    f.set_config(feed_cfg);
+    int64_t t = 1000;
+    f.idle(t);
+    f.start();
+    f.idle(t += 5000);
+    f.on_message(loaded("entities"));
+    CHECK(f.current() == "buses");
+    // openHAB not there yet: nothing asked, "Loading..." (no list known)
+    CHECK(sent.empty());
+    CHECK(r.has("row1_wide.txt=\"Loading...\"") && r.has("vis row2_icon,0"));
+    // openHAB there: asked at once
+    PanelStatus online;
+    online.openhab = true;
+    f.set_status(online);
+    f.idle(t += 100);
+    CHECK(sent.size() == 1 && sent.back() == std::make_pair(std::string("Bus_Departures"), std::string("refresh")));
+    // autoupdate: the item says "refresh" -- nothing changes
+    set_state("Bus_Departures", "refresh", "String");
+    r.out.clear();
+    f.on_state("Bus_Departures");
+    CHECK(r.out.empty());
+    // the list: drawn, the page's icon on rows without one, the value as it is
+    set_state("Bus_Departures",
+              R"([{"label": "12 Main station", "value": "3 min"}, {"label": "34 Fair", "value": 7, "value_color": "red",
+                  "icon": "tram"}, null, {"label": "Line 5", "value": "cancelled", "wide": true}])",
+              "String");
+    r.out.clear();
+    f.on_state("Bus_Departures");
+    CHECK(r.has("row1_longtext.txt=\"12 Main station\"") && r.has("row1_shortval.txt=\"3 min\""));
+    CHECK(r.has(std::string("row1_icon.txt=\"") + icon_glyph("bus") + "\""));
+    CHECK(r.has(std::string("row2_icon.txt=\"") + icon_glyph("tram") + "\"") && r.has("row2_shortval.txt=\"7\""));
+    CHECK(r.has("row2_shortval.pco=63488"));
+    CHECK(!r.has("vis row3_icon,1") && r.has("row4_wide.txt=\"cancelled\"") && !r.has("vis row5_icon,1"));
+    // a state lost on the way (the display queue full): the page drawn again from the states takes the list too
+    set_state("Bus_Departures", R"([{"label": "Lost", "value": "1 min"}])", "String");
+    r.out.clear();
+    f.redraw_states();
+    CHECK(r.has("row1_longtext.txt=\"Lost\""));
+    set_state("Bus_Departures",
+              R"([{"label": "12 Main station", "value": "3 min"}, {"label": "34 Fair", "value": 7, "value_color": "red",
+                  "icon": "tram"}, null, {"label": "Line 5", "value": "cancelled", "wide": true}])",
+              "String");
+    f.on_state("Bus_Departures");
+    // another panel asks, the same list comes back: nothing drawn anew
+    set_state("Bus_Departures", "refresh", "String");
+    f.on_state("Bus_Departures");
+    set_state("Bus_Departures",
+              R"([{"label": "12 Main station", "value": "3 min"}, {"label": "34 Fair", "value": 7, "value_color": "red",
+                  "icon": "tram"}, null, {"label": "Line 5", "value": "cancelled", "wide": true}])",
+              "String");
+    r.out.clear();
+    f.on_state("Bus_Departures");
+    CHECK(r.out.empty());
+    // one value changed: only it is sent
+    set_state("Bus_Departures",
+              R"([{"label": "12 Main station", "value": "2 min"}, {"label": "34 Fair", "value": 7, "value_color": "red",
+                  "icon": "tram"}, null, {"label": "Line 5", "value": "cancelled", "wide": true}])",
+              "String");
+    r.out.clear();
+    f.on_state("Bus_Departures");
+    CHECK(r.has("row1_shortval.txt=\"2 min\"") && !r.has("row1_longtext.txt=\"12 Main station\"") &&
+          !r.has_prefix("row2_"));
+    // "refresh": 60 -- counted from the last list (another panel's answer too); the list stays while asked
+    sent.clear();
+    f.idle(t += 59000);
+    CHECK(sent.empty());
+    f.idle(t += 1500);
+    CHECK(sent.size() == 1 && sent.back().second == "refresh");
+    CHECK(!r.has("row1_wide.txt=\"Loading...\""));
+    // no answer within 15 s: said above the list
+    r.out.clear();
+    f.idle(t += 14000);
+    CHECK(r.out.empty());
+    f.idle(t += 1500);
+    CHECK(r.has("row1_wide.txt=\"No answer from openHAB\"") && r.has("row2_longtext.txt=\"12 Main station\""));
+    // the answer after all: the note goes
+    set_state("Bus_Departures", R"({"rows": [{"label": "12 Main station", "value": "1 min"}], "note": "Line 34 cancelled"})",
+              "String");
+    r.out.clear();
+    f.on_state("Bus_Departures");
+    CHECK(r.has("row1_wide.txt=\"Line 34 cancelled\"") && r.has("row2_shortval.txt=\"1 min\"") &&
+          r.has("vis row3_icon,0"));
+    // a text instead of a list: shown as it is
+    set_state("Bus_Departures", "No connection to the transit API", "String");
+    r.out.clear();
+    f.on_state("Bus_Departures");
+    CHECK(r.has("row1_wide.txt=\"No connection to the transit API\"") && r.has("vis row2_icon,0"));
+    // broken JSON: shown as text too, and too long a list is refused
+    set_state("Bus_Departures", R"([{"label": "12", )", "String");
+    r.out.clear();
+    f.on_state("Bus_Departures");
+    CHECK(r.has("row1_wide.txt=\"[{\\\"label\\\": \\\"12\\\", \"") || r.has_prefix("row1_wide.txt=\"[{"));
+    std::string big = "[";
+    for (int k = 0; k < 200; k++)
+      big += std::string(k ? "," : "") + R"({"label": "Line )" + std::to_string(k) + R"(", "value": "in some minutes"})";
+    big += "]";
+    CHECK(big.size() > 4096);
+    set_state("Bus_Departures", big.c_str(), "String");
+    r.out.clear();
+    f.on_state("Bus_Departures");
+    CHECK(r.has("row1_wide.txt=\"List too long\"") && !r.has("vis row2_icon,1"));
+    // at most 40 rows: 6 sheets of 7
+    big = "[";
+    for (int k = 0; k < 60; k++)
+      big += std::string(k ? "," : "") + R"({"label": "L)" + std::to_string(k) + R"(", "value": "1"})";
+    big += "]";
+    CHECK(big.size() <= 4096);
+    set_state("Bus_Departures", big.c_str(), "String");
+    f.on_state("Bus_Departures");
+    for (int k = 0; k < 5; k++) {
+      f.on_message(event("entities", "swipe", "left"));
+      f.on_message(loaded("entities"));
+    }
+    CHECK(r.has("row1_longtext.txt=\"L35\"") && r.has("row5_longtext.txt=\"L39\"") && r.has("vis row6_icon,0"));
+    // the screen off (idle at 0 %) and woken: asked again, "Loading..." until the list comes
+    cJSON *doc = cJSON_Parse(feed_cfg.c_str());
+    cJSON_AddItemToObject(doc, "display", cJSON_Parse(R"({"screen": {"idle_brightness": 0, "idle_after": 30}})"));
+    char *text = cJSON_PrintUnformatted(doc);
+    f.set_config(text);
+    cJSON_free(text);
+    cJSON_Delete(doc);
+    f.on_message(loaded("entities"));
+    set_state("Bus_Departures", big.c_str(), "String");   // the 40 rows again: asleep on the third sheet
+    f.on_state("Bus_Departures");
+    for (int k = 0; k < 2; k++) {
+      f.on_message(event("entities", "swipe", "left"));
+      f.on_message(loaded("entities"));
+    }
+    CHECK(r.has("row1_longtext.txt=\"L14\""));
+    f.on_message(event("entities", "swipe", "none"));
+    f.idle(t += 100);
+    f.idle(t += 31000);
+    CHECK(f.asleep());
+    f.on_message(loaded("blank"));
+    sent.clear();
+    f.idle(t += 100000);   // asleep: not asked ("refresh" counts while the page shows)
+    CHECK(sent.empty());
+    f.on_message(event("blank", "wake", "release"));
+    f.idle(t += 100);
+    r.out.clear();
+    f.on_message(loaded("entities"));
+    // woken on the third sheet: "Loading..." on the first, the list from its start once it comes
+    CHECK(f.current() == "buses" && sent.size() == 1 && r.has("row1_wide.txt=\"Loading...\""));
+    set_state("Bus_Departures", "refresh", "String");
+    f.on_state("Bus_Departures");
+    set_state("Bus_Departures", big.c_str(), "String");
+    r.out.clear();
+    f.on_state("Bus_Departures");
+    CHECK(r.has("row1_longtext.txt=\"L0\""));
+    // "ask": false -- never asked: what a rule sets shows as it comes
+    sent.clear();
+    set_state("Bus_Push", R"([{"label": "Pushed", "value": "yes"}])", "String");
+    f.set_config(R"({"version": 1, "display": {"language": "de"}, "swipe": ["push"], "pages": [
+      {"id": "push", "type": "entities", "title": "Pushed", "feed": {"item": "Bus_Push", "ask": false}}]})");
+    r.out.clear();
+    f.on_message(loaded("entities"));
+    CHECK(f.current() == "push" && sent.empty());
+    CHECK(r.has("row1_longtext.txt=\"Pushed\"") && r.has("row1_shortval.txt=\"yes\""));
+    f.idle(t += 100000);
+    CHECK(sent.empty());
+    // a number as the value: in the display language's decimal separator, never as an exponent
+    set_state("Bus_Push", R"([{"label": "Pushed", "value": 2.5}, {"label": "Counter", "value": 1234567}])", "String");
+    r.out.clear();
+    f.on_state("Bus_Push");
+    CHECK(r.has("row1_shortval.txt=\"2,5\"") && r.has_suffix_of("row2_", "\"1234567\""));
+    if (g_failures) r.dump();
+  }
+
   if (g_failures) {
     std::fprintf(stderr, "%d engine check(s) failed\n", g_failures);
     return 1;

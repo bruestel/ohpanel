@@ -640,6 +640,14 @@ bool send_command(const std::string &item, const std::string &command, bool secr
   return true;
 }
 
+bool send_request(const std::string &item, const std::string &command) {
+  if (!valid_item_name(item)) {
+    set_error("invalid item name \"" + item + "\"");
+    return false;
+  }
+  return enqueue(new Job{Job::Kind::Command, item, command, false});
+}
+
 bool expect(const std::string &item, const std::string &state) {
   ItemState next;
   {

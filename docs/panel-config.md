@@ -398,15 +398,16 @@ tiles, say to see which lights are on and switch them off:
 
 ### `entities`: a list of states
 
-Either fixed `rows` or a `group`:
+Fixed `rows`, a `group`, or a `feed`:
 
 | Member | | |
 |---|---|---|
 | `rows` | array of rows (`null` = empty line) | |
 | `group` | item | an openHAB group; its members become the rows, with their labels from openHAB, and new members appear by themselves |
+| `feed` | `{item, ask?, refresh?, timeout?}` | a String item whose state is the whole list as JSON, written by a rule; the panel asks for it as the page opens, see [A list from one item](#a-list-from-one-item-feed) |
 | `metadata` | string | with `group`: a namespace of the members' item metadata (e.g. `plant`) that names, sorts and hides them and gives the rules their thresholds, see below |
 | `label` | string | with `metadata`: the row's label as a template of it, e.g. `{room} > {short_name}` (`{value}` the metadata's value, `{key}` a key of its config, `{label}` the item's label); default: the metadata's value |
-| `icon`, `color`, `value_color`, `value_style`, `format`, `factor` | | with `group`: apply to every row |
+| `icon`, `color`, `value_color`, `value_style`, `format`, `factor` | | with `group`: apply to every row; with `feed`: `icon`, `color` and `value_color` for rows without their own |
 | `style` | `list`, `cards`, `rows` | how the rows look (default `list`): `list` an icon, the label and the value right-aligned, a thin line between rows (7 a sheet); `cards` two columns of cards, the label small above the value (8 a sheet); `rows` each row on a card of its own (7 a sheet) |
 | `wide` | bool | the wide layout (longer values, no labels column; with `cards`: the value without its label) |
 | `scroll` | bool | a label too long for its field scrolls instead of ending in "..." (`list` and `rows`; values and wide rows still end in "...": the display scrolls 10 texts a page at most) |
@@ -507,6 +508,94 @@ A power in W, as kW from 1000 W on and red from 3000 W on:
  "value_style": [{"above": 3000, "format": "%.1f kW", "factor": 0.001, "color": "red"},
                  {"above": 999, "format": "%.1f kW", "factor": 0.001}]}
 ```
+
+#### A list from one item (`feed`)
+
+For a list a rule makes up, such as the next buses at the stops nearby, one
+String item holds all of its rows as JSON. The rule writes the whole list at
+once, so the page never shows half of an old one and half of a new one, and
+the number of rows is the rule's to choose.
+
+```json
+{"id": "buses", "type": "entities", "title": "Departures", "style": "rows", "icon": "bus",
+ "feed": {"item": "Bus_Departures", "refresh": 60}}
+```
+
+| `feed` | | |
+|---|---|---|
+| `item` | String item | holds the list (required) |
+| `ask` | bool | the panel asks for the list (default `true`); `false`: it only shows what a rule writes by itself |
+| `refresh` | seconds | while the page shows, ask again this often: `0` (default) only as it opens, else 10 to 3600 |
+| `timeout` | seconds | how long the panel waits for an answer, 2 to 120 (default 15) |
+
+**How the panel asks.** As the page opens, and as the screen wakes on it, the
+panel sends the item the command `refresh` and shows "Loading..." until a list
+comes. openHAB sets the item to `refresh` with the command (autoupdate, on by
+default: leave it on), so the list that follows is always a change and reaches
+every panel, even when it is the same as before. A list the same as the one
+shown draws nothing anew; one that differs changes only the rows that differ.
+Without an answer within `timeout` the page says "No answer from openHAB"
+above the list it had. With `refresh` the panel asks again while the page
+shows, and the list stays meanwhile; a list that comes from another panel's
+asking counts, so three panels on the same item ask about once per `refresh`,
+not three times. A rule may also write a list whenever it likes: the panels
+that show the page take it at once.
+
+**The list.** The rows, or an object with them and a note shown above them:
+
+```json
+[{"label": "12 Main station", "value": "3 min"},
+ {"label": "34 Fair", "value": "7 min", "value_color": "red", "icon": "tram"},
+ null,
+ {"label": "Line 5", "value": "cancelled today", "wide": true}]
+```
+
+```json
+{"note": "Line 34 runs every 20 minutes today",
+ "rows": [{"label": "12 Main station", "value": "3 min"}]}
+```
+
+A row has `label`, `value` (the text shown, as it is: no format), and may
+have `icon`, `color` (the icon's), `value_color`, `wide` and `scroll` as a
+fixed row; `null` is an empty line. Any state that is no such list (a text
+like "No connection to the transit API", or broken JSON) shows as it is, so
+the rule can say what went wrong. The panel takes at most 4096 bytes ("List
+too long" beyond) and 40 rows.
+
+**The rule** answers every `refresh`, also when it fetches nothing new: the
+panels that asked wait for it. It keeps the list it fetched last and fetches
+anew only when that is old, so that panels opening the page one after the
+other do not each ask the transit API:
+
+```
+String Bus_Departures "Departures"
+```
+
+```
+var String lastList = null
+var java.time.ZonedDateTime lastFetch = null
+
+rule "Departures for the panels"
+when
+    Item Bus_Departures received command refresh
+then
+    // the transit API at most every 30 s: in between the list from before
+    if (lastList === null || lastFetch.isBefore(now.minusSeconds(30))) {
+        val raw = sendHttpGetRequest("https://transit.example/departures?stop=1234", 5000)
+        if (raw === null) {
+            Bus_Departures.postUpdate("No connection to the transit API")
+            return
+        }
+        lastList = transform("JS", "departures.js", raw)   // the API's answer as the panel's rows
+        lastFetch = now
+    }
+    Bus_Departures.postUpdate(lastList)   // always: the panels wait for it
+end
+```
+
+A list kept fresh without the panel asking needs only a rule with
+`Time cron "0 * * * * ?"` that writes the item, and `"ask": false` on the
+page (or `ask` left on as well: the page then opens with the newest).
 
 ### `cover`
 

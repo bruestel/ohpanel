@@ -364,6 +364,7 @@ void task(void *) {
   Callbacks cb;
   cb.state = [](const std::string &item, appoh::ItemState &out) { return appoh::state(item, out); };
   cb.command = [](const std::string &item, const std::string &command) { appoh::send_command(item, command); };
+  cb.request = [](const std::string &item, const std::string &command) { appoh::send_request(item, command); };
   cb.secret_command = [](const std::string &item, const std::string &command) {
     appoh::send_command(item, command, true);
   };

@@ -43,6 +43,11 @@
       "label": "Outdoor temperature",
       "state": "14.2 °C"
     },
+    "Bus_Departures": {
+      "itype": "String",
+      "label": "Departures",
+      "state": "refresh"
+    },
     "Weather_Icon": {
       "itype": "String",
       "label": "Weather icon",

@@ -54,6 +54,33 @@ int main() {
   const std::string office = read("test/host/data/office.json");
   expect_valid("office example", office);
   expect_valid("minimal", "{\"version\":1}");
+  // an entity page's feed: one String item holds the list as JSON
+  const auto feed_page = [](const std::string &rest) {
+    return doc(R"("pages":[{"id":"p","type":"entities","title":"x",)" + rest + "}]");
+  };
+  expect_valid("feed", feed_page(R"("feed":{"item":"Bus"})"));
+  expect_valid("feed asked every minute", feed_page(R"("feed":{"item":"Bus","refresh":60,"timeout":10},"icon":"bus",)"
+                                                     R"("color":"yellow","style":"rows")"));
+  expect_valid("feed only pushed", feed_page(R"("feed":{"item":"Bus","ask":false})"));
+  expect_valid("feed refresh 0", feed_page(R"("feed":{"item":"Bus","refresh":0})"));
+  expect_valid("feed refresh 0 not asking", feed_page(R"("feed":{"item":"Bus","ask":false,"refresh":0})"));
+  expect_issue("feed without item", feed_page(R"("feed":{"refresh":60})"), "pages[0].feed.item");
+  expect_issue("feed with a bad item", feed_page(R"("feed":{"item":"Bus Stop"})"), "pages[0].feed.item");
+  expect_issue("feed not an object", feed_page(R"("feed":"Bus")"), "pages[0].feed");
+  expect_issue("feed with an unknown key", feed_page(R"("feed":{"item":"Bus","every":60})"), "pages[0].feed.every");
+  expect_issue("feed refresh too often", feed_page(R"("feed":{"item":"Bus","refresh":5})"), "pages[0].feed.refresh");
+  expect_issue("feed refresh not whole", feed_page(R"("feed":{"item":"Bus","refresh":60.5})"), "pages[0].feed.refresh");
+  expect_issue("feed timeout too long", feed_page(R"("feed":{"item":"Bus","timeout":600})"), "pages[0].feed.timeout");
+  expect_issue("feed refresh without asking", feed_page(R"("feed":{"item":"Bus","ask":false,"refresh":60})"),
+               "pages[0].feed.refresh");
+  expect_issue("feed timeout without asking", feed_page(R"("feed":{"item":"Bus","ask":false,"timeout":5})"),
+               "pages[0].feed.timeout");
+  expect_issue("feed and rows", feed_page(R"("feed":{"item":"Bus"},"rows":[{"item":"A"}])"), "pages[0]");
+  expect_issue("feed and group", feed_page(R"("feed":{"item":"Bus"},"group":"gBus")"), "pages[0]");
+  expect_issue("feed with rules", feed_page(R"("feed":{"item":"Bus"},"value_style":[{"equals":"x","color":"red"}])"),
+               "pages[0].value_style");
+  expect_issue("feed with metadata", feed_page(R"("feed":{"item":"Bus"},"metadata":"bus")"), "pages[0]");
+  expect_issue("entities without rows", feed_page(R"("style":"rows")"), "pages[0]");
   expect_valid("group with metadata",
                doc("\"pages\":[{\"id\":\"p\",\"type\":\"entities\",\"title\":\"x\",\"group\":\"gPlants\","
                    "\"metadata\":\"plant\",\"label\":\"{short_name} > {value}\",\"style\":\"rows\","

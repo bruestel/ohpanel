@@ -684,6 +684,17 @@
       ]
     },
     {
+      "id": "departures",
+      "type": "entities",
+      "title": "Departures",
+      "style": "rows",
+      "icon": "bus",
+      "feed": {
+        "item": "Bus_Departures",
+        "refresh": 60
+      }
+    },
+    {
       "id": "waste",
       "type": "entities",
       "title": "Waste collection",

@@ -65,6 +65,10 @@ void subscribe(const std::vector<std::string> &items, const std::vector<std::str
    keypad page): its value neither logged nor kept as the item's expected state. */
 bool send_command(const std::string &item, const std::string &command, bool secret = false);
 
+/* Queues a command whose state is not predicted: an entity page's feed asks with "refresh" -- the item is
+   the list, and a prediction expiring would bring the old one back as if it were the answer. */
+bool send_request(const std::string &item, const std::string &command);
+
 /* Queues a state update: sets the item without commanding anything behind it
    -- for values the panel measures (its temperature sensor). */
 bool send_state(const std::string &item, const std::string &state);

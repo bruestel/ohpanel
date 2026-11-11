@@ -74,6 +74,16 @@
     live.House_Power = house + ' W';
     live.Grid_Power = (house - solar + 1500) + ' W';
     live.Washer_Progress = Math.min(99, 62 + Math.floor(t / 20)) + ' %';
+    // the departures page's feed: the list a rule would write, the next buses of three lines every 10 to 20 minutes
+    const now = Date.now() / 60000;
+    const next = (every, offset) => Math.ceil((now - offset) / every) * every + offset - now;
+    live.Bus_Departures = JSON.stringify([
+      [12, 'Main station', 10, 3], [34, 'Fair', 15, 7], [5, 'Old town', 20, 1], [12, 'Main station', 10, 13]]
+      .map(([line, to, every, offset], k) => {
+        const m = Math.floor(next(every, offset) + (k === 3 ? 10 : 0));
+        return {label: line + ' ' + to, value: m < 1 ? 'now' : m + ' min', icon: line === 5 ? 'tram' : 'bus',
+                value_color: m < 3 ? 'yellow' : undefined};
+      }));
   }
   setInterval(tick, 2000);
   tick();

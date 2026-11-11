@@ -37,6 +37,7 @@ Engine::~Engine() {
   cJSON_Delete(config_);
   cJSON_Delete(weather_);
   forget_group_rows();
+  feed_reset();
 }
 
 /* `text` as it fits the field: cut with "..." where it is wider (the display
@@ -327,6 +328,7 @@ void Engine::send_theme() {
 
 void Engine::set_config(const std::string &json) {
   forget_group_rows();
+  feed_reset();   // its rows hold the page's icon and colours: made anew, and the list asked for again
   bindings_.clear();   // they point into the configuration going now: drawn again once the page is built anew
   cJSON_Delete(config_);
   config_ = cJSON_ParseWithLength(json.data(), json.size());
@@ -1025,6 +1027,7 @@ void Engine::open(const std::string &id, bool remember, bool last_sheet) {
   if (id == start_page())
     history_.clear();
   current_ = id;
+  feed_reset();   // a feed's list is asked for as its page opens
   // "only_on": the members on as the page opens (rows_of), so that a tile stays where it is while the page shows
   if (const auto it = group_rows_.find(id); it != group_rows_.end() && flag(page, "only_on")) {
     cJSON_Delete(it->second);
@@ -1218,6 +1221,7 @@ void Engine::on_page_loaded(const std::string &name) {
   }
   if (name == "blank") {  // the black page of the night: nothing on it
     expected_.clear();
+    feed_.asked = false;   // woken, a feed's list is asked for again
     return;
   }
   if (!started_ && name != expected_) {
@@ -1384,16 +1388,8 @@ void Engine::on_options(const std::string &item) {
         cJSON_Delete(it->second);
         group_rows_.erase(it);
       }
-  if (page && str(page, "group") == item && shown_ == template_of(page)) {
-    const cJSON *rows = rows_of(page);
-    const int count = cJSON_IsArray(rows) ? cJSON_GetArraySize(rows) : 0;
-    sheet_ = std::min(sheet_, std::max(0, (count - 1) / rows_per_sheet(page)));
-    if (type_of(page) == PageType::Buttons)
-      draw_buttons(page);
-    else
-      draw_entities(page, shown_);
-    draw_dots();   // in the swipe row its sheets are dots of the row
-  }
+  if (page && str(page, "group") == item && shown_ == template_of(page))
+    redraw_rows(page);
   // a cover group's members: the rows drawn again where they are (no page anew: no flicker)
   if (page && type_of(page) == PageType::Cover && shown_ == "covers" && str(page, "group") == item) {
     drawn_.clear();
@@ -1696,6 +1692,7 @@ void Engine::on_state(const std::string &item) {
     play_state();
   screen_item(item);
   follow_relays(&item);
+  feed_state(item);
   for (const auto &b : bindings_)
     if (b.item == item)
       b.draw();
@@ -1993,6 +1990,8 @@ void Engine::redraw_states() {
   follow_relays(nullptr);
   for (const auto &b : bindings_)
     b.draw();
+  if (const cJSON *page = feed_page())   // a feed's list is no binding: its state read again too
+    feed_state(str(member(page, "feed"), "item"));
 }
 
 void Engine::idle(int64_t now_ms) {
@@ -2025,6 +2024,7 @@ void Engine::idle(int64_t now_ms) {
     draw_rest_until_ms_ = now_ms + kDrawRestMs;   // then a rest: the display can report a touch
   }
   fade_tick();
+  feed_tick();
   if (wheel_pending_ && now_ms - wheel_sent_ms_ >= kSlideMs)
     send_wheel(true);
   if (colour_after_on_ && now_ms >= colour_after_on_->until_ms)

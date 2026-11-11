@@ -181,6 +181,8 @@ int Engine::rows_per_sheet(const cJSON *page) const {
    instead of the page's, and "order" sorts -- those without after the others,
    by label as openHAB's list has them. */
 const cJSON *Engine::rows_of(const cJSON *page) {
+  if (member(page, "feed"))
+    return feed_rows(page);   // the list an item holds (EngineFeed.cpp)
   const std::string group = str(page, "group");
   if (group.empty())
     return member(page, "rows");
@@ -266,6 +268,20 @@ void Engine::ask_group(const cJSON *page) {
   }
 }
 
+/* A list page's rows changed (a group's members, a feed's list): the page shown drawn again, on the sheet it
+   was on as far as there still is one. */
+void Engine::redraw_rows(const cJSON *page) {
+  const cJSON *rows = rows_of(page);
+  const int count = cJSON_IsArray(rows) ? cJSON_GetArraySize(rows) : 0;
+  sheet_ = std::min(sheet_, std::max(0, (count - 1) / rows_per_sheet(page)));
+  bindings_.clear();
+  if (type_of(page) == PageType::Buttons)
+    draw_buttons(page);
+  else
+    draw_entities(page, shown_);
+  draw_dots();   // in the swipe row its sheets are dots of the row
+}
+
 void Engine::forget_group_rows() {
   for (auto &[id, rows] : group_rows_)
     cJSON_Delete(rows);
@@ -287,6 +303,8 @@ void Engine::draw_entities(const cJSON *page, const std::string &physical) {
   const bool cards = physical == "entities_cards", list = physical == "entities";
   const int per = rows_per_sheet(page);
   ask_group(page);
+  if (member(page, "feed"))
+    ask_feed(page);   // as the page opens: "Loading..." until the list comes
   const cJSON *all = rows_of(page);
   const int sheets = sheets_of(page);
   // the sheets as dots at the bottom, the one shown full -- in the swipe row its dots instead (draw_dots), not these
