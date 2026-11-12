@@ -1549,6 +1549,10 @@ void Engine::on_event(const std::string &page, const std::string &component, con
   }
   if (value == "press")   // a finger down: the drawing rests until its release has come (kPressRestMs)
     draw_rest_until_ms_ = now_ms_ + kPressRestMs;
+  // a touch that did not move (the design reports it as a swipe "none"): someone is at the panel -- counted as such
+  // (on_message: it wakes a dimmed screen), nothing else; no swipe, so the release it may come with still counts
+  if (component == "swipe" && value == "none")
+    return;
   if (component == "swipe") {
     last_swipe_ms_ = now_ms_;
     pending_.reset();

@@ -293,7 +293,9 @@ def swipe_detection(page) -> None:
     moved ("left", "right", "up", "down"): a touch area over the whole page
     ("swipe") and a timer ("swipe_tm") that notes where the finger is while it touches
     (swipex, swipey in Program.s) -- when it lifts, the display still knows
-    where it came down (tch2, tch3)."""
+    where it came down (tch2, tch3). A touch that did not move is reported too
+    ("none"): someone is at the panel, which wakes a dimmed screen -- on a page
+    without a touch event of its own (home), a tap on an empty spot said nothing."""
     name = page.name
 
     code = ["swipe_tm.en=0", "sys0=swipex-tch2", "sys1=swipey-tch3"]
@@ -301,6 +303,7 @@ def swipe_detection(page) -> None:
                                        (f"sys1>{SWIPE_MIN}", "down"), (f"sys1<-{SWIPE_MIN}", "up"))):
         code += [f"if({test})" if k == 0 else f"}}else if({test})", "{"]
         code += ["  " + line for line in event(name, "swipe", value)]
+    code += ["}else", "{"] + ["  " + line for line in event(name, "swipe", "none")]
     new(page, TOUCH, "swipe").event("codesdown", ["swipex=tch0", "swipey=tch1", "swipe_tm.en=1"]).event(
         "codesup", code + ["}"])
     timer(page, "swipe_tm", SWIPE_TICK_MS, ["swipex=tch0", "swipey=tch1"])

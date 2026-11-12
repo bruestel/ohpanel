@@ -1386,6 +1386,10 @@ int main(int argc, char **argv) {
     // leaving the page while its logos come: nothing more drawn -- it would land on the next page
     e.on_message(event("buttons", "swipe", "left"));
     e.on_message(loaded("buttons"));
+    // a touch that did not move (a swipe "none"): no sheet back -- the favourites go back on anything but left / up
+    rec.out.clear();
+    e.on_message(event("buttons", "swipe", "none"));
+    CHECK(!rec.has(page_cmd("buttons")) && e.current() == "stations");
     e.on_message(event("buttons", "swipe", "right"));
     e.on_message(loaded("buttons"));
     CHECK(e.pending());
@@ -2163,6 +2167,18 @@ int main(int argc, char **argv) {
     e.on_message(event("home", "swipe", "none"));
     e.idle(t += 100);
     CHECK(e.brightness() == 70);
+    // a touch on a button that ends with a swipe "none" (the display may report both): the button still acts
+    e.release_wait(200);
+    e.idle(t += 31000);
+    CHECK(e.brightness() == 20);
+    e.on_message(event("home", "short1", "release"));
+    e.on_message(event("home", "swipe", "none"));
+    e.idle(t += 250);
+    CHECK(e.current() != "home" && e.brightness() == 70);
+    e.release_wait(0);
+    e.on_message(event(e.current() == "settings" ? "settings" : "buttons", "close", "release"));
+    e.on_message(loaded("home"));
+    CHECK(e.current() == "home");
     // openHAB changes it
     set_state("Panel_Bri", "55", "Percent", nullptr, 55, true);
     e.on_state("Panel_Bri");
