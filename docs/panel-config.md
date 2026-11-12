@@ -268,6 +268,13 @@ zero of a number (`%-H`, `%-I`, `%-d`, `%-m`). They apply to the clock and date 
 the home screen, weather dates and fields with `format`. Values openHAB
 formats itself (`displayState`) keep openHAB's format.
 
+Long names take room. The date on the home screen has 165 px on the EU panel
+and the US panel turned on its side, 296 px on the upright US panel; a date too
+wide ends in "…". On the upright US panel `%A, %e %B` ("Wednesday, 23
+September") fits in nearly every language. On the others a long weekday fits
+without the month: `%A %e` ("dimanche 28", "Wednesday 23"); a long month only
+where its names are short – the web interface's preview shows whether it fits.
+
 ## Home screen
 
 The start page, unless the swipe row begins with another one (see `swipe`). Taken out of the row, its clock,
