@@ -3662,12 +3662,16 @@ function fillWeather(page) {
 }
 
 /* The picture for a weather condition code, from the icon set the reference
-   names (boards/nspanel/nextion/weather-icons.json). */
+   names (boards/nspanel/nextion/weather-icons.json) -- a code it has as a whole
+   number only ("3.0" from a Number item) as that number (Engine::weather_icon). */
 function weatherPic(ref) {
   const set = LAYOUT.weather[(ref && ref.codes) || 'openweathermap'];
   if (!set) return undefined;
   const st = stateOf(ref);
-  return 'weather:' + (st && set.codes[st.state] !== undefined ? set.codes[st.state] : set.default);
+  let code = st ? st.state : undefined;
+  if (code !== undefined && set.codes[code] === undefined && /^\s*[-+]?\d+(\.0*)?\s*$/.test(code))
+    code = String(parseInt(code, 10));
+  return 'weather:' + (code !== undefined && set.codes[code] !== undefined ? set.codes[code] : set.default);
 }
 
 /* ---- icons ----

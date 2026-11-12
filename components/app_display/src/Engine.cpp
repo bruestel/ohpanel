@@ -21,6 +21,22 @@
 #include "EngineDetail.h"
 
 namespace appdisplay {
+
+namespace {
+/* `text` as a whole number ("3.0", " 3 ", "3.00" -> "3"); "" when it is none (a name such as "01d", "3.5"). */
+std::string whole_number(const std::string &text) {
+  const char *begin = text.c_str();
+  char *end = nullptr;
+  const double v = std::strtod(begin, &end);
+  if (end == begin)
+    return "";
+  while (*end == ' ' || *end == '\t')
+    end++;
+  if (*end || !std::isfinite(v) || v != std::floor(v) || std::fabs(v) > 1e9)
+    return "";
+  return std::to_string(static_cast<long>(v));
+}
+}  // namespace
 using namespace detail;
 
 
@@ -862,14 +878,21 @@ int Engine::picture(const std::string &slot, const std::string &name) const {
 }
 
 /* The weather icon for the condition code in `ref`'s item, from the icon set
-   it names (boards/nspanel/nextion/weather-icons.json: code -> icon name). */
+   it names (boards/nspanel/nextion/weather-icons.json: code -> icon name). A code
+   the set does not have as it is, but as a whole number ("3.0" from a Number item,
+   " 3"), counts as that number ("3"): a WMO code of Open-Meteo showed N/A. */
 std::string Engine::weather_icon(const cJSON *ref) const {
   const cJSON *set = member(weather_, str(ref, "codes", "openweathermap").c_str());
   if (!set)
     return "";
   std::string name = str(set, "default");
   if (has_state(ref)) {
-    const cJSON *icon = member(member(set, "codes"), state_of(ref).state.c_str());
+    const cJSON *codes = member(set, "codes");
+    const std::string state = state_of(ref).state;
+    const cJSON *icon = member(codes, state.c_str());
+    if (!cJSON_IsString(icon))
+      if (const std::string whole = whole_number(state); !whole.empty())
+        icon = member(codes, whole.c_str());
     if (cJSON_IsString(icon))
       name = icon->valuestring;
   }

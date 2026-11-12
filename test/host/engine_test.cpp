@@ -3711,6 +3711,30 @@ int main(int argc, char **argv) {
     if (g_failures) r.dump();
   }
 
+  {  // a weather code the set has as a whole number only: a Number item's "3.0" is WMO code 3 (GitHub #5: Open-Meteo
+     // showed N/A); a code that is no whole number keeps the set's default
+    Recorder r;
+    Engine w(r, cb);
+    CHECK(w.load_design(read("boards/nspanel/nextion/display-manifest-eu.json").c_str(),
+                        read("boards/nspanel/nextion/weather-icons.json").c_str()));
+    std::string cfg = read("test/host/data/office.json");
+    const std::string owm = "\"codes\": \"openweathermap\"";
+    cfg.replace(cfg.find(owm), owm.size(), "\"codes\": \"wmo\"");
+    w.set_config(cfg);
+    w.start();
+    w.idle(5000);
+    for (const auto &[state, type, icon] : {std::tuple{"3.0", "Decimal", "overcast"}, std::tuple{"3", "Decimal", "overcast"},
+                                            std::tuple{" 45.00 ", "String", "fog"}, std::tuple{"3.5", "Decimal", "not-available"}}) {
+      set_state("weatherCurrentConditionIconId", state, type, nullptr, std::atof(state), true);
+      r.out.clear();
+      w.on_message(loaded("home"));
+      CHECK(r.has(pic_cmd("weather_pic", "aurora", "weather_home", icon)));
+      if (!r.has(pic_cmd("weather_pic", "aurora", "weather_home", icon)))
+        std::fprintf(stderr, "    state \"%s\": not %s\n", state, icon);
+    }
+    set_state("weatherCurrentConditionIconId", "10d", "String");
+  }
+
   if (g_failures) {
     std::fprintf(stderr, "%d engine check(s) failed\n", g_failures);
     return 1;
