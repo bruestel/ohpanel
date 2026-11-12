@@ -948,6 +948,12 @@
           ]
         }
       ]
+    },
+    {
+      "id": "forecast",
+      "type": "weather",
+      "title": "Forecast (one item)",
+      "feed": {"item": "Weather_Days", "codes": "bom"}
     }
   ]
 }

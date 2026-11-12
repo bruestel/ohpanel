@@ -286,7 +286,8 @@ weather, status icons and info lines do not show; the hardware buttons still swi
 | `values` | up to 2 value rows | below the weather: an icon and a value each, `{"item", "icon"?, "color"?, "format"?, "factor"?, "decimals"?, "value_style"?}` (`indoor_temperature: {item}` is the older name of the first, with a house as its icon) |
 | `outdoor_temperature` | `{item, decimals?}` | beside the weather icon, large, on the clock's line; a temperature as weather apps show it (`17°`) |
 | `outdoor_low`, `outdoor_high` | `{item, decimals?}` | today's low and high under it, on the date's line, each after an arrow (`↓9° ↑22°`; up to `-12°` for the low), e.g. items linked to a weather add-on's daily forecast for today (OpenWeatherMap: `forecastToday#max-temperature` / `#min-temperature`) |
-| `weather_icon` | `{item, codes}` | an item holding a weather condition code; `codes` names the code set of the openHAB channel the item is linked to (`boards/nspanel/nextion/weather-icons.json`): `openweathermap` (default; OpenWeatherMap and Open-Meteo `icon-id`: `01d`, `10n`, ...), `openweathermap-condition` (OpenWeatherMap `condition-id`, 200 ... 804), `weathercompany` (`iconCode` 0 ... 47), `meteoblue` (`condition`, pictocode 1 ... 17), `smhi` (`symbol_code`), `fmi` (FMI `weather-id`), `wmo` (Open-Meteo `weather-code`), `darksky` (Pirate Weather `icon-id`, Visual Crossing `icon`). The icons are [Meteocons](https://github.com/basmilius/weather-icons) (fill). |
+| `weather_feed` | `{item, codes}` | today's icon, high and low (and the temperature now) from the days a rule writes to one item, as a weather page's `feed` (see [`weather`](#weather)); a value set with its own item above still counts |
+| `weather_icon` | `{item, codes}` | an item holding a weather condition code; `codes` names the code set of the openHAB channel the item is linked to (`boards/nspanel/nextion/weather-icons.json`): `openweathermap` (default; OpenWeatherMap and Open-Meteo `icon-id`: `01d`, `10n`, ...), `openweathermap-condition` (OpenWeatherMap `condition-id`, 200 ... 804), `weathercompany` (`iconCode` 0 ... 47), `meteoblue` (`condition`, pictocode 1 ... 17), `smhi` (`symbol_code`), `fmi` (FMI `weather-id`), `wmo` (Open-Meteo `weather-code`), `darksky` (Pirate Weather `icon-id`, Visual Crossing `icon`), `bom` (Australia's Bureau of Meteorology `icon_descriptor`: `sunny`, `partly_cloudy`, `shower`, ...). The icons are [Meteocons](https://github.com/basmilius/weather-icons) (fill). |
 | `weather_page` | page id | opened by tapping the weather icon |
 | `clock_page` | page id | opened by tapping the clock or the date |
 | `status_icons` | up to 10 indicators | the small icons in the top row |
@@ -985,6 +986,116 @@ icon, the value, a small label: wind, rain, UV, ...).
 A page of one day in the old form (`day`, `icon`, `min`, `max`, `condition`, `extras` on
 the page itself) still works; the web interface turns it into `days` on
 its first change. The home screen's `weather_page` opens the first day.
+
+**The days from one item.** Instead of `days`, `feed` names a String item a
+rule writes the days to as JSON – from any source: a weather API, a binding's
+time series, BOM's forecast:
+
+```json
+{"id": "weather", "type": "weather", "title": "Weather", "feed": {"item": "Weather_Days", "codes": "bom"}}
+```
+
+```json
+{"codes": "bom", "now": {"temp": 24},
+ "days": [{"date": "2026-11-13", "max": 30, "min": 22, "icon": "shower", "condition": "Shower or two.",
+           "extras": [{"icon": "weather-rainy", "value": "80 %", "label": "Rain"},
+                      {"icon": "weather-sunny-alert", "value": "11", "label": "UV"}]}]}
+```
+
+| Key | Value | |
+|---|---|---|
+| `days` | up to 7 | the days, each as follows |
+| `date` | `"2026-11-13"` | the local day: its title (today, tomorrow, the weekday) and date; days before today are left out, so a list from yesterday still starts today. Without it the first day is today |
+| `max`, `min` | number | degrees, shown whole ("30°"); a text is shown as it is |
+| `icon` | code | a condition code of the icon set (`codes` of the day, of the JSON, else the page's `feed.codes`) |
+| `condition`, `title` | text | the condition in words; a title of its own |
+| `extras` | up to 6 `{"icon", "value", "label", "color"}` | the cards; `value` a text or a number |
+| `now.temp` | number | the temperature now: home's when `weather_feed` names the item and `outdoor_temperature` is not set |
+
+The page shows a day when the item changes and when a day begins; an item
+not set yet shows "–", a text that is no such JSON (or more than 6 KB) shows
+as it is. The home screen takes today's icon, high and low from the same
+item with `"weather_feed": {"item": "Weather_Days", "codes": "bom"}`.
+
+A rule for the Bureau of Meteorology's forecast (JavaScript Scripting): `BOMdata`
+holds the daily forecast as it comes from BOM's API, as
+[openhab3-BOM-program](https://github.com/ubeaut/openhab3-BOM-program) writes it:
+
+```javascript
+rules.JSRule({
+  name: 'OHpanel weather from BOM',
+  triggers: [triggers.ItemStateChangeTrigger('BOMdata')],
+  execute: () => {
+    let bom;
+    try {
+      bom = JSON.parse(items.BOMdata.state);
+    } catch (e) {
+      items.Weather_Days.postUpdate('BOM data not readable');
+      return;
+    }
+    const days = (bom.data || []).slice(0, 7).map(d => {
+      // BOM's date is the local midnight in UTC: the day it is here
+      const day = {date: time.toZDT(d.date).toLocalDate().toString(), icon: d.icon_descriptor, condition: d.short_text};
+      if (d.temp_max !== null) day.max = d.temp_max;
+      if (d.temp_min !== null) day.min = d.temp_min;
+      day.extras = [];
+      if (d.rain && d.rain.chance !== null)
+        day.extras.push({icon: 'weather-rainy', value: d.rain.chance + ' %', label: 'Rain'});
+      if (d.rain && d.rain.amount && d.rain.amount.max)
+        day.extras.push({icon: 'water', value: (d.rain.amount.min || 0) + '–' + d.rain.amount.max + ' mm', label: 'Amount'});
+      if (d.uv && d.uv.max_index !== null)
+        day.extras.push({icon: 'weather-sunny-alert', value: String(d.uv.max_index), label: 'UV'});
+      return day;
+    });
+    const out = {codes: 'bom', days};
+    const now = bom.data && bom.data[0] && bom.data[0].now;
+    if (now && now.temp_now !== null && now.temp_now !== undefined)
+      out.now = {temp: now.temp_now};
+    items.Weather_Days.postUpdate(JSON.stringify(out));
+  }
+});
+```
+
+A rule for the Open-Meteo binding's daily time series (the binding's default):
+the coming days of its items (linked to the `forecastDaily` channels) are kept
+only by a persistence service that stores the future – install one such as
+In-Memory or InfluxDB and give the items the `forecast` strategy; rrd4j stores
+no future. (The binding's `dailySplit` gives an item per day instead:
+those go into `days` as they are, without a rule.)
+
+```javascript
+const SERVICE = 'inmemory';   // the persistence service with the forecast
+const DAYS = 7;
+
+function byDay(item, from, to) {   // the item's values from today on, by local day ("2026-11-13" -> value)
+  const out = {};
+  for (const p of items[item].persistence.getAllStatesBetween(from, to, SERVICE))
+    out[p.timestamp.toLocalDate().toString()] = p.numericState;
+  return out;
+}
+
+rules.JSRule({
+  name: 'OHpanel weather from Open-Meteo',
+  triggers: [triggers.GenericCronTrigger('0 5 * * * ?'), triggers.SystemStartlevelTrigger(100)],
+  execute: () => {
+    const from = time.toZDT().withHour(0).withMinute(0).withSecond(0).withNano(0);
+    const to = from.plusDays(DAYS);
+    const max = byDay('OM_TempMax', from, to), min = byDay('OM_TempMin', from, to);
+    const code = byDay('OM_WeatherCode', from, to), rain = byDay('OM_RainChance', from, to);
+    const days = [];
+    for (let k = 0; k < DAYS; k++) {
+      const date = from.plusDays(k).toLocalDate().toString();
+      if (max[date] === undefined && code[date] === undefined)
+        continue;
+      const day = {date, max: max[date], min: min[date], icon: code[date]};
+      if (rain[date] !== undefined)
+        day.extras = [{icon: 'weather-rainy', value: Math.round(rain[date]) + ' %', label: 'Rain'}];
+      days.push(day);
+    }
+    items.Weather_Days.postUpdate(JSON.stringify({codes: 'wmo', days}));
+  }
+});
+```
 
 ### `qr`
 

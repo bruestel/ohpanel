@@ -20,7 +20,8 @@ using namespace detail;
 
 std::vector<const cJSON *> Engine::days_of(const cJSON *page) const {
   std::vector<const cJSON *> out;
-  const cJSON *days = member(page, "days");
+  // "feed": the days a rule writes to one item (EngineFeed.cpp), else those of "days"
+  const cJSON *days = member(page, "feed") ? member(weather_feed(member(page, "feed")), "days") : member(page, "days");
   for (const cJSON *d = cJSON_IsArray(days) ? days->child : nullptr; d; d = d->next)
     if (cJSON_IsObject(d))
       out.push_back(d);
@@ -60,14 +61,18 @@ void Engine::draw_weather(const cJSON *page) {
     vis("dots", n > 1);
   }
 
+  // the icon: shown once it has the icon of the background in use; a day without one (a feed's that says why there
+  // are none) shows none -- said each time, as the page may be drawn again over itself (a weather feed's change)
   const cJSON *icon = member(d, "icon");
-  bind(icon, [this, icon] {
-    const int pic = weather_pic(icon, "weather_page");
-    if (pic >= 0) {   // shown once it has the icon of the background in use
-      num("weather_pic", "pic", pic);
-      vis("weather_pic", true);
-    }
-  });
+  if (!icon)
+    vis("weather_pic", false);
+  else
+    bind(icon, [this, icon] {
+      const int pic = weather_pic(icon, "weather_page");
+      if (pic >= 0)
+        num("weather_pic", "pic", pic);
+      vis("weather_pic", pic >= 0);
+    });
   const auto degrees = [this](const cJSON *ref) {
     std::string number, unit;
     number_and_unit(ref, number, unit);

@@ -410,6 +410,11 @@
       "itype": "String",
       "label": "Alarm command",
       "state": "NULL"
+    },
+    "Weather_Days": {
+      "itype": "String",
+      "label": "Weather days (a rule writes them)",
+      "state": ""
     }
   },
   "groups": {

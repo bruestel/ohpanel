@@ -36,6 +36,30 @@ constexpr int kMaxFeedRows = 40;         // more rows are left out
 constexpr int kFeedTimeoutS = 15;        // "timeout" when not set
 constexpr const char *kRefresh = "refresh";
 
+/* A number as a rule's JSON has it, in the display language's decimal separator, never as an exponent: whole
+   numbers without decimals, others with up to `decimals` (-1: as many as it has, up to 10 digits). */
+std::string number_text(double v, char decimal, int decimals = -1) {
+  char buf[40];
+  if (decimals >= 0 && std::fabs(v) < 1e15)
+    v = std::round(v * std::pow(10, decimals)) / std::pow(10, decimals);
+  if (std::fabs(v) < 1e15 && v == std::trunc(v))
+    std::snprintf(buf, sizeof buf, "%.0f", v == 0 ? 0.0 : v);   // no "-0"
+  else if (decimals >= 0)
+    std::snprintf(buf, sizeof buf, "%.*f", decimals, v);
+  else
+    std::snprintf(buf, sizeof buf, "%.10g", v);
+  if (char *dot = std::strchr(buf, '.'))
+    *dot = decimal;
+  return buf;
+}
+
+/* A value of a rule's JSON as the text shown: a text as it is, a number in the decimal separator, else nothing. */
+std::string value_text(const cJSON *v, char decimal) {
+  if (const char *s = cJSON_GetStringValue(v))
+    return s;
+  return cJSON_IsNumber(v) ? number_text(v->valuedouble, decimal) : std::string();
+}
+
 /* A row the panel draws from one of the list: its own keys only, the value as the row's fixed text (a number in
    the display language's decimal separator). */
 cJSON *feed_row(const cJSON *in, const cJSON *page, char decimal) {
@@ -47,21 +71,7 @@ cJSON *feed_row(const cJSON *in, const cJSON *page, char decimal) {
   for (const char *key : {"label", "icon", "badge", "color", "value_color"})
     if (const char *s = cJSON_GetStringValue(cJSON_GetObjectItem(in, key)))
       cJSON_AddStringToObject(row, key, s);
-  const cJSON *v = cJSON_GetObjectItem(in, "value");
-  if (const char *s = cJSON_GetStringValue(v)) {
-    cJSON_AddStringToObject(row, "text", s);
-  } else if (cJSON_IsNumber(v)) {
-    char buf[40];
-    if (std::fabs(v->valuedouble) < 1e15 && v->valuedouble == std::trunc(v->valuedouble))
-      std::snprintf(buf, sizeof buf, "%.0f", v->valuedouble);
-    else
-      std::snprintf(buf, sizeof buf, "%.10g", v->valuedouble);
-    if (char *dot = std::strchr(buf, '.'))
-      *dot = decimal;
-    cJSON_AddStringToObject(row, "text", buf);
-  } else {
-    cJSON_AddStringToObject(row, "text", "");
-  }
+  cJSON_AddStringToObject(row, "text", value_text(cJSON_GetObjectItem(in, "value"), decimal).c_str());
   for (const char *key : {"wide", "scroll"})
     if (const cJSON *b = cJSON_GetObjectItem(in, key); cJSON_IsBool(b))
       cJSON_AddBoolToObject(row, key, cJSON_IsTrue(b));
@@ -259,6 +269,233 @@ void Engine::feed_redraw(const cJSON *page) {
   feed_.view = nullptr;
   if (shown_ == template_of(page))
     redraw_rows(page);
+}
+
+// ------------------------------------------------------------ weather feed --
+
+namespace {
+constexpr size_t kMaxWeatherBytes = 6144;   // the item's text: more is refused ("List too long")
+constexpr int kMaxWeatherDays = 7;
+constexpr int kMaxWeatherExtras = 6;
+
+/* Days since 1970-01-01 of a civil date (H. Hinnant's days_from_civil). */
+long days_from_civil(int y, int m, int d) {
+  y -= m <= 2;
+  const long era = (y >= 0 ? y : y - 399) / 400;
+  const unsigned yoe = static_cast<unsigned>(y - era * 400);
+  const unsigned doy = (153 * (m + (m > 2 ? -3 : 9)) + 2) / 5 + d - 1;
+  const unsigned doe = yoe * 365 + yoe / 4 - yoe / 100 + doy;
+  return era * 146097 + static_cast<long>(doe) - 719468;
+}
+
+/* "2026-11-13" (anything after the day ignored) as days since 1970; -1 if it is none. */
+long date_day(const char *s) {
+  int y, m, d;
+  if (!s || std::sscanf(s, "%4d-%2d-%2d", &y, &m, &d) != 3 || m < 1 || m > 12 || d < 1 || d > 31)
+    return -1;
+  return days_from_civil(y, m, d);
+}
+
+/* A temperature of the JSON as a fixed value: a number in whole degrees with "°" after it (the fields have room for no
+   more), a text as it is. */
+cJSON *temperature(const cJSON *v, char decimal) {
+  if (!cJSON_IsNumber(v) && !cJSON_IsString(v))
+    return nullptr;
+  cJSON *ref = cJSON_CreateObject();
+  if (cJSON_IsNumber(v)) {
+    cJSON_AddStringToObject(ref, "text", number_text(v->valuedouble, decimal, 0).c_str());   // whole degrees, as an item's by default
+    cJSON_AddStringToObject(ref, "unit", "°");
+  } else {
+    cJSON_AddStringToObject(ref, "text", v->valuestring);
+  }
+  return ref;
+}
+}  // namespace
+
+/* Today as days since 1970 in local time; -1 while the panel has no time. */
+long Engine::local_day() const {
+  if (now_ < 1000000000)
+    return -1;
+  struct tm t;
+  localtime_r(&now_, &t);
+  return days_from_civil(t.tm_year + 1900, t.tm_mon + 1, t.tm_mday);
+}
+
+/* The days of a weather feed ({"item", "codes"}): made from the item's state the first time they are asked for. */
+const cJSON *Engine::weather_feed(const cJSON *ref) const {
+  const std::string item = str(ref, "item");
+  if (item.empty())
+    return nullptr;
+  const std::string codes = str(ref, "codes"), key = item + "|" + codes;
+  auto it = weather_feeds_.find(key);
+  if (it == weather_feeds_.end()) {
+    WeatherFeed f;
+    appoh::ItemState st;
+    if (cb_.state && cb_.state(item, st) && !st.undefined()) {
+      f.raw = std::move(st.state);
+      f.have = true;
+    }
+    f.today = local_day();
+    f.view = weather_feed_build(f, codes);
+    it = weather_feeds_.emplace(key, std::move(f)).first;
+  }
+  return it->second.view;
+}
+
+/* {"days": [...], "now": {...}}: each day as a day of "days" has it, with fixed values -- {"day": days ahead, "title",
+   "icon": {"code", "codes"}, "max", "min", "condition": {"text"}, "extras": [{"icon", "label", "color", "text"}]};
+   none (no state yet, too long, no such JSON): one day that says so. */
+cJSON *Engine::weather_feed_build(const WeatherFeed &f, const std::string &codes) const {
+  cJSON *view = cJSON_CreateObject();
+  cJSON *days = cJSON_AddArrayToObject(view, "days");
+  const char decimal = settings_.decimal;
+  std::string note;
+  cJSON *doc = nullptr;
+  if (!f.have || f.raw.empty())
+    note = settings_.texts.undefined;
+  else if (f.raw.size() > kMaxWeatherBytes)
+    note = settings_.texts.feed_too_long;
+  else if (!cJSON_IsArray(cJSON_GetObjectItem(doc = cJSON_ParseWithLength(f.raw.data(), f.raw.size()), "days")))
+    note = f.raw;   // the rule's text (an error, say), or broken JSON
+  if (note.empty()) {
+    const std::string set = str(doc, "codes", codes.c_str());
+    int i = -1, n = 0;   // i: the days of the list so far (what is no day does not count)
+    for (const cJSON *in = cJSON_GetObjectItem(doc, "days")->child; in && n < kMaxWeatherDays; in = in->next) {
+      if (!cJSON_IsObject(in))
+        continue;
+      i++;
+      const long date = date_day(cJSON_GetStringValue(cJSON_GetObjectItem(in, "date")));
+      const long ahead = date >= 0 && f.today >= 0 ? date - f.today : i;   // without a date: the first is today
+      if (ahead < 0 || ahead > 15)   // gone (a list from yesterday), or beyond a forecast's reach
+        continue;
+      cJSON *d = cJSON_CreateObject();
+      cJSON_AddNumberToObject(d, "day", static_cast<double>(ahead));
+      if (const char *t = cJSON_GetStringValue(cJSON_GetObjectItem(in, "title")))
+        cJSON_AddStringToObject(d, "title", t);
+      if (const std::string code = value_text(cJSON_GetObjectItem(in, "icon"), '.'); !code.empty()) {
+        cJSON *icon = cJSON_AddObjectToObject(d, "icon");
+        cJSON_AddStringToObject(icon, "code", code.c_str());
+        if (const std::string c = str(in, "codes", set.c_str()); !c.empty())   // none: the default set
+          cJSON_AddStringToObject(icon, "codes", c.c_str());
+      }
+      for (const char *key : {"max", "min"})
+        if (cJSON *t = temperature(cJSON_GetObjectItem(in, key), decimal))
+          cJSON_AddItemToObject(d, key, t);
+      if (const char *c = cJSON_GetStringValue(cJSON_GetObjectItem(in, "condition")); c && *c)
+        cJSON_AddStringToObject(cJSON_AddObjectToObject(d, "condition"), "text", c);
+      const cJSON *extras = cJSON_GetObjectItem(in, "extras");
+      cJSON *out = nullptr;
+      int k = 0;
+      for (const cJSON *e = cJSON_IsArray(extras) ? extras->child : nullptr; e && k < kMaxWeatherExtras; e = e->next) {
+        if (!cJSON_IsObject(e))
+          continue;
+        if (!out)
+          out = cJSON_AddArrayToObject(d, "extras");
+        cJSON *x = cJSON_CreateObject();
+        for (const char *key : {"icon", "label", "color"})
+          if (const char *v = cJSON_GetStringValue(cJSON_GetObjectItem(e, key)))
+            cJSON_AddStringToObject(x, key, v);
+        cJSON_AddStringToObject(x, "text", value_text(cJSON_GetObjectItem(e, "value"), decimal).c_str());
+        cJSON_AddItemToArray(out, x);
+        k++;
+      }
+      cJSON_AddItemToArray(days, d);
+      n++;
+    }
+    // the temperature now (home's outdoor temperature, when it has no item of its own)
+    if (cJSON *t = temperature(cJSON_GetObjectItem(cJSON_GetObjectItem(doc, "now"), "temp"), decimal))
+      cJSON_AddItemToObject(view, "now", t);
+    if (!cJSON_GetArraySize(days))   // none from today on (an old list, an empty one): said so as for no state
+      note = settings_.texts.undefined;
+  }
+  cJSON_Delete(doc);
+  if (!note.empty()) {   // a day that says why there are none
+    cJSON *d = cJSON_CreateObject();
+    cJSON_AddNumberToObject(d, "day", 0);
+    cJSON_AddBoolToObject(d, "note", true);
+    cJSON_AddStringToObject(cJSON_AddObjectToObject(d, "condition"), "text", note.c_str());
+    cJSON_AddItemToArray(days, d);
+  }
+  return view;
+}
+
+/* Whether the page shown draws from the weather feed of `item` (home's, or the weather page's). */
+bool Engine::shows_weather_feed(const std::string &item) const {
+  if (current_ == "home")
+    return shown_ == "home" && str(member(member(config_, "home"), "weather_feed"), "item") == item;
+  const cJSON *page = page_config(current_);
+  return type_of(page) == PageType::Weather && shown_ == "weather" && str(member(page, "feed"), "item") == item;
+}
+
+/* The item of a weather feed changed (or a day began: `day_begun`, every feed): its days made anew, and what shows them
+   drawn again over itself -- home's weather block, the weather page's day --, each field said shown or hidden again.
+   The days going are bound to nothing (a feed's values have no item): nothing holds them once drawn. */
+void Engine::weather_feed_state(const std::string &item, bool day_begun) {
+  std::vector<cJSON *> going;
+  std::vector<std::string> changed;
+  const long today = local_day();
+  for (auto &[key, f] : weather_feeds_) {
+    const std::string of = key.substr(0, key.find('|'));
+    if (!day_begun && of != item)
+      continue;
+    appoh::ItemState st;
+    const bool have = cb_.state && cb_.state(of, st) && !st.undefined();
+    if (have == f.have && (!have || st.state == f.raw) && today == f.today)
+      continue;
+    f.have = have;
+    f.raw = have ? std::move(st.state) : std::string();
+    f.today = today;
+    going.push_back(f.view);
+    f.view = weather_feed_build(f, key.substr(key.find('|') + 1));
+    changed.push_back(of);
+  }
+  for (const std::string &of : changed)
+    if (shows_weather_feed(of)) {
+      if (current_ == "home") {
+        draw_home_weather(member(config_, "home"), false);
+      } else {
+        if (day_begun)   // the day shown stays the one shown: a sheet nearer now (draw_weather keeps it in the list)
+          sheet_ = std::max(0, sheet_ - 1);
+        draw_weather(page_config(current_));
+        draw_dots();   // in the swipe row its sheets are dots of the row: as many as there are days now
+      }
+      break;
+    }
+  for (cJSON *v : going)
+    cJSON_Delete(v);
+}
+
+/* A day begun (midnight, or the time came): the days before it go from the weather feeds. */
+void Engine::weather_feed_tick() {
+  const long today = local_day();
+  if (today == weather_day_)
+    return;
+  weather_day_ = today;
+  if (!weather_feeds_.empty())
+    weather_feed_state("", true);
+}
+
+void Engine::weather_feeds_reset() {
+  for (auto &[key, f] : weather_feeds_)
+    cJSON_Delete(f.view);
+  weather_feeds_.clear();
+}
+
+/* A value of the weather block on home: its own item ("weather_icon", "outdoor_high", "outdoor_low",
+   "outdoor_temperature"), else today's from the weather feed ("weather_feed"). */
+const cJSON *Engine::home_weather(const cJSON *home, const char *key) const {
+  if (const cJSON *own = member(home, key))
+    return own;
+  const cJSON *view = weather_feed(member(home, "weather_feed"));
+  if (!view)
+    return nullptr;
+  if (std::strcmp(key, "outdoor_temperature") == 0)
+    return member(view, "now");
+  const char *from = std::strcmp(key, "weather_icon") == 0 ? "icon" : std::strcmp(key, "outdoor_high") == 0 ? "max" : "min";
+  for (const cJSON *d = member(view, "days") ? member(view, "days")->child : nullptr; d; d = d->next)
+    if (!member(d, "note") && cJSON_IsNumber(member(d, "day")) && member(d, "day")->valueint == 0)
+      return member(d, from);
+  return nullptr;
 }
 
 }  // namespace appdisplay

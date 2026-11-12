@@ -3207,6 +3207,7 @@ function ruleStyle(rules, ref) {
 /* A number as a figure and its unit apart, rounded to "decimals" (default 0);
    anything else whole (Engine::number_and_unit). */
 function numberUnit(ref, style) {
+  if (ref && ref.text !== undefined) return [ref.text, ref.unit || ''];   // a fixed value (a weather feed's day)
   const st = stateOf(ref);
   if (style && style.format) return [shown(ref, null, style), ''];
   if (!st || ref.format || ref.text !== undefined || !['Quantity', 'Decimal', 'Percent'].includes(st.type)
@@ -3252,12 +3253,14 @@ function fillHome(cfg) {
   f.date = {text: strftime(disp.date, now), color: THEME.dim};
   f.ampm = {text: disp.time.includes('%p') ? strftime('%p', now) : ''};
   // without an item they do not show (Engine::draw_home)
-  f.weather_pic = h.weather_icon ? {pic: weatherPic(h.weather_icon)} : {hide: true};
+  const wIcon = homeWeather(h, 'weather_icon'), wNow = homeWeather(h, 'outdoor_temperature');
+  const wLow = homeWeather(h, 'outdoor_low'), wHigh = homeWeather(h, 'outdoor_high');
+  f.weather_pic = wIcon ? {pic: weatherPic(wIcon)} : {hide: true};
   // outdoors as weather apps show it: "°" without the scale, in the number's size and colour; another
   // unit small after it (Engine::draw_home)
   const degrees = unit => unit.startsWith('°') ? '°' : unit;
-  if (h.outdoor_temperature) {
-    const [num, unit] = numberUnit(h.outdoor_temperature);
+  if (wNow) {
+    const [num, unit] = numberUnit(wNow);
     const sign = degrees(unit) === '°';
     f.outdoor = {text: sign ? num + '°' : num};
     placeUnit(f, 'outdoor_u', num, sign ? '' : unit);
@@ -3269,7 +3272,7 @@ function fillHome(cfg) {
   // wide as it, the high's arrow and value right after it (place 0, in front, without a low)
   const r = LAYOUT.range || {}, rn = r.n || 0, rstep = r.step || 1;
   const rtext = ref => { const [num, unit] = numberUnit(ref), u = degrees(unit); return num + (u && u !== '°' ? ' ' : '') + u; };
-  const low = h.outdoor_low ? rtext(h.outdoor_low) : null, high = h.outdoor_high ? rtext(h.outdoor_high) : null;
+  const low = wLow ? rtext(wLow) : null, high = wHigh ? rtext(wHigh) : null;
   const rk = low === null ? 0 : Math.max(1, Math.min(rn, Math.ceil((textWidth(low, r.font) || 0) / rstep)));
   f.low_arrow = low === null ? {hide: true} : {icon: 'arrow-down', color: THEME.dim};
   for (let j = 0; j <= rn; j++) {
@@ -3636,9 +3639,68 @@ function fillSettings(page) {
   };
 }
 
-/* A weather page's days: its "days", or the page itself (one day, as before "days" came). */
+/* A weather page's days: those a rule writes to its feed item, its "days", or the page itself (one day, as before
+   "days" came). */
 function daysOf(page) {
+  if (page.feed) return weatherFeed(page.feed).days;
   return Array.isArray(page.days) && page.days.length ? page.days : [page];
+}
+
+/* The days of a weather feed ({item, codes}) as the panel makes them (EngineFeed.cpp Engine::weather_feed_build): the
+   item's JSON {"days": [{date, max, min, icon, condition, extras}], "now": {temp}} as days of fixed values, those before
+   today left out; none: one day that says why. */
+const WEATHER_FEED_MAX_BYTES = 6144;
+function weatherFeed(ref) {
+  const st = ref && ref.item ? liveStates[ref.item] : null, t = disp.texts;
+  const dec = langOf(disp.lang).decimal;
+  const temp = v => typeof v === 'number' ? {text: String(Math.sign(v) * Math.round(Math.abs(v)) || 0), unit: '°'}   // as C's round()
+                  : typeof v === 'string' ? {text: v} : undefined;
+  const text = v => typeof v === 'string' ? v : typeof v === 'number' ? (Number.isInteger(v) ? String(v) : String(+v.toPrecision(10))).replace('.', dec) : '';
+  const note = msg => ({days: [{day: 0, note: true, condition: {text: msg}}]});
+  const raw = st && st.type !== 'UnDef' ? st.state : '';
+  if (!raw) return note(t.undefined);
+  if (new TextEncoder().encode(raw).length > WEATHER_FEED_MAX_BYTES) return note(t.feed_too_long);
+  let doc = null;
+  try { doc = JSON.parse(raw); } catch (e) { doc = null; }
+  if (!doc || typeof doc !== 'object' || !Array.isArray(doc.days)) return note(raw);
+  const set = typeof doc.codes === 'string' ? doc.codes : ref.codes;
+  const now = new Date(), today = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()) / 86400000;
+  const days = [];
+  let i = -1;   // the days of the list so far (what is no day does not count), as the panel counts them
+  doc.days.forEach(d => {
+    if (days.length >= 7 || !d || typeof d !== 'object' || Array.isArray(d)) return;
+    i++;
+    const m = typeof d.date === 'string' ? /^(\d{4})-(\d{2})-(\d{2})/.exec(d.date) : null;
+    const ahead = m ? Date.UTC(+m[1], +m[2] - 1, +m[3]) / 86400000 - today : i;
+    if (ahead < 0 || ahead > 15) return;
+    const day = {day: ahead};
+    if (typeof d.title === 'string') day.title = d.title;
+    if (typeof d.icon === 'string' || typeof d.icon === 'number') {
+      const c = typeof d.codes === 'string' ? d.codes : set;
+      day.icon = Object.assign({code: String(d.icon)}, c ? {codes: c} : {});
+    }
+    for (const k of ['max', 'min']) if (temp(d[k])) day[k] = temp(d[k]);
+    if (typeof d.condition === 'string' && d.condition) day.condition = {text: d.condition};
+    if (Array.isArray(d.extras))
+      day.extras = d.extras.filter(e => e && typeof e === 'object' && !Array.isArray(e)).slice(0, 6)
+        .map(e => ({icon: typeof e.icon === 'string' ? e.icon : '', label: typeof e.label === 'string' ? e.label : '',
+                    color: typeof e.color === 'string' ? e.color : undefined, text: text(e.value)}));
+    days.push(day);
+  });
+  const out = days.length ? {days} : note(t.undefined);
+  const nowTemp = doc.now && typeof doc.now === 'object' ? temp(doc.now.temp) : undefined;
+  if (nowTemp) out.now = nowTemp;
+  return out;
+}
+
+/* A value of home's weather block: its own item, else today's from the weather feed (Engine::home_weather). */
+function homeWeather(h, key) {
+  if (h[key]) return h[key];
+  if (!h.weather_feed) return undefined;
+  const v = weatherFeed(h.weather_feed);
+  if (key === 'outdoor_temperature') return v.now;
+  const today = v.days.find(d => !d.note && d.day === 0);
+  return today ? today[{weather_icon: 'icon', outdoor_high: 'max', outdoor_low: 'min'}[key]] : undefined;
 }
 
 /* A day of the forecast, the sheet shown (Engine::draw_weather): its title (else today, tomorrow, its weekday) and
@@ -3697,7 +3759,7 @@ function fillWeather(page) {
 function weatherPic(ref) {
   const set = LAYOUT.weather[(ref && ref.codes) || 'openweathermap'];
   if (!set) return undefined;
-  const st = stateOf(ref);
+  const st = ref && ref.code !== undefined ? {state: ref.code} : stateOf(ref);   // a weather feed's day: its code
   let code = st ? st.state : undefined;
   if (code !== undefined && set.codes[code] === undefined && /^\s*[-+]?\d+(\.0*)?\s*$/.test(code))
     code = String(parseInt(code, 10));
@@ -6662,17 +6724,44 @@ function pvEditor() {
     box.append(pvRow(field('Title', titleInput(page, v => pvEdit((c, p) => { p.title = v; })))));
     pvDeletePage(box, page);
   } else if (t === 'weather') {
-    head.textContent = h.weather_icon ? 'Weather' : 'Weather (not shown)';
-    if (!h.weather_icon) hint.textContent = 'Choose the item with the condition code to show the weather icon.';
-    const w = h.weather_icon || {};
-    box.append(
-      pvRow(field('Item with the condition code', itemField(w.item, v => pvHomeRef('weather_icon', 'item', v), 'Number,String')),
-            field('Codes (the openHAB channel the item is linked to)',
-                  selectInput(Object.keys(LAYOUT.weather).map(k => [k === 'openweathermap' ? '' : k, LAYOUT.weather[k].title || k]),
-                                       w.codes, v => pvHomeRef('weather_icon', 'codes', v)))),
+    // the weather block: items of its own, or today's from one item a rule writes (home.weather_feed, EngineFeed.cpp)
+    const fed = !!h.weather_feed || !!WX_FEED_MODE['@home'];
+    const shows = h.weather_icon || h.weather_feed;
+    head.textContent = shows ? 'Weather' : 'Weather (not shown)';
+    if (!shows) hint.textContent = fed ? 'Choose the item a rule writes the days to.' : 'Choose the item with the condition code to show the weather icon.';
+    const codes = Object.keys(LAYOUT.weather).map(k => [k === 'openweathermap' ? '' : k, LAYOUT.weather[k].title || k]);
+    const source = selectInput([['items', 'Items of its own'], ['feed', 'Today from one item a rule writes (JSON)']], fed ? 'feed' : 'items', v => {
+      WX_FEED_MODE['@home'] = v === 'feed';
+      if (v === 'items' && h.weather_feed) pvEdit(c => { delete c.home.weather_feed; });
+      PV.edKey = null; renderPreview();
+    });
+    const rows = [pvRow(field('Source', source))];
+    if (fed) {
+      const ref = h.weather_feed || {};
+      const setFeed = (k, v) => {
+        pvEdit(c => {
+          c.home = c.home || {};
+          const f = Object.assign({}, c.home.weather_feed);
+          if (v) f[k] = v; else delete f[k];
+          if (f.item) c.home.weather_feed = f; else delete c.home.weather_feed;
+        });
+        PV.edKey = null; renderPreview();
+      };
+      const facts = document.createElement('p');
+      facts.className = 'sub';
+      facts.textContent = weatherFeedFacts(ref) + ' Today\'s icon, high and low (and the temperature now) come from it; ' +
+        'an item set for one of them still counts.';
+      rows.push(pvRow(field('Item', itemField(ref.item, v => setFeed('item', v), 'String')),
+                      field('Codes of "icon"', selectInput(codes, ref.codes || '', v => setFeed('codes', v)))), facts, weatherFeedHelp());
+    } else {
+      const w = h.weather_icon || {};
+      rows.push(pvRow(field('Item with the condition code', itemField(w.item, v => pvHomeRef('weather_icon', 'item', v), 'Number,String')),
+                      field('Codes (the openHAB channel the item is linked to)', selectInput(codes, w.codes, v => pvHomeRef('weather_icon', 'codes', v)))));
+    }
+    box.append(...rows,
       pvRow(field('Tapping it opens', selectInput(pvPageOptions(), h.weather_page,
                                                   v => pvEdit(c => { c.home = c.home || {}; if (v) c.home.weather_page = v; else delete c.home.weather_page; })))),
-      pvButtons(h.weather_icon ? [['Remove', 'danger', () => pvHomeHide('weather_icon')]] : []));
+      pvButtons(h.weather_icon || h.weather_feed ? [['Remove', 'danger', () => { pvHomeHide('weather_icon'); pvEdit(c => { if (c.home) delete c.home.weather_feed; }); }]] : []));
   } else if (slot && slot.kind === 'value') {
     const e = slot.entry || {}, set = (k, v, d) => pvSlotSet(slot, k, v, d);
     head.textContent = 'Value row ' + (slot.i + 1);
@@ -6703,16 +6792,30 @@ function pvEditor() {
       pvSlotButtons(slot, 2));
   } else if (t === 'outdoor') {
     const k = t + '_temperature';
-    head.textContent = 'Outdoor temperature' + (h[k] ? '' : ' (not shown)');
-    if (!h[k]) hint.textContent = 'Choose an item to show it.';
+    // shown with an item of its own, or from the weather item ("now", home.weather_feed)
+    head.textContent = 'Outdoor temperature' + (homeWeather(h, k) ? '' : ' (not shown)');
+    if (h.weather_feed)
+      hint.textContent = 'Fields without an item of their own take today\'s values from the weather item "' +
+        h.weather_feed.item + '" (Weather), in whole degrees: the temperature now ("now"), the low and the high. ' +
+        'An item set here counts first.';
+    else if (!h[k]) hint.textContent = 'Choose an item to show it.';
     const dec = (h[k] || {}).decimals;
-    box.append(pvRow(field('Item', itemField((h[k] || {}).item, v => pvHomeRef(k, 'item', v), 'Number')),
-                     field('Decimals', selectInput([['', '0 (rounded)'], ['1', '1'], ['2', '2'], ['3', '3']],
-                                                   dec === undefined ? '' : String(dec),
-                                                   v => pvEdit(c => {
-                                                     if (!c.home || !c.home[k]) return;
-                                                     if (v === '') delete c.home[k].decimals; else c.home[k].decimals = +v;
-                                                   })))),
+    // decimals belong to an item of its own: the weather item's temperatures show in whole degrees (EngineFeed.cpp)
+    const decimals = selectInput([['', '0 (rounded)'], ['1', '1'], ['2', '2'], ['3', '3']], dec === undefined ? '' : String(dec),
+                                 v => pvEdit(c => {
+                                   if (!c.home || !c.home[k]) return;
+                                   if (v === '') delete c.home[k].decimals; else c.home[k].decimals = +v;
+                                 }));
+    decimals.disabled = !h[k];
+    if (!h[k]) decimals.title = h.weather_feed ? 'The weather item\'s temperatures show in whole degrees.' : 'Choose an item first.';
+    // an item typed or chosen (or cleared): the decimals with it -- only the field (the item field reports every key:
+    // the editor anew would take its focus)
+    const pick = v => {
+      pvHomeRef(k, 'item', v);
+      decimals.disabled = !v;
+      decimals.title = v ? '' : h.weather_feed ? 'The weather item\'s temperatures show in whole degrees.' : 'Choose an item first.';
+    };
+    box.append(pvRow(field('Item', itemField((h[k] || {}).item, pick, 'Number')), field('Decimals', decimals)),
                // today's high and low, under it (e.g. a weather add-on's daily forecast channels)
                pvRow(field("Today's low (item)", itemField((h.outdoor_low || {}).item, v => pvHomeRef('outdoor_low', 'item', v), 'Number')),
                      field("Today's high (item)", itemField((h.outdoor_high || {}).item, v => pvHomeRef('outdoor_high', 'item', v), 'Number'))),
@@ -8384,7 +8487,64 @@ function weatherDays(p) {   // the page in the form with "days" (changed in plac
   }
   return p.days;
 }
+/* The weather from one item a rule writes (page.feed, EngineFeed.cpp): the item, the icon set of its codes, what it
+   holds now, the format. */
+const WX_FEED_MODE = {};   // page id -> "from one item" chosen, the item not yet
+const WEATHER_FEED_EXAMPLE = '{"days": [{"date": "2026-11-13", "max": 30, "min": 22, "icon": "shower", ' +
+  '"condition": "Shower or two.", "extras": [{"icon": "weather-rainy", "value": "80 %", "label": "Rain"}]}], "now": {"temp": 24}}';
+function weatherFeedFacts(ref) {
+  const st = ref.item ? liveStates[ref.item] : null;
+  if (!ref.item) return 'Choose the String item a rule writes the days to.';
+  if (!st) return 'Not known yet: the panel reads it once saved.';
+  const v = weatherFeed(ref), n = v.days.filter(d => !d.note).length;
+  return n ? 'It holds ' + n + ' day' + (n > 1 ? 's' : '') + ' from today' + (v.now ? ', and the temperature now' : '') + '.'
+           : 'It holds no days from today: the page shows "' + v.days[0].condition.text + '".';
+}
+function weatherFeedHelp() {
+  const help = document.createElement('p');
+  help.className = 'sub';
+  help.innerHTML = 'A rule writes the days as JSON, e.g. <code>' + WEATHER_FEED_EXAMPLE.replace(/</g, '&lt;') + '</code>: ' +
+    '<code>date</code> (the local day; days gone are left out), <code>max</code> and <code>min</code> in degrees, ' +
+    '<code>icon</code> a code of the icon set, <code>condition</code> in words, up to six <code>extras</code>; ' +
+    '<code>now.temp</code> is the temperature now (home). The docs have rules for BOM and Open-Meteo.';
+  return help;
+}
 function pvWeatherEditor(box, head, hint, page) {
+  // the days: items per day, or from one item a rule writes (feed)
+  const fed = !!page.feed || !!WX_FEED_MODE[page.id];
+  const modeSel = selectInput([['days', 'Items per day'], ['feed', 'From one item a rule writes (JSON)']], fed ? 'feed' : 'days', v => {
+    WX_FEED_MODE[page.id] = v === 'feed';
+    if (v === 'days' && page.feed) pvEdit((c, p) => { delete p.feed; p.days = [{day: 0}]; });
+    PV.sheet = 0; PV.edKey = null; renderPreview();
+  });
+  if (fed) {
+    head.textContent = page.title || page.id;
+    hint.textContent = 'The days are sheets on the panel: swiped left and right, dots at the bottom.';
+    const ref = page.feed || {};
+    const setFeed = (k, v) => {
+      pvEdit((c, p) => {
+        const f = Object.assign({}, p.feed);
+        if (v) f[k] = v; else delete f[k];
+        if (f.item) {
+          p.feed = f;
+          for (const key of ['days', 'day', 'icon', 'min', 'max', 'condition', 'extras']) delete p[key];
+        } else delete p.feed;
+      });
+      PV.edKey = null; renderPreview();
+    };
+    const codes = Object.keys(LAYOUT.weather).map(k => [k === 'openweathermap' ? '' : k, LAYOUT.weather[k].title || k]);
+    const facts = document.createElement('p');
+    facts.className = 'sub';
+    facts.textContent = weatherFeedFacts(ref);
+    box.append(
+      pvRow(field('Page title (in the page list)', textInput(page.title, v => pvEdit((c, p) => { p.title = v; }), {maxLength: 30}))),
+      pvRow(field('Days', modeSel)),
+      edSection('Data', 'the days from one openHAB item'),
+      two(field('Item', itemField(ref.item, v => setFeed('item', v), 'String')),
+          field('Codes of "icon"', selectInput(codes, ref.codes === 'openweathermap' ? '' : ref.codes || '', v => setFeed('codes', v)))),
+      facts, weatherFeedHelp());
+    return;
+  }
   const days = daysOf(page);
   if (PV.sheet >= days.length) PV.sheet = 0;
   const i = PV.sheet, d = days[i];
@@ -8467,6 +8627,7 @@ function pvWeatherEditor(box, head, hint, page) {
   const dayChoices = [0, 1, 2, 3, 4, 5, 6].map(n => [String(n), n === 0 ? 'today' : n === 1 ? 'tomorrow' : 'in ' + n + ' days']);
   box.append(
     pvRow(field('Page title (in the page list)', textInput(page.title, v => pvEdit((c, p) => { p.title = v; }), {maxLength: 30}))),
+    pvRow(field('Days', modeSel)),
     tabs,
     edSection('Day'),
     two(field('Title', textInput(d.title, v => dayEdit(x => { if (v) x.title = v; else delete x.title; }),
@@ -9238,7 +9399,8 @@ function pageMissing(p) {
       return p.item || p.buttons.every(b => b && b.item) ? '' : 'the item the buttons send to';
     case 'media': return !has(p.control) ? 'the player item' : p.favorites && !has(p.play) ? 'the play item (for the favourites)' : '';
     case 'media_favorites': return has(p.stations) ? '' : 'the stations item';
-    case 'weather': return (p.days || [p]).every(d => has(d && d.icon)) ? '' : 'the condition item';
+    case 'weather': return p.feed ? (has(p.feed) ? '' : 'the item with the days')
+                                  : (p.days || [p]).every(d => has(d && d.icon)) ? '' : 'the condition item';
     case 'qr': return p.text ? '' : 'the text';
   }
   return '';
@@ -9668,7 +9830,7 @@ function pvAction(component) {
   const page = pvPage(PV.page), n = /^(?:short|tile)(\d+)$/.exec(component);
   if (!page) {
     const home = (PV.cfg && PV.cfg.home) || {};
-    if (component === 'weather' && home.weather_page && home.weather_icon) return () => pvOpen(home.weather_page);
+    if (component === 'weather' && home.weather_page && (home.weather_icon || home.weather_feed)) return () => pvOpen(home.weather_page);
     if (component === 'clock' && home.clock_page) return () => pvOpen(home.clock_page);
     const s = n && (home.shortcuts || [])[n[1] - 1];
     if (!s || !s.open) return null;

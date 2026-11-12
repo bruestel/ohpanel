@@ -778,7 +778,7 @@ class Validator {
       return;
     allowed(h, path,
             {"relays", "values", "indoor_temperature", "outdoor_temperature", "outdoor_high", "outdoor_low",
-             "weather_icon", "weather_page", "clock_page",
+             "weather_icon", "weather_page", "clock_page", "weather_feed",
              "status_icons", "shortcuts", "info"});
     slots(h, "relays", path, kMaxRelays, [&](const cJSON *e, const std::string &p) {
       allowed(e, p, {"label", "item", "relay", "hidden", "open"});
@@ -817,6 +817,7 @@ class Validator {
     item_ref(h, "outdoor_high", path);  // today's, under it
     item_ref(h, "outdoor_low", path);
     item_ref(h, "weather_icon", path, false, true);
+    item_ref(h, "weather_feed", path, false, true);   // today's icon, high and low (and the temperature now) from it
     if (const cJSON *v = cJSON_GetObjectItem(h, "weather_page"))
       page_ref(v, member(path, "weather_page"));
     if (const cJSON *v = cJSON_GetObjectItem(h, "clock_page"))   // a tap on the clock or the date
@@ -1243,7 +1244,10 @@ class Validator {
           color(e, ep);
         });
       };
-      if (const cJSON *days = cJSON_GetObjectItem(pg, "days")) {
+      if (cJSON_GetObjectItem(pg, "feed")) {   // the days a rule writes to one item, as JSON
+        allowed(pg, p, {"id", "type", "title", "feed"});
+        item_ref(pg, "feed", p, true, true);
+      } else if (const cJSON *days = cJSON_GetObjectItem(pg, "days")) {
         allowed(pg, p, {"id", "type", "title", "days"});
         const std::string dp = member(p, "days");
         if (!cJSON_IsArray(days) || cJSON_GetArraySize(days) < 1 || cJSON_GetArraySize(days) > kMaxDays) {

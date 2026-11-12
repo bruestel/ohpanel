@@ -280,5 +280,45 @@
    "hail": "hail",
    "none": "not-available"
   }
+ },
+ "bom": {
+  "title": "Bureau of Meteorology (Australia) icon_descriptor: sunny, partly_cloudy, shower ...",
+  "default": "not-available",
+  "codes": {
+   "sunny": "clear-day",
+   "clear": "clear-night",
+   "mostly_sunny": "partly-cloudy-day",
+   "mostly-sunny": "partly-cloudy-day",
+   "partly_cloudy": "partly-cloudy-day",
+   "partly-cloudy": "partly-cloudy-day",
+   "cloudy": "cloudy",
+   "hazy": "haze",
+   "haze": "haze",
+   "fog": "fog",
+   "frost": "clear-day",
+   "light_rain": "drizzle",
+   "light-rain": "drizzle",
+   "rain": "rain",
+   "shower": "partly-cloudy-day-rain",
+   "showers": "partly-cloudy-day-rain",
+   "light_shower": "partly-cloudy-day-drizzle",
+   "light-shower": "partly-cloudy-day-drizzle",
+   "light_showers": "partly-cloudy-day-drizzle",
+   "light-showers": "partly-cloudy-day-drizzle",
+   "heavy_shower": "rain",
+   "heavy-shower": "rain",
+   "heavy_showers": "rain",
+   "heavy-showers": "rain",
+   "storm": "thunderstorms-rain",
+   "storms": "thunderstorms-rain",
+   "wind": "wind",
+   "windy": "wind",
+   "dust": "dust-wind",
+   "dusty": "dust-wind",
+   "snow": "snow",
+   "cyclone": "hurricane",
+   "tropical_cyclone": "hurricane",
+   "tropical-cyclone": "hurricane"
+  }
  }
 }

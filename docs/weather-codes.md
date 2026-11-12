@@ -21,6 +21,7 @@ Bas Milius (MIT), the fill style.
 | [`fmi`](#fmi) | FMI WeatherSymbol3: fmiweather weather-id |
 | [`wmo`](#wmo) | WMO weather code (0 ... 99): openmeteo weather-code |
 | [`darksky`](#darksky) | Dark Sky icon names: pirateweather icon-id, visualcrossing icon |
+| [`bom`](#bom) | Bureau of Meteorology (Australia) icon_descriptor: sunny, partly_cloudy, shower ... |
 
 ## openweathermap
 
@@ -318,4 +319,46 @@ Dark Sky icon names: pirateweather icon-id, visualcrossing icon.
 | `partly-cloudy-night` | <img src="../boards/nspanel/nextion/assets/meteocons/partly-cloudy-night.svg" width="40" alt=""> `partly-cloudy-night` |
 | `hail` | <img src="../boards/nspanel/nextion/assets/meteocons/hail.svg" width="40" alt=""> `hail` |
 | `none` | <img src="../boards/nspanel/nextion/assets/meteocons/not-available.svg" width="40" alt=""> `not-available` |
+| any other | <img src="../boards/nspanel/nextion/assets/meteocons/not-available.svg" width="40" alt=""> `not-available` |
+
+## bom
+
+Bureau of Meteorology (Australia) icon_descriptor: sunny, partly_cloudy, shower ....
+
+| Code | Icon |
+|---|---|
+| `sunny` | <img src="../boards/nspanel/nextion/assets/meteocons/clear-day.svg" width="40" alt=""> `clear-day` |
+| `clear` | <img src="../boards/nspanel/nextion/assets/meteocons/clear-night.svg" width="40" alt=""> `clear-night` |
+| `mostly_sunny` | <img src="../boards/nspanel/nextion/assets/meteocons/partly-cloudy-day.svg" width="40" alt=""> `partly-cloudy-day` |
+| `mostly-sunny` | <img src="../boards/nspanel/nextion/assets/meteocons/partly-cloudy-day.svg" width="40" alt=""> `partly-cloudy-day` |
+| `partly_cloudy` | <img src="../boards/nspanel/nextion/assets/meteocons/partly-cloudy-day.svg" width="40" alt=""> `partly-cloudy-day` |
+| `partly-cloudy` | <img src="../boards/nspanel/nextion/assets/meteocons/partly-cloudy-day.svg" width="40" alt=""> `partly-cloudy-day` |
+| `cloudy` | <img src="../boards/nspanel/nextion/assets/meteocons/cloudy.svg" width="40" alt=""> `cloudy` |
+| `hazy` | <img src="../boards/nspanel/nextion/assets/meteocons/haze.svg" width="40" alt=""> `haze` |
+| `haze` | <img src="../boards/nspanel/nextion/assets/meteocons/haze.svg" width="40" alt=""> `haze` |
+| `fog` | <img src="../boards/nspanel/nextion/assets/meteocons/fog.svg" width="40" alt=""> `fog` |
+| `frost` | <img src="../boards/nspanel/nextion/assets/meteocons/clear-day.svg" width="40" alt=""> `clear-day` |
+| `light_rain` | <img src="../boards/nspanel/nextion/assets/meteocons/drizzle.svg" width="40" alt=""> `drizzle` |
+| `light-rain` | <img src="../boards/nspanel/nextion/assets/meteocons/drizzle.svg" width="40" alt=""> `drizzle` |
+| `rain` | <img src="../boards/nspanel/nextion/assets/meteocons/rain.svg" width="40" alt=""> `rain` |
+| `shower` | <img src="../boards/nspanel/nextion/assets/meteocons/partly-cloudy-day-rain.svg" width="40" alt=""> `partly-cloudy-day-rain` |
+| `showers` | <img src="../boards/nspanel/nextion/assets/meteocons/partly-cloudy-day-rain.svg" width="40" alt=""> `partly-cloudy-day-rain` |
+| `light_shower` | <img src="../boards/nspanel/nextion/assets/meteocons/partly-cloudy-day-drizzle.svg" width="40" alt=""> `partly-cloudy-day-drizzle` |
+| `light-shower` | <img src="../boards/nspanel/nextion/assets/meteocons/partly-cloudy-day-drizzle.svg" width="40" alt=""> `partly-cloudy-day-drizzle` |
+| `light_showers` | <img src="../boards/nspanel/nextion/assets/meteocons/partly-cloudy-day-drizzle.svg" width="40" alt=""> `partly-cloudy-day-drizzle` |
+| `light-showers` | <img src="../boards/nspanel/nextion/assets/meteocons/partly-cloudy-day-drizzle.svg" width="40" alt=""> `partly-cloudy-day-drizzle` |
+| `heavy_shower` | <img src="../boards/nspanel/nextion/assets/meteocons/rain.svg" width="40" alt=""> `rain` |
+| `heavy-shower` | <img src="../boards/nspanel/nextion/assets/meteocons/rain.svg" width="40" alt=""> `rain` |
+| `heavy_showers` | <img src="../boards/nspanel/nextion/assets/meteocons/rain.svg" width="40" alt=""> `rain` |
+| `heavy-showers` | <img src="../boards/nspanel/nextion/assets/meteocons/rain.svg" width="40" alt=""> `rain` |
+| `storm` | <img src="../boards/nspanel/nextion/assets/meteocons/thunderstorms-rain.svg" width="40" alt=""> `thunderstorms-rain` |
+| `storms` | <img src="../boards/nspanel/nextion/assets/meteocons/thunderstorms-rain.svg" width="40" alt=""> `thunderstorms-rain` |
+| `wind` | <img src="../boards/nspanel/nextion/assets/meteocons/wind.svg" width="40" alt=""> `wind` |
+| `windy` | <img src="../boards/nspanel/nextion/assets/meteocons/wind.svg" width="40" alt=""> `wind` |
+| `dust` | <img src="../boards/nspanel/nextion/assets/meteocons/dust-wind.svg" width="40" alt=""> `dust-wind` |
+| `dusty` | <img src="../boards/nspanel/nextion/assets/meteocons/dust-wind.svg" width="40" alt=""> `dust-wind` |
+| `snow` | <img src="../boards/nspanel/nextion/assets/meteocons/snow.svg" width="40" alt=""> `snow` |
+| `cyclone` | <img src="../boards/nspanel/nextion/assets/meteocons/hurricane.svg" width="40" alt=""> `hurricane` |
+| `tropical_cyclone` | <img src="../boards/nspanel/nextion/assets/meteocons/hurricane.svg" width="40" alt=""> `hurricane` |
+| `tropical-cyclone` | <img src="../boards/nspanel/nextion/assets/meteocons/hurricane.svg" width="40" alt=""> `hurricane` |
 | any other | <img src="../boards/nspanel/nextion/assets/meteocons/not-available.svg" width="40" alt=""> `not-available` |

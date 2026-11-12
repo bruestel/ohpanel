@@ -3807,6 +3807,154 @@ int main(int argc, char **argv) {
     if (g_failures) r.dump();
   }
 
+  {  // a panel started before openHAB answers: home drawn without the weather item's state, which comes later (and
+     // the time later still, or before it) -- the weather shows once the state comes
+    for (int clock_first = 0; clock_first < 2; clock_first++) {
+      Recorder r;
+      Engine w(r, cb);
+      w.release_wait(0);
+      CHECK(w.load_design(read("boards/nspanel/nextion/display-manifest-eu.json").c_str(),
+                          read("boards/nspanel/nextion/weather-icons.json").c_str()));
+      g_states.erase("Wx");
+      w.set_config(R"({"version": 1, "home": {"weather_feed": {"item": "Wx", "codes": "bom"}}})");
+      int64_t t = 1000;
+      w.idle(t);
+      w.start();
+      w.idle(t += 5000);
+      w.on_message(loaded("home"));
+      CHECK(w.current() == "home" && !r.has("outdoor.txt=\"17°\""));
+      if (clock_first) {
+        w.tick(1791196439);
+        w.idle(t += 100);
+      }
+      set_state("Wx", R"({"now": {"temp": 17}, "days": [{"date": "2026-10-05", "max": 19, "min": 9, "icon": "shower"}]})",
+                "String");
+      r.out.clear();
+      w.on_state("Wx");
+      if (!clock_first) {
+        w.tick(1791196439);
+        w.idle(t += 100);
+      }
+      // only the weather block drawn again, not the page (home's "vis 255,1" would show what its hiding, not sent
+      // again, hid: empty fields over the values and the relays' labels)
+      CHECK(!r.has_prefix("page ") && !r.has("vis 255,1") && r.has("vis weather_pic,1"));
+      CHECK(r.has("outdoor.txt=\"17°\"") && r.has_suffix_of("high", "\"19°\""));
+      CHECK(r.has(pic_cmd("weather_pic", "aurora", "weather_home", "partly-cloudy-day-rain")));
+      if (g_failures) r.dump();
+    }
+  }
+  {  // the weather from one item: the days a rule writes as JSON ("feed"), home's weather block from today's
+     // ("weather_feed"); the days before today left out; drawn anew when the item changes and when a day begins
+    Recorder r;
+    Engine w(r, cb);
+    w.release_wait(0);
+    CHECK(w.load_design(read("boards/nspanel/nextion/display-manifest-eu.json").c_str(),
+                        read("boards/nspanel/nextion/weather-icons.json").c_str()));
+    w.set_config(R"({"version": 1, "home": {"weather_feed": {"item": "Wx", "codes": "bom"}, "weather_page": "wx"},
+      "pages": [{"id": "wx", "type": "weather", "title": "Weather", "feed": {"item": "Wx", "codes": "bom"}}]})");
+    // Mon 5 Oct 2026: the 4th gone, the 5th today, the 6th tomorrow
+    set_state("Wx", R"({"now": {"temp": 17.25}, "days": [
+      {"date": "2026-10-04", "max": 1, "min": 0, "icon": "rain"},
+      {"date": "2026-10-05", "max": 19.46, "min": 9, "icon": "shower", "condition": "Shower or two.",
+       "extras": [{"icon": "weather-rainy", "value": 80, "label": "Rain"}, {"icon": "weather-sunny", "value": "11", "label": "UV"}]},
+      {"date": "2026-10-06", "max": 21, "min": 12, "icon": "sunny"}]})", "String");
+    int64_t t = 1000;
+    w.tick(1791196439);
+    w.idle(t);
+    w.start();
+    w.idle(t += 5000);
+    r.out.clear();
+    w.on_message(loaded("home"));
+    CHECK(r.has("outdoor.txt=\"17°\""));                                  // "now"
+    CHECK(r.has_suffix_of("low", "\"9°\"") && r.has_suffix_of("high", "\"19°\""));   // today's, in whole degrees
+    CHECK(r.has(pic_cmd("weather_pic", "aurora", "weather_home", "partly-cloudy-day-rain")));   // bom "shower"
+    w.on_message(event("home", "weather", "release"));
+    CHECK(w.current() == "wx");
+    r.out.clear();
+    w.on_message(loaded("weather"));
+    CHECK(r.has_prefix("title.txt=\"Today · "));
+    CHECK(r.has("high_line.txt=\"19°\"") && r.has("condition.txt=\"Shower or two.\""));
+    CHECK(r.has(pic_cmd("weather_pic", "aurora", "weather_page", "partly-cloudy-day-rain")));
+    CHECK(r.has("chip1_text.txt=\"Rain\"") && r.has("chip1_value.txt=\"80\"") && r.has("chip2_value.txt=\"11\""));
+    CHECK(r.has("vis chip3_pic,0"));
+    const std::string full = icon_glyph("circle-medium"), small = icon_glyph("circle-small");
+    CHECK(r.has("dots.txt=\"" + full + small + "\""));   // two days: the 4th gone
+    w.on_message(event("weather", "swipe", "left"));
+    r.out.clear();
+    w.on_message(loaded("weather"));
+    CHECK(r.has_prefix("title.txt=\"Tomorrow · ") && r.has("high.txt=\"21°\""));
+    CHECK(r.has(pic_cmd("weather_pic", "aurora", "weather_page", "clear-day")));
+    // the item changes: the page shown drawn anew from it
+    set_state("Wx", R"({"days": [{"date": "2026-10-05", "max": 18, "min": 8, "icon": "storm"},
+      {"date": "2026-10-06", "max": 23, "min": 13, "icon": "cloudy"}]})", "String");
+    r.out.clear();
+    w.on_state("Wx");
+    CHECK(!r.has_prefix("page "));   // the day drawn again where it is
+    CHECK(r.has("high.txt=\"23°\"") && r.has(pic_cmd("weather_pic", "aurora", "weather_page", "cloudy")));
+    // midnight: the 5th gone, the 6th today -- on home too
+    w.on_message(event("weather", "close", "release"));
+    w.on_message(loaded("home"));
+    w.tick(1791237600);   // Tue 6 Oct 2026 00:00 local
+    r.out.clear();
+    w.idle(t += 1000);
+    CHECK(!r.has_prefix("page ") && !r.has("vis 255,1"));
+    CHECK(r.has_suffix_of("high", "\"23°\"") && r.has(pic_cmd("weather_pic", "aurora", "weather_home", "cloudy")));
+    CHECK(!r.has("outdoor.txt=\"17°\""));   // no "now": no temperature
+    // no icon set given: the default one (OpenWeatherMap's ids); below zero rounded as C rounds
+    w.set_config(R"({"version": 1, "home": {"weather_feed": {"item": "Wx"}, "weather_page": "wx"},
+      "pages": [{"id": "wx", "type": "weather", "title": "Weather", "feed": {"item": "Wx"}}]})");
+    set_state("Wx", R"({"days": [{"date": "2026-10-06", "max": -0.4, "min": -2.5, "icon": "10d"}]})", "String");
+    r.out.clear();
+    w.on_message(loaded("home"));
+    CHECK(r.has(pic_cmd("weather_pic", "aurora", "weather_home", "rain")));
+    CHECK(r.has_suffix_of("low", "\"-3°\"") && r.has_suffix_of("high", "\"0°\""));
+    // no state, or a text: the page says so in one day; home shows no weather
+    set_state("Wx", "No connection to the BOM", "String");
+    w.on_state("Wx");
+    w.on_message(event("home", "weather", "release"));
+    r.out.clear();
+    w.on_message(loaded("weather"));
+    CHECK(r.has("condition.txt=\"No connection to the BOM\"") && !r.has("vis dots,1"));
+    // drawn again over itself: a day with an icon shows it, the one after without (a text) hides it again
+    set_state("Wx", R"({"days": [{"date": "2026-10-06", "max": 5, "icon": "sunny"}]})", "String");
+    r.out.clear();
+    w.on_state("Wx");
+    CHECK(r.has("vis weather_pic,1") && r.has("high.txt=\"5°\""));
+    set_state("Wx", "No connection to the BOM", "String");
+    r.out.clear();
+    w.on_state("Wx");
+    CHECK(r.has("vis weather_pic,0") && r.has("vis condition,1"));   // its text as before: not sent again
+    // no day from today on -- an empty list, or one of days gone: "–" as for no state
+    for (const char *none : {R"({"days": []})", R"({"days": [{"date": "2026-10-05", "max": 1}]})"}) {
+      set_state("Wx", none, "String");
+      r.out.clear();
+      w.on_state("Wx");
+      CHECK(r.has("condition.txt=\"–\"") || !r.has_prefix("condition.txt="));   // the second: "–" already
+      CHECK(!r.has("vis weather_pic,1") && !r.has_prefix("high.txt="));
+    }
+    // days without a date count by the days of the list: what is no day (null) does not count
+    set_state("Wx", R"({"days": [null, {"max": 4}, {"max": 6}]})", "String");
+    r.out.clear();
+    w.on_state("Wx");
+    CHECK(r.has("high.txt=\"4°\"") && !r.has_prefix("title.txt=\"Tomorrow"));
+    // midnight on the third day: the day shown stays the one shown, a sheet nearer now, the dots as many as days
+    set_state("Wx", R"({"days": [{"date": "2026-10-06", "max": 6}, {"date": "2026-10-07", "max": 7},
+      {"date": "2026-10-08", "max": 8}]})", "String");
+    w.on_state("Wx");
+    for (int k = 0; k < 2; k++) {
+      w.on_message(event("weather", "swipe", "left"));
+      w.on_message(loaded("weather"));
+    }
+    CHECK(r.has("high.txt=\"8°\""));
+    w.tick(1791324000);   // Wed 7 Oct 2026 00:00 local
+    r.out.clear();
+    w.idle(t += 1000);
+    CHECK(!r.has_prefix("page ") && r.has("dots.txt=\"" + small + full + "\""));
+    CHECK(!r.has_prefix("high.txt=") || r.has("high.txt=\"8°\""));   // still the 8th (unchanged: not sent again)
+    CHECK(r.has_prefix("title.txt=\"Tomorrow · "));
+    if (g_failures) r.dump();
+  }
+
   {  // a tap on the clock or the date (home.clock_page) opens a page (forum #117)
     Recorder r;
     Engine h(r, cb);

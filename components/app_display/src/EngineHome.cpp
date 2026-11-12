@@ -191,33 +191,7 @@ void Engine::draw_home() {
       show_number(row + "_u", true, number, unit, style.color, style.blink);
     });
   }
-  const cJSON *outdoor = member(h, "outdoor_temperature");
-  if (!outdoor)
-    show_number("outdoor_u", false);
-  else
-    bind(outdoor, [this, outdoor] {
-      std::string number, unit;
-      number_and_unit(outdoor, number, unit);
-      // as weather apps show it: "°" without the scale, in the number's own size and colour (its wide
-      // field); another unit small after it
-      if (unit.rfind("°", 0) == 0)
-        show_number("outdoor_u", true, number + "°", "");
-      else
-        show_number("outdoor_u", true, number, unit);
-    });
-  // today's low and high under it
-  draw_range(h);
-  for (const char *key : {"outdoor_low", "outdoor_high"})
-    if (const cJSON *r = member(h, key))
-      bind(r, [this, h] { draw_range(h); });
-  const cJSON *weather = member(h, "weather_icon");
-  vis("weather_pic", weather != nullptr);
-  vis("weather_hs", weather != nullptr);
-  if (weather)
-    bind(weather, [this, weather] {
-      const int pic = weather_pic(weather, "weather_home");
-      if (pic >= 0) num("weather_pic", "pic", pic);
-    });
+  draw_home_weather(h, true);
 
   for (int i = 0; i < 2; i++)
     if (const cJSON *r = slot(h, "relays", i)) {
@@ -333,5 +307,46 @@ void Engine::draw_home() {
 }
 
 
+
+/* Home's weather block: the temperature now, today's low and high under it, the weather icon -- each value its own
+   item (bound: drawn again as it changes), or today's of the weather feed ("weather_feed", EngineFeed.cpp), which has no
+   item to bind and is drawn again by weather_feed_state as the feed changes (`bound` false: nothing bound anew). Every
+   field said shown or hidden each time, so that drawing it again over itself leaves nothing behind. */
+void Engine::draw_home_weather(const cJSON *h, bool bound) {
+  const auto draw = [this, bound](const cJSON *ref, std::function<void()> f) {
+    if (bound)
+      bind(ref, std::move(f));
+    else
+      f();
+  };
+  const cJSON *outdoor = home_weather(h, "outdoor_temperature");
+  if (!outdoor)
+    show_number("outdoor_u", false);
+  else
+    draw(outdoor, [this, outdoor] {
+      std::string number, unit;
+      number_and_unit(outdoor, number, unit);
+      // as weather apps show it: "°" without the scale, in the number's own size and colour (its wide
+      // field); another unit small after it
+      if (unit.rfind("°", 0) == 0)
+        show_number("outdoor_u", true, number + "°", "");
+      else
+        show_number("outdoor_u", true, number, unit);
+    });
+  // today's low and high under it
+  draw_range(h);
+  if (bound)
+    for (const char *key : {"outdoor_low", "outdoor_high"})
+      if (const cJSON *r = home_weather(h, key))
+        bind(r, [this, h] { draw_range(h); });
+  const cJSON *weather = home_weather(h, "weather_icon");
+  vis("weather_pic", weather != nullptr);
+  vis("weather_hs", weather != nullptr);
+  if (weather)
+    draw(weather, [this, weather] {
+      const int pic = weather_pic(weather, "weather_home");
+      if (pic >= 0) num("weather_pic", "pic", pic);
+    });
+}
 
 }  // namespace appdisplay

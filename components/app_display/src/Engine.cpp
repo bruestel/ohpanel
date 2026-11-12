@@ -54,6 +54,7 @@ Engine::~Engine() {
   cJSON_Delete(weather_);
   forget_group_rows();
   feed_reset();
+  weather_feeds_reset();
 }
 
 /* `text` as it fits the field: cut with "..." where it is wider (the display
@@ -346,6 +347,7 @@ void Engine::set_config(const std::string &json) {
   forget_group_rows();
   feed_reset();   // its rows hold the page's icon and colours: made anew, and the list asked for again
   bindings_.clear();   // they point into the configuration going now: drawn again once the page is built anew
+  weather_feeds_reset();   // the days hold the language's decimal separator, the page's icon set
   cJSON_Delete(config_);
   config_ = cJSON_ParseWithLength(json.data(), json.size());
   dated_rules_ = json.find("\"within_days\"") != std::string::npos;
@@ -697,6 +699,8 @@ void Engine::number_and_unit(const cJSON *ref, std::string &number, std::string 
   const bool numeric = s.has_numeric && (s.type == "Quantity" || s.type == "Decimal" || s.type == "Percent");
   if (!numeric || member(ref, "format") || member(ref, "text") || (style && !style->format.empty())) {
     number = value_of(ref, nullptr, style);
+    if (member(ref, "text"))   // a fixed value (a weather feed's temperature): its unit with it
+      unit = str(ref, "unit");
     return;
   }
   const cJSON *d = member(ref, "decimals");
@@ -771,7 +775,7 @@ void Engine::show_number(const std::string &prefix, bool shown, const std::strin
    place, for a high without a low). Fields that go are hidden first: hiding
    repaints the background over a field's box. */
 void Engine::draw_range(const cJSON *home) {
-  const cJSON *lo = member(home, "outdoor_low"), *hi = member(home, "outdoor_high");
+  const cJSON *lo = home_weather(home, "outdoor_low"), *hi = home_weather(home, "outdoor_high");
   const auto text = [this](const cJSON *ref) {
     std::string number, unit;
     number_and_unit(ref, number, unit);
@@ -886,9 +890,9 @@ std::string Engine::weather_icon(const cJSON *ref) const {
   if (!set)
     return "";
   std::string name = str(set, "default");
-  if (has_state(ref)) {
+  if (member(ref, "code") || has_state(ref)) {   // a fixed code (a weather feed's day), or the item's
     const cJSON *codes = member(set, "codes");
-    const std::string state = state_of(ref).state;
+    const std::string state = member(ref, "code") ? str(ref, "code") : state_of(ref).state;
     const cJSON *icon = member(codes, state.c_str());
     if (!cJSON_IsString(icon))
       if (const std::string whole = whole_number(state); !whole.empty())
@@ -1755,6 +1759,7 @@ void Engine::on_state(const std::string &item) {
   screen_item(item);
   follow_relays(&item);
   feed_state(item);
+  weather_feed_state(item);
   for (const auto &b : bindings_)
     if (b.item == item)
       b.draw();
@@ -2054,6 +2059,11 @@ void Engine::redraw_states() {
     b.draw();
   if (const cJSON *page = feed_page())   // a feed's list is no binding: its state read again too
     feed_state(str(member(page, "feed"), "item"));
+  std::vector<std::string> weather;   // nor are a weather feed's days
+  for (const auto &[key, f] : weather_feeds_)
+    weather.push_back(key.substr(0, key.find('|')));
+  for (const std::string &item : weather)
+    weather_feed_state(item);
 }
 
 void Engine::idle(int64_t now_ms) {
@@ -2087,6 +2097,7 @@ void Engine::idle(int64_t now_ms) {
   }
   fade_tick();
   feed_tick();
+  weather_feed_tick();
   if (wheel_pending_ && now_ms - wheel_sent_ms_ >= kSlideMs)
     send_wheel(true);
   if (colour_after_on_ && now_ms >= colour_after_on_->until_ms)

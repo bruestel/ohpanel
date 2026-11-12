@@ -77,6 +77,13 @@
     // the departures page's feed: the list a rule would write, the next buses of three lines every 10 to 20 minutes
     const now = Date.now() / 60000;
     const next = (every, offset) => Math.ceil((now - offset) / every) * every + offset - now;
+    // the days of a forecast as a rule writes them to one item (a weather page's "feed"): today and the next four
+    const day = k => { const d = new Date(Date.now() + k * 86400000); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
+    live.Weather_Days = JSON.stringify({codes: 'bom', now: {temp: 24},
+      days: [['shower', 30, 22, 'Shower or two.', 80], ['storm', 28, 21, 'Showers. Possible storm.', 95],
+             ['mostly_sunny', 31, 20, 'Mostly sunny.', 10], ['sunny', 33, 21, 'Sunny.', 0], ['partly_cloudy', 29, 19, 'Partly cloudy.', 20]]
+        .map(([icon, max, min, condition, rain], k) => ({date: day(k), max, min, icon, condition,
+                                                           extras: [{icon: 'weather-rainy', value: rain + ' %', label: 'Rain'}]}))});
     // with the time it was fetched as the page's title, as a rule may send it
     const at = new Date(), hhmm = String(at.getHours()).padStart(2, '0') + ':' + String(at.getMinutes()).padStart(2, '0');
     live.Bus_Departures = JSON.stringify({title: 'Departures ' + hhmm, rows: [

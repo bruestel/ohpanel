@@ -312,6 +312,7 @@ class Engine {
   bool refresh_paused_ = false;   // inside a ref_stop .. ref_star of our own
   static std::string degrees_only(const std::string &unit);
   void draw_range(const cJSON *home);
+  void draw_home_weather(const cJSON *home, bool bound);
   struct { int step = 1, n = 0, font = 0; } range_;  // manifest "range"
   struct { int x0 = 0, step = 1, n = 0, font = 0, high_x = 0; } weather_line_;   // manifest "weather_line"
   // manifest "screen": the display as the design is turned, and what of it shows (the NSPanel EU's 450 px of 480)
@@ -520,6 +521,25 @@ class Engine {
   void feed_tick();
   void feed_redraw(const cJSON *page);
   const cJSON *feed_page();
+  /* A weather page's "feed" and home's "weather_feed" (EngineFeed.cpp): the days of the forecast as JSON in one String
+     item a rule writes, made into days of fixed values (as "days" of items are) -- the days before today left out. Made
+     anew when the item changes or a day begins; the page that shows them is drawn anew then (its bindings hold them). */
+  struct WeatherFeed {
+    std::string raw;         // the item's state they come from
+    bool have = false;       // a state (not NULL)
+    long today = -1;         // the local day they were made for
+    cJSON *view = nullptr;   // {"days": [...], "now": {...}}
+  };
+  mutable std::map<std::string, WeatherFeed> weather_feeds_;   // by "item|codes"
+  long weather_day_ = -1;                                       // the day the feeds were last looked at (weather_feed_tick)
+  const cJSON *weather_feed(const cJSON *ref) const;
+  cJSON *weather_feed_build(const WeatherFeed &f, const std::string &codes) const;
+  void weather_feed_state(const std::string &item, bool day_begun = false);
+  void weather_feed_tick();
+  void weather_feeds_reset();
+  bool shows_weather_feed(const std::string &item) const;
+  const cJSON *home_weather(const cJSON *home, const char *key) const;
+  long local_day() const;
   std::string title_of(const cJSON *page);
   void draw_boot();
   void draw_home();
