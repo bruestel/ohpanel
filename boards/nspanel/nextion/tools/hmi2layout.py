@@ -74,6 +74,10 @@ def fonts(entries):
         if font_id < len(recipe_fonts.FONTS) and any(p[0] == recipe_fonts.MDI for p in recipe_fonts.FONTS[font_id][2]):
             em, top = recipe_fonts.icon_em(font_id)
             entry["icon"] = {"em": em, "top": top}
+            # OHpanel's own icons (a line badge's pieces among them) have their em square at a top of their own
+            own = [p for p in recipe_fonts.FONTS[font_id][2] if p[0] == recipe_fonts.OWN]
+            if own:
+                entry["icon"]["own_top"] = own[0][2]
         out.append(entry)
     return out
 

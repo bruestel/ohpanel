@@ -4352,19 +4352,19 @@ function drawPage(box, cfg, id) {
         const i = iconCanvas(name, el.style.color, font.icon ? font.icon.em : font.height);
         if (!i) return;
         i.hidden = k > 0;
-        placeIcon(i, o, font);
+        placeIcon(i, o, font, name);
         el.appendChild(i);
       });
     } else if (want.badge) {   // a line badge: its pieces in the middle of the field, as the display centres them
       const em = font.icon ? font.icon.em : font.height, c = badgeCanvas(want.badge, el.style.color, em);
       if (c) {
-        const top = (o.yc === 1 ? Math.floor((o.h - font.height) / 2) : 0) + (font.icon ? font.icon.top : 0);
+        const top = (o.yc === 1 ? Math.floor((o.h - font.height) / 2) : 0) + (font.icon ? iconTop(font, 'ohpanel-badge') : 0);
         c.style.cssText += ';position:absolute;left:' + Math.floor((o.w - parseFloat(c.style.width)) / 2) + 'px;top:' + top + 'px';
         el.appendChild(c);
       }
     } else if (want.icon) {
       const i = iconCanvas(want.icon, el.style.color, font.icon ? font.icon.em : font.height);
-      if (i) { placeIcon(i, o, font); el.appendChild(i); }
+      if (i) { placeIcon(i, o, font, want.icon); el.appendChild(i); }
       else {  // no such icon, or the icon set is not loaded: the name instead
         const name = document.createElement('span');
         name.className = 'iname';
@@ -7183,12 +7183,15 @@ function logoCanvas(logo, under, scale = 1) {
 /* An icon picture (its em square) where the display draws the character:
    the cell (the advance -- an icon's is its em -- by the font's height)
    aligned in the field as the field says, the em square at its place in the
-   cell (LAYOUT.fonts[n].icon, boards/nspanel/nextion/fonts.py icon_em). */
-function placeIcon(canvas, o, font) {
+   cell (LAYOUT.fonts[n].icon, boards/nspanel/nextion/fonts.py icon_em) -- OHpanel's own icons' at their own top. */
+function iconTop(font, name) {
+  return name && String(name).startsWith('ohpanel-') && font.icon.own_top !== undefined ? font.icon.own_top : font.icon.top;
+}
+function placeIcon(canvas, o, font, name) {
   if (!font.icon) return;
   const em = font.icon.em, h = font.height;
   const left = o.xc === 1 ? Math.floor((o.w - em) / 2) : o.xc === 2 ? o.w - em : 0;
-  const top = (o.yc === 1 ? Math.floor((o.h - h) / 2) : o.yc === 2 ? o.h - h : 0) + font.icon.top;
+  const top = (o.yc === 1 ? Math.floor((o.h - h) / 2) : o.yc === 2 ? o.h - h : 0) + iconTop(font, name);
   canvas.style.cssText += ';position:absolute;left:' + left + 'px;top:' + top + 'px';
 }
 
