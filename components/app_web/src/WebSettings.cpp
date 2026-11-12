@@ -4,6 +4,10 @@
 
 #include "WebDetail.h"
 
+#include <cinttypes>
+#include <cstdio>
+#include <cstring>
+
 namespace appweb {
 namespace detail {
 
@@ -253,11 +257,27 @@ esp_err_t post_device(httpd_req_t *req) {
    document changes nothing at all. ?download=1 serves it as a file, which is
    what the backup button fetches; uploading a backup is a PUT like any other
    save, done by the browser after reading the file. */
+namespace {
+/* The stored configuration's version: a hash of its text as an ETag ("…"). A save that brings If-Match with another
+   one was edited on an older version -- a page left open since, while another browser or the panel itself (a
+   brightness kept) saved: refused, so it does not undo that (forum #113). */
+void panel_version(const std::string &json, char (&out)[12]) {
+  uint32_t h = 2166136261u;   // FNV-1a
+  for (const char c : json)
+    h = (h ^ static_cast<uint8_t>(c)) * 16777619u;
+  std::snprintf(out, sizeof out, "\"%08" PRIx32 "\"", h);
+}
+}  // namespace
+
 esp_err_t get_panel(httpd_req_t *req) {
   if (!check_auth(req))
     return deny(req);
 
   const std::string json = g_panel.load ? g_panel.load() : std::string("{}");
+  char version[12];
+  panel_version(json, version);
+  httpd_resp_set_hdr(req, "ETag", version);
+  httpd_resp_set_hdr(req, "Cache-Control", "no-store");
   if (query_param(req, "download") == "1") {
     httpd_resp_set_type(req, "application/json");
     /* The device name is a validated DNS label (see valid_device_name), so it
@@ -280,10 +300,29 @@ esp_err_t put_panel(httpd_req_t *req) {
     return send_raw_json(req, "{\"error\":\"missing or oversized body\"}");
   }
 
+  // edited on the version the page loaded: none other saved since (without If-Match, as curl or a backup: saved;
+  // "*": any version). A value too long for one version (a list, a weak tag) counts as another one, not as none.
+  char wanted[16] = "", version[12];
+  const size_t asked = httpd_req_get_hdr_value_len(req, "If-Match");
+  if (asked > 0 && g_panel.load) {
+    if (asked < sizeof wanted)
+      httpd_req_get_hdr_value_str(req, "If-Match", wanted, sizeof wanted);
+    panel_version(g_panel.load(), version);
+    if (std::strcmp(wanted, "*") != 0 && std::strcmp(wanted, version) != 0) {
+      httpd_resp_set_status(req, "412 Precondition Failed");
+      httpd_resp_set_hdr(req, "ETag", version);
+      return send_raw_json(req, "{\"ok\":false,\"changed\":true,\"error\":\"changed elsewhere since this page loaded it\"}");
+    }
+  }
+
   std::string err;
   const bool ok = g_panel.save && g_panel.save(body, &err);
   if (!ok)
     httpd_resp_set_status(req, "400 Bad Request");
+  if (ok && g_panel.load) {   // the version saved: the page's next save goes on from it
+    panel_version(g_panel.load(), version);
+    httpd_resp_set_hdr(req, "ETag", version);
+  }
   cJSON *r = cJSON_CreateObject();
   cJSON_AddBoolToObject(r, "ok", ok);
   if (!ok)

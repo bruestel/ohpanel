@@ -1517,7 +1517,7 @@ async function api(path, opts) {
   const res = await fetch('/api/v1' + path, opts || {});
   let body = null;
   try { body = await res.json(); } catch (e) { body = null; }
-  if (!res.ok) throw new Error((body && body.error) || ('HTTP ' + res.status));
+  if (!res.ok) throw Object.assign(new Error((body && body.error) || ('HTTP ' + res.status)), {status: res.status});
   return body;
 }
 
@@ -2824,9 +2824,15 @@ function updateSaveBar(error) {
   $('sbSave').title = XFER_RUNNING ? 'An upload is running: save once it is done' : '';
 }
 
+/* The version of the configuration this page edits (the panel's ETag): sent with a save, which the panel refuses
+   when another browser or the panel itself saved since (forum #113). */
+let panelVersion = null;
 async function loadPanel() {
   try {
-    const cfg = await api('/panel');
+    const res = await fetch('/api/v1/panel', {cache: 'no-store'});
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const cfg = await res.json();
+    panelVersion = res.headers.get('ETag');
     $('pJson').value = JSON.stringify(cfg, null, 2);
     panelSaved = canonical($('pJson').value);
     setMsg($('pMsg'), '');
@@ -2839,7 +2845,7 @@ async function loadPanel() {
   }
 }
 
-async function savePanel(text) {
+async function savePanel(text, overwrite = false) {
   if (XFER_RUNNING) {   // (the button is off then; an imported file comes this way too)
     setMsg($('pMsg'), 'An upload is running: save once it is done.', 'err');
     return;
@@ -2876,13 +2882,25 @@ async function savePanel(text) {
     if (!parsed.swipe.length || (parsed.swipe.length === 1 && parsed.swipe[0] === 'home')) delete parsed.swipe;
   }
   try {
-    await api('/panel', {method: 'PUT', headers: {'Content-Type': 'application/json'},
-                         body: JSON.stringify(parsed, null, 2)});
+    const headers = {'Content-Type': 'application/json'};
+    if (panelVersion && !overwrite) headers['If-Match'] = panelVersion;
+    await api('/panel', {method: 'PUT', headers, body: JSON.stringify(parsed, null, 2)});
     setMsg($('pMsg'), dropped.length ? 'Saved. Out of the swipe row (a type it does not take): ' + dropped.join(', ') + '.' : 'Saved.', 'ok');
     panelSaved = canonical(JSON.stringify(parsed));
     updateSaveBar();
     loadPanel();
   } catch (e) {
+    if (e.status === 412) {   // saved elsewhere since this page loaded it: overwrite that only when asked to
+      if (confirm('The panel configuration was changed elsewhere since this page loaded it (in another browser, ' +
+                  'or on the panel). Saving now replaces those changes with this page\'s.\n\n' +
+                  'OK: save anyway. Cancel: keep editing (Discard loads the newest).')) {
+        savePanel(text, true);
+        return;
+      }
+      setMsg($('pMsg'), 'Not saved: changed elsewhere since this page loaded it. Discard loads the newest; Save asks again.', 'err');
+      updateSaveBar('changed elsewhere since this page loaded it');
+      return;
+    }
     setMsg($('pMsg'), e.message, 'err');
     // the first line here, all of them under Panel configuration
     updateSaveBar(String(e.message).split('\n')[0] + (String(e.message).includes('\n') ? ' …' : ''));
@@ -2906,7 +2924,7 @@ $('pFile').addEventListener('change', () => {
   const reader = new FileReader();
   reader.onload = () => {
     $('pJson').value = reader.result;
-    savePanel(reader.result);
+    savePanel(reader.result, true);   // a backup replaces what is there, as it is meant to
   };
   reader.readAsText(file);
   $('pFile').value = '';
