@@ -54,6 +54,18 @@ int main() {
   const std::string office = read("test/host/data/office.json");
   expect_valid("office example", office);
   expect_valid("minimal", "{\"version\":1}");
+  // a hardware button that opens a page: nothing else; its relay left alone or on an item of its own
+  const auto relay_page = [](const std::string &relay) {
+    return doc(R"("pages":[{"id":"bus","type":"entities","title":"x","rows":[{"item":"A"}]}],"home":{"relays":[)" + relay + "]}");
+  };
+  expect_valid("button opens a page", relay_page(R"({"label":"Bus","open":"bus"})"));
+  expect_valid("button opens a page, relay on its item", relay_page(R"({"label":"Bus","open":"bus","relay":{"item":"R"}})"));
+  expect_valid("button opens the settings", relay_page(R"({"label":"Set","open":"settings","relay":false})"));
+  expect_issue("button opens no page", relay_page(R"({"label":"Bus","open":"nowhere"})"), "home.relays[0].open");
+  expect_issue("button opens a page and an item", relay_page(R"({"label":"Bus","open":"bus","item":"A"})"),
+               "home.relays[0].item");
+  expect_issue("button opens a page and switches", relay_page(R"({"label":"Bus","open":"bus","relay":true})"),
+               "home.relays[0].relay");
   // an entity page's feed: one String item holds the list as JSON
   const auto feed_page = [](const std::string &rest) {
     return doc(R"("pages":[{"id":"p","type":"entities","title":"x",)" + rest + "}]");

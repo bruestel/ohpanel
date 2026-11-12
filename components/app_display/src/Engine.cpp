@@ -1704,6 +1704,22 @@ void Engine::hardware_button(int index) {
   if (!asleep_)
     touched_ms_ = now_ms_;
   const cJSON *r = slot(member(config_, "home"), "relays", index);
+  // a button that opens a page ("open"): that page, the screen woken for it -- also at night, unlike a switch: one
+  // presses it to look --; no relay switched by it (one with an item of its own follows that)
+  if (const std::string id = str(r, "open"); !id.empty()) {
+    if (id != "home" && !page_config(id))
+      return;
+    touched_ms_ = now_ms_;
+    if (asleep_) {
+      asleep_ = false;       // woken on that page, not the start page (screen_tick)
+      open(id);
+    } else if (fade_.phase == 1) {
+      fade_.target = id;     // a swipe fading out: it lands there instead
+    } else if (id != current_) {
+      open(id);
+    }
+    return;
+  }
   const std::string item = str(r, "item");
   const bool switches = !r || relay_ref(r) == r;
   // without openHAB nothing is sent (it would only fail): an item alone stays as it is, a relay's state

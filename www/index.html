@@ -6738,27 +6738,31 @@ function pvEditor() {
     /* What the button does and what the relay follows, as one choice, the fields of the chosen one under it: the
        items typed stay through a change of mind. */
     const own = !!e.relay && typeof e.relay === 'object';
-    let buttonItem = e.item || '', relayItem = own ? e.relay.item || '' : '';
-    let mode = e.hidden ? 'hidden' : own ? (buttonItem ? 'both' : 'none') : e.relay === false ? 'item' : 'relay';
+    let buttonItem = e.item || '', relayItem = own ? e.relay.item || '' : '', openPage = e.open || '';
+    let mode = e.open ? 'open' : e.hidden ? 'hidden' : own ? (buttonItem ? 'both' : 'none') : e.relay === false ? 'item' : 'relay';
     const write = () => pvSlotEdit(slot, x => {
       x = x || {};
-      if (buttonItem && mode !== 'none' && mode !== 'hidden') x.item = buttonItem; else delete x.item;
+      if (buttonItem && mode !== 'none' && mode !== 'hidden' && mode !== 'open') x.item = buttonItem; else delete x.item;
       if (mode === 'hidden') x.hidden = true; else delete x.hidden;
+      if (mode === 'open' && openPage) x.open = openPage; else delete x.open;
       if (mode === 'relay') delete x.relay; else x.relay = mode !== 'item' && relayItem ? {item: relayItem} : false;
       return x;
     });
     const labelRow = pvRow(field('Label (optional)', fitHint(textInput(e.label, v => set('label', v), {maxLength: 24}), () => ['home', 'relay1_text', (layoutBox('home', 'relay1_label') || [])[3]])));
     const buttonField = field('', itemField(buttonItem, v => { buttonItem = v; write(); }, 'Switch'));
     const relayField = field('Item of the relay (optional)', itemField(relayItem, v => { relayItem = v; write(); }, 'Switch'));
+    const openField = field('Page it opens', selectInput(pvPageOptions(), openPage,
+                                                        v => { openPage = v; write(); }));
     const bar = note('');
     const fields = document.createElement('div');
     fields.className = 'pickfields';
-    fields.append(buttonField, relayField, bar);
+    fields.append(openField, buttonField, relayField, bar);
     const modes = [
       ['relay', 'Switches the relay', 'At once, with or without openHAB; with an item, openHAB can switch it too.', 'relay'],
       ['item', 'Switches an item only', 'The relay is left alone.', 'item'],
       ['both', 'Switches an item, the relay has its own', 'Button and relay are independent of each other.', "button's item"],
       ['none', 'Does nothing, the relay follows an item', 'For a load that must not be switched at the wall.', 'relay'],
+      ['open', 'Opens a page, the relay follows an item', 'A press wakes the screen and shows the page, such as the departures.', 'relay'],
       ['hidden', 'Does nothing and does not show, the relay follows an item', 'Neither label nor bar on the panel: a relay only openHAB sees.', ''],
     ];
     const picks = document.createElement('div');
@@ -6768,9 +6772,11 @@ function pvEditor() {
     const places = {};
     const show = () => {
       places[mode].append(fields);
-      buttonField.hidden = mode === 'none' || mode === 'hidden';
+      buttonField.hidden = mode === 'none' || mode === 'hidden' || mode === 'open';
+      openField.hidden = mode !== 'open';
       labelRow.hidden = mode === 'hidden';
       relayField.hidden = mode === 'relay' || mode === 'item';
+      relayField.firstChild.textContent = mode === 'open' ? 'Item of the relay (optional: else it is left alone)' : 'Item of the relay (optional)';
       buttonField.firstChild.textContent = mode === 'both' ? 'Item of the button (optional)' : 'Item (optional)';
       const shows = modes.find(m => m[0] === mode)[3];
       bar.textContent = shows ? 'The bar shows the ' + shows + '.' : '';
@@ -9218,6 +9224,9 @@ function pageRefs(cfg, id) {
   (h.shortcuts || []).forEach((s, i) => {
     if (s && s.open === id) refs.push(['shortcut ' + (i + 1) + ' on home', c => { delete c.home.shortcuts[i].open; }]);
   });
+  (h.relays || []).forEach((r, i) => {
+    if (r && r.open === id) refs.push(['hardware button ' + (i + 1), c => { delete c.home.relays[i].open; }]);
+  });
   (cfg.pages || []).forEach(p => (p.buttons || []).forEach((b, i) => {
     if (b && b.open === id) refs.push(['tile ' + (i + 1) + ' on "' + (p.title || p.id) + '"', c => {
       const t = c.pages.find(q => q.id === p.id).buttons[i];
@@ -9334,6 +9343,7 @@ function renamePage(old, id) {
     const h = c.home || {};
     if (h.weather_page === old) h.weather_page = id;
     (h.shortcuts || []).forEach(s => { if (s && s.open === old) s.open = id; });
+    (h.relays || []).forEach(r => { if (r && r.open === old) r.open = id; });
     (c.pages || []).forEach(p => (p.buttons || []).forEach(b => { if (b && b.open === old) b.open = id; }));
   });
 }

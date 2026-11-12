@@ -781,10 +781,20 @@ class Validator {
              "weather_icon", "weather_page",
              "status_icons", "shortcuts", "info"});
     slots(h, "relays", path, kMaxRelays, [&](const cJSON *e, const std::string &p) {
-      allowed(e, p, {"label", "item", "relay", "hidden"});
+      allowed(e, p, {"label", "item", "relay", "hidden", "open"});
       string(e, "label", p, false, 24);
       optional_item(e, p);
       boolean(e, "hidden", p);
+      // a button that opens a page: nothing else -- its relay is left alone or follows an item of its own
+      open(e, p);
+      if (cJSON_GetObjectItem(e, "open")) {
+        if (cJSON_GetObjectItem(e, "item"))
+          fail(member(p, "item"), "goes without \"open\": the button opens a page (an item for the relay: \"relay\": {\"item\"})");
+        if (cJSON_IsTrue(cJSON_GetObjectItem(e, "relay")))
+          fail(member(p, "relay"), "the button opens a page: it switches no relay (\"relay\": {\"item\"} gives the relay an item)");
+        if (cJSON_IsTrue(cJSON_GetObjectItem(e, "hidden")))
+          fail(member(p, "hidden"), "a button that opens a page shows its label");
+      }
       // true, false or an item of its own
       if (const cJSON *own = cJSON_GetObjectItem(e, "relay"); cJSON_IsObject(own)) {
         allowed(own, member(p, "relay"), {"item"});

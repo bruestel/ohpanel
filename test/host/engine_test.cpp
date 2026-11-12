@@ -3735,6 +3735,58 @@ int main(int argc, char **argv) {
     set_state("weatherCurrentConditionIconId", "10d", "String");
   }
 
+  {  // a hardware button that opens a page ("open"): the page, the screen woken for it; no relay switched -- one with
+     // an item of its own follows that
+    Callbacks cb4 = cb;
+    std::vector<std::pair<int, bool>> switched;
+    cb4.relay = [&](int i, bool on) { switched.push_back({i, on}); };
+    std::vector<std::pair<std::string, std::string>> sent;
+    cb4.command = [&](const std::string &item, const std::string &cmd) { sent.push_back({item, cmd}); };
+    Recorder r;
+    Engine h(r, cb4);
+    h.release_wait(0);
+    CHECK(h.load_design(read("boards/nspanel/nextion/display-manifest-eu.json").c_str(),
+                        read("boards/nspanel/nextion/weather-icons.json").c_str()));
+    cJSON *doc = cJSON_Parse(read("test/host/data/office.json").c_str());
+    cJSON *home = cJSON_GetObjectItem(doc, "home");
+    cJSON_ReplaceItemInObject(home, "relays", cJSON_Parse(R"([{"label": "Lights", "open": "lights",
+                                                               "relay": {"item": "Hall_Light"}}])"));
+    cJSON *display = cJSON_GetObjectItem(doc, "display");
+    if (!display)
+      display = cJSON_AddObjectToObject(doc, "display");
+    cJSON_DeleteItemFromObject(display, "screen");
+    cJSON_AddItemToObject(display, "screen", cJSON_Parse(R"({"idle_brightness": 0, "idle_after": 30})"));
+    char *text = cJSON_PrintUnformatted(doc);
+    h.set_config(text);
+    cJSON_free(text);
+    cJSON_Delete(doc);
+    PanelStatus up;
+    up.openhab = true;
+    h.set_status(up);
+    int64_t t = 1000;
+    h.idle(t);
+    h.start();
+    h.idle(t += 5000);
+    h.on_message(loaded("home"));
+    CHECK(h.current() == "home");
+    h.hardware_button(0);
+    CHECK(h.current() == "lights" && switched.empty() && sent.empty());
+    h.on_message(loaded("buttons"));
+    // asleep (the screen off when idle): a press wakes it on that page
+    h.on_message(event("buttons", "close", "release"));
+    h.on_message(loaded("home"));
+    h.on_message(event("home", "swipe", "none"));
+    h.idle(t += 100);
+    h.idle(t += 31000);
+    CHECK(h.asleep());
+    h.on_message(loaded("blank"));
+    r.out.clear();
+    h.hardware_button(0);
+    h.idle(t += 100);
+    CHECK(!h.asleep() && h.current() == "lights" && r.has(page_cmd("buttons")) && switched.empty());
+    if (g_failures) r.dump();
+  }
+
   if (g_failures) {
     std::fprintf(stderr, "%d engine check(s) failed\n", g_failures);
     return 1;

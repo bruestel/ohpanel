@@ -285,7 +285,7 @@ weather, status icons and info lines do not show; the hardware buttons still swi
 | `shortcuts` | up to 12 indicators | the large icons, three rows of four, numbered as read (the first four the top row, right-aligned); each may `open` a page, tapped while it is shown |
 | `info` | up to 2 lines | two text lines below the value rows, see below |
 
-A **relay** is `{"label", "item"?, "relay"?, "hidden"?}` and describes one of the two
+A **relay** is `{"label", "item"?, "relay"?, "hidden"?, "open"?}` and describes one of the two
 hardware buttons with the relay next to it:
 
 - without `item`, the button switches the relay directly;
@@ -310,6 +310,13 @@ hardware buttons with the relay next to it:
     {"label": "Scene", "item": "Evening_Scene", "relay": {"item": "Pump"}}
   ]
   ```
+
+`"open"` (a page's id, or `settings`, `info`) makes the button open that page: a press
+wakes the screen (at night too: one presses it to look) and shows the page, nothing
+else. No press switches the relay then: it is left alone, or follows an item of its
+own with `"relay": {"item": "..."}`; `"item"` does not go with it. For a page one
+wants at hand, such as the departures:
+`{"label": "Bus", "open": "departures", "relay": {"item": "Hall_Light"}}`.
 
 `"hidden": true` shows nothing of it on home, neither the label nor the bar; the
 button and the relay work as configured, unseen:
