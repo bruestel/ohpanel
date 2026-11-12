@@ -77,13 +77,15 @@
     // the departures page's feed: the list a rule would write, the next buses of three lines every 10 to 20 minutes
     const now = Date.now() / 60000;
     const next = (every, offset) => Math.ceil((now - offset) / every) * every + offset - now;
-    live.Bus_Departures = JSON.stringify([
+    // with the time it was fetched as the page's title, as a rule may send it
+    const at = new Date(), hhmm = String(at.getHours()).padStart(2, '0') + ':' + String(at.getMinutes()).padStart(2, '0');
+    live.Bus_Departures = JSON.stringify({title: 'Departures ' + hhmm, rows: [
       [12, 'Main station', 10, 3], [34, 'Fair', 15, 7], [5, 'Old town', 20, 1], [12, 'Main station', 10, 13]]
       .map(([line, to, every, offset], k) => {
         const m = Math.floor(next(every, offset) + (k === 3 ? 10 : 0));
         return {label: to, badge: String(line), value: m < 1 ? 'now' : m + ' min', color: line === 5 ? 'yellow' : undefined,
                 value_color: m < 3 ? 'yellow' : undefined};
-      }));
+      })});
   }
   setInterval(tick, 2000);
   tick();

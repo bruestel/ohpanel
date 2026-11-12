@@ -508,6 +508,7 @@ class Engine {
     int64_t since_ms = 0;    // asked then
     int64_t next_ms = 0;     // asked again then ("refresh")
     cJSON *view = nullptr;   // the rows drawn: a note first (loading, no answer, a text), then the list's
+    std::string title;       // the list's own title ({"title", "rows"}), "" for the page's
   };
   Feed feed_;
   const cJSON *feed_rows(const cJSON *page);
@@ -519,6 +520,7 @@ class Engine {
   void feed_tick();
   void feed_redraw(const cJSON *page);
   const cJSON *feed_page();
+  std::string title_of(const cJSON *page);
   void draw_boot();
   void draw_home();
   void draw_clock();

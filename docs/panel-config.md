@@ -573,7 +573,8 @@ asking counts, so three panels on the same item ask about once per `refresh`,
 not three times. A rule may also write a list whenever it likes: the panels
 that show the page take it at once.
 
-**The list.** The rows, or an object with them and a note shown above them:
+**The list.** The rows, or an object with them, a note shown above them and a
+title in place of the page's:
 
 ```json
 [{"label": "12 Main station", "value": "3 min"},
@@ -583,9 +584,14 @@ that show the page take it at once.
 ```
 
 ```json
-{"note": "Line 34 runs every 20 minutes today",
+{"title": "Departures 14:02",
+ "note": "Line 34 runs every 20 minutes today",
  "rows": [{"label": "12 Main station", "value": "3 min"}]}
 ```
+
+The title (the page's `title` without one) stays while the panel asks for the
+list anew or waits in vain, as the list does; one too wide for the title
+field ends in "…".
 
 A row has `label`, `value` (the text shown, as it is: no format), and may
 have `icon`, `badge`, `color` (the icon's and the badge's), `value_color`, `wide` and `scroll`

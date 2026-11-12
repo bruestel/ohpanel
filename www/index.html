@@ -3407,7 +3407,7 @@ function fillButtons(page) {
    between rows), the cards (the info page's) or the rows on cards; a row is an
    icon with the label and the value, or with one wide field (the cards: the
    value without a label). */
-/* An entity page's feed (EngineFeed.cpp): the list its item holds as JSON -- [rows] or {"rows", "note"} --, each
+/* An entity page's feed (EngineFeed.cpp): the list its item holds as JSON -- [rows] or {"rows", "note", "title"} --, each
    row {label, value, icon, color, value_color, wide, scroll} or null; any other text shown as it is. The item's
    "refresh" (asked, by autoupdate) or no state yet: "Loading...". At most 4096 bytes and 40 rows, as on the panel. */
 const FEED_MAX_BYTES = 4096, FEED_MAX_ROWS = 40;
@@ -3417,7 +3417,19 @@ function feedParse(raw) {
   if (/^\s*[\[{]/.test(raw)) try { doc = JSON.parse(raw); } catch (e) { doc = null; }
   const list = Array.isArray(doc) ? doc : doc && typeof doc === 'object' && Array.isArray(doc.rows) ? doc.rows : null;
   if (!list) return {text: raw};
-  return {list, note: !Array.isArray(doc) && typeof doc.note === 'string' ? doc.note : ''};
+  const own = k => !Array.isArray(doc) && typeof doc[k] === 'string' ? doc[k] : '';
+  return {list, note: own('note'), title: own('title')};
+}
+/* The feed's own title ({"title", "rows"}) in place of the page's (EngineFeed.cpp Engine::title_of): kept while the
+   item says "refresh", as the panel keeps the list. */
+const FEED_TITLES = {};
+function feedTitle(page) {
+  const f = page.feed || {}, st = f.item ? liveStates[f.item] : null;
+  if (st && st.state !== 'refresh') {
+    const got = feedParse(st.type === 'UnDef' ? '' : st.state);
+    FEED_TITLES[f.item] = got.list ? got.title : '';
+  }
+  return (f.item && FEED_TITLES[f.item]) || page.title;
 }
 function feedRows(page) {
   const t = disp.texts, f = page.feed || {}, st = f.item ? liveStates[f.item] : null;
@@ -3474,7 +3486,7 @@ function entityRows(page) {
 }
 
 function fillEntities(page) {
-  const f = {title: {text: page.title}};
+  const f = {title: {text: page.feed ? feedTitle(page) : page.title}};
   const rows = entityRows(page);
   const st = page.style || 'list', cards = st === 'cards', list = st === 'list', per = rowsPerSheet(page);
   const bg = list ? undefined : PALETTE['dark-grey'];
@@ -8175,7 +8187,8 @@ function pvEntityFeedForm(box, page, set, two) {
   help.innerHTML = 'The item holds the rows as JSON, e.g. <code>[{"label": "12 Main station", "value": "3 min"}, ' +
     '{"label": "34 Fair", "value": "7 min", "value_color": "red"}]</code>; a row may also have <code>icon</code>, ' +
     '<code>badge</code> (a line badge in the icon\'s place: one to three letters and digits, e.g. "S12"), <code>color</code>, ' +
-    '<code>wide</code>, and <code>null</code> is an empty line. Any other text shows as it is. ' +
+    '<code>wide</code>, and <code>null</code> is an empty line. As <code>{"title": "Departures 14:02", "note": "…", "rows": […]}</code> ' +
+    'the list brings a title in place of the page\'s and a note above it. Any other text shows as it is. ' +
     'The rule answers every "refresh" with the list, from its own cache if it is fresh.';
   box.append(edSection('Data', 'a list from one openHAB item'),
              pvRow(field('Item', item)), facts, ask,

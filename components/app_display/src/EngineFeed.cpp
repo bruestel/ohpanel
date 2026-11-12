@@ -8,7 +8,8 @@
    set a list whenever it likes (without being asked). No list within "timeout" seconds: "No answer from openHAB"
    above the list the panel had.
 
-   The item holds a list of rows, or {"rows": [...], "note": "..."}; anything else is a text the page shows (an
+   The item holds a list of rows, or {"rows": [...], "note": "...", "title": "..."} (the title in place of the
+   page's, "Departures 14:02" say; it stays while the list is asked for anew); anything else is a text the page shows (an
    error of the rule, say). A row is {"label", "value", "icon", "color", "value_color", "wide", "scroll"} or null
    for an empty line.
 
@@ -140,6 +141,7 @@ void Engine::feed_build(const cJSON *page) {
   if (!feed_.have)
     return;
   if (feed_.raw.size() > kMaxFeedBytes) {
+    feed_.title.clear();
     cJSON_AddItemToArray(rows, note_row(settings_.texts.feed_too_long, "alert-circle-outline", "yellow"));
     return;
   }
@@ -149,6 +151,11 @@ void Engine::feed_build(const cJSON *page) {
                    ? cJSON_ParseWithLength(feed_.raw.data(), feed_.raw.size())
                    : nullptr;
   const cJSON *list = cJSON_IsArray(doc) ? doc : cJSON_GetObjectItem(doc, "rows");
+  // the list's own title ({"title", "rows"}), read here from the one parse; while the list is asked for anew or no
+  // answer came (the returns above) the title stays with the list
+  const char *title =
+      cJSON_IsObject(doc) && cJSON_IsArray(list) ? cJSON_GetStringValue(cJSON_GetObjectItem(doc, "title")) : nullptr;
+  feed_.title = title ? title : "";
   if (!cJSON_IsArray(list)) {
     if (!feed_.raw.empty())
       cJSON_AddItemToArray(rows, note_row(feed_.raw, "information-outline", nullptr));
@@ -164,6 +171,13 @@ void Engine::feed_build(const cJSON *page) {
       n++;
     }
   cJSON_Delete(doc);
+}
+
+/* An entity page's title: its feed's own while it has one, else the page's. */
+std::string Engine::title_of(const cJSON *page) {
+  if (member(page, "feed") && feed_rows(page) && !feed_.title.empty())
+    return feed_.title;
+  return str(page, "title");
 }
 
 /* The page opened (or the screen woke on it): the list asked for, "Loading..." until it comes. */

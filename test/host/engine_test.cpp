@@ -3511,6 +3511,26 @@ int main(int argc, char **argv) {
     f.on_state("Bus_Departures");
     CHECK(r.has("row1_wide.txt=\"Line 34 cancelled\"") && r.has("row2_shortval.txt=\"1 min\"") &&
           r.has("vis row3_icon,0"));
+    CHECK(!r.has_prefix("title."));   // no title of its own: the page's stays
+    // a title of its own: in place of the page's, kept while the list is asked for anew, the page's again without
+    set_state("Bus_Departures",
+              R"({"title": "Departures 14:02", "rows": [{"label": "12 Main station", "value": "1 min"}]})", "String");
+    r.out.clear();
+    f.on_state("Bus_Departures");
+    CHECK(r.has("title.txt=\"Departures 14:02\"") && r.has("row1_shortval.txt=\"1 min\""));
+    sent.clear();
+    f.idle(t += 61000);
+    CHECK(sent.size() == 1);
+    set_state("Bus_Departures", "refresh", "String");
+    r.out.clear();
+    f.on_state("Bus_Departures");
+    f.idle(t += 16000);   // no answer: said above the list, the title stays
+    CHECK(r.has("row1_wide.txt=\"No answer from openHAB\"") && !r.has_prefix("title."));
+    set_state("Bus_Departures", R"({"rows": [{"label": "12 Main station", "value": "1 min"}], "note": "Line 34 cancelled"})",
+              "String");
+    r.out.clear();
+    f.on_state("Bus_Departures");
+    CHECK(r.has("title.txt=\"Departures\""));
     // a text instead of a list: shown as it is
     set_state("Bus_Departures", "No connection to the transit API", "String");
     r.out.clear();

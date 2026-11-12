@@ -352,13 +352,13 @@ std::vector<const cJSON *> Engine::unlabelled_rows(const cJSON *page) const {
    show instead of the pair with the wide value column -- the display moves
    no objects, so a row has both and the value chooses, each time it changes. */
 void Engine::draw_entities(const cJSON *page, const std::string &physical) {
-  txt("title", str(page, "title"));
   const bool cards = physical == "entities_cards", list = physical == "entities";
   const int per = rows_per_sheet(page);
   ask_group(page);
   if (member(page, "feed"))
     ask_feed(page);   // as the page opens: "Loading..." until the list comes
   const cJSON *all = rows_of(page);
+  txt("title", title_of(page));   // a feed's own title, once its rows are built
   // fixed rows without a label of their own: their items' labels in openHAB, asked for again as the page opens
   // (all its rows, not only the sheet shown) when older than a minute
   if (!labels_asked_) {
