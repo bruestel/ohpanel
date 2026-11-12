@@ -139,6 +139,10 @@ def pictures():
     for n in range(glyph_count()):
         if n in mine:
             img = mine[n](SIZE)
+            if img.width != SIZE:   # a line badge's piece, narrower: in the middle of the square
+                square = Image.new("L", (SIZE, SIZE), 0)
+                square.paste(img, ((SIZE - img.width) // 2, 0))
+                img = square
         else:
             img = Image.new("L", (SIZE, SIZE), 0)
             ImageDraw.Draw(img).text((0, baseline), chr(0xF0001 + n), font=font, fill=255, anchor="ls")
@@ -160,7 +164,8 @@ def meta():
     categories = src["categories"] + [own().CATEGORY]
     for name, (_, words) in own().icons().items():
         k = ord(table[name].decode("utf-8")) - 0xE000
-        of[k], aliases[k] = [len(categories) - 1], words
+        # a line badge's pieces are no icons to choose: in no category (the chooser leaves them out)
+        of[k], aliases[k] = ([] if name.startswith(own().BADGE) else [len(categories) - 1]), words
     return json.dumps({"version": src["version"], "categories": categories, "of": of, "aliases": aliases},
                       separators=(",", ":"), ensure_ascii=False).encode()
 

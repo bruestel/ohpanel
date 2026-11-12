@@ -18,6 +18,15 @@ The frames of an animation (an indicator's or shortcut's icon list, see
 docs/panel-config.md) keep everything that does not move in place, so
 nothing jumps between them.
 
+The pieces of a line badge ("ohpanel-badge-..."): not icons of their own, so not
+in the icon chooser, but the parts an entity row's "badge" is put together from
+(Engine::draw_entities) -- a filled band with a character cut out, one per digit
+and letter, as wide as the character needs, and a rounded end on either side.
+Side by side in one text field they make one badge of any length ("S12": start,
+S, 1, 2, end), in the colour the field draws it in; the display centres it as a
+whole. Their band lies where MDI's icons have their ink, so a badge sits where
+an icon would (test/host/badge_test.py measures it).
+
 The display has them at U+FF00 + n, in name order; the firmware and the web
 interface look icons up by name, so the numbers may change with every build.
 
@@ -35,6 +44,9 @@ SVG_DIR = os.path.join(HERE, "assets", "icons")
 FIRST = 0xFF00
 CATEGORY = "OHpanel"
 FRAMES = 8   # of an equalizer
+BADGE = "ohpanel-badge-"   # a line badge's pieces: BADGE + a digit or letter (lower case), + "start", + "end"
+BADGE_CHARS = "0123456789abcdefghijklmnopqrstuvwxyz"
+SORA = os.path.join(HERE, "assets", "fonts", "Sora[wght].ttf")
 
 
 def _image(em):
@@ -513,9 +525,61 @@ def _garage(frame, em):
     return big.resize((em, em), Image.LANCZOS)
 
 
+def _badge_metrics(em):
+    """A badge's band at `em`: its top and height in the em square (centred where MDI's icons have their ink's
+    middle: a little below the em square's), the end pieces' width, the characters' size (px), how much narrower
+    they are drawn than the font's (Sora's bold digits are wide: three would not fit an icon's field)."""
+    height = round(em * 0.76)
+    middle = em * 0.525
+    return dict(top=round(middle - height / 2), height=height, cap=max(2, round(em * 0.11)), size=em * 0.47,
+                narrow=0.71 if em >= 24 else 0.72)
+
+
+# the widest letters narrower still: three characters with an M fit an icon's field (Berlin's Metrobus "M48")
+BADGE_NARROWER = {"m": 0.82, "w": 0.75}   # of the others' narrowing
+
+
+def _badge(piece, em):
+    """A line badge's piece (BADGE_CHARS, "start" or "end"): an alpha picture em high, as wide as it needs."""
+    from PIL import Image, ImageDraw, ImageFont
+    k = 8   # drawn this much larger, scaled down (anti-aliased)
+    m = _badge_metrics(em)
+    top, bottom, cap = m["top"] * k, (m["top"] + m["height"]) * k, m["cap"]
+    if piece in ("start", "end"):
+        img = Image.new("L", (cap * k, em * k), 0)
+        # a rounded rectangle three ends wide, its left or right end: the band's
+        left = 0 if piece == "start" else -cap * k * 2
+        # the corners' radius half a pixel short of the end's width: its inner column whole, no notch where it joins
+        ImageDraw.Draw(img).rounded_rectangle((left, top, left + cap * k * 3 - 1, bottom - 1),
+                                              radius=round((cap - 0.5) * k), fill=255)
+        return img.resize((cap, em), Image.BOX)
+    # the character alone, its ink cut out and drawn narrower
+    font = ImageFont.truetype(SORA, round(m["size"] * k))
+    font.set_variation_by_name("Bold" if em >= 24 else "ExtraBold")   # small and narrow: the strokes heavier
+    ch = piece.upper()
+    x0, y0, x1, y1 = font.getbbox(ch)
+    glyph = Image.new("L", (x1 - x0, y1 - y0), 0)
+    ImageDraw.Draw(glyph).text((-x0, -y0), ch, font=font, fill=255)
+    glyph = glyph.resize((max(1, round(glyph.width * m["narrow"] * BADGE_NARROWER.get(piece, 1))), glyph.height),
+                         Image.LANCZOS)
+    # a whole column of band after it: between two characters, and before the end (the start has its own before the
+    # first) -- the pieces join where the band is whole, and characters never touch
+    width = math.ceil(glyph.width / k) + 1
+    img = Image.new("L", (width * k, em * k), 0)
+    ImageDraw.Draw(img).rectangle((0, top, width * k - 1, bottom - 1), fill=255)
+    # the character's ink at the piece's left, in the middle of the band, cut out of it
+    at = (round(((width - 1) * k - glyph.width) / 2), round((top + bottom - glyph.height) / 2))
+    hole = Image.new("L", img.size, 0)
+    hole.paste(glyph, at)
+    img = Image.composite(Image.new("L", img.size, 0), img, hole)
+    return img.resize((width, em), Image.BOX)   # an area's mean: no ringing outside the band
+
+
 def icons():
-    """name -> (draw(em) -> alpha picture em x em, aliases), in name order."""
+    """name -> (draw(em) -> alpha picture em high (em wide, but a badge's piece), aliases), in name order."""
     out = {}
+    for piece in list(BADGE_CHARS) + ["start", "end"]:
+        out[BADGE + piece] = (lambda em, p=piece: _badge(p, em), [])
     for n in range(1, FRAMES + 1):
         out[f"ohpanel-equalizer-{n}"] = (lambda em, f=n - 1: _bars(f, em), ["music", "playing"])
         out[f"ohpanel-equalizer-retro-{n}"] = (lambda em, f=n - 1: _retro(f, em), ["music", "playing", "spectrum"])
@@ -577,5 +641,6 @@ if __name__ == "__main__":
     sheet = Image.new("RGB", (len(table) * 44, 3 * 44), (20, 24, 32))
     for k, (name, (draw, _)) in enumerate(table.items()):
         for row, em in enumerate((19, 24, 27)):
-            sheet.paste((255, 255, 255), (k * 44 + 4, row * 44 + 4, k * 44 + 4 + em, row * 44 + 4 + em), draw(em))
+            img = draw(em)
+            sheet.paste((255, 255, 255), (k * 44 + 4, row * 44 + 4, k * 44 + 4 + img.width, row * 44 + 4 + em), img)
     sheet.resize((sheet.width * 2, sheet.height * 2), Image.NEAREST).save(sys.argv[1] if len(sys.argv) > 1 else "own-icons.png")

@@ -43,7 +43,7 @@ cJSON *feed_row(const cJSON *in, const cJSON *page, char decimal) {
   if (!cJSON_IsObject(in))
     return nullptr;
   cJSON *row = cJSON_CreateObject();
-  for (const char *key : {"label", "icon", "color", "value_color"})
+  for (const char *key : {"label", "icon", "badge", "color", "value_color"})
     if (const char *s = cJSON_GetStringValue(cJSON_GetObjectItem(in, key)))
       cJSON_AddStringToObject(row, key, s);
   const cJSON *v = cJSON_GetObjectItem(in, "value");

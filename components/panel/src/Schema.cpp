@@ -875,9 +875,24 @@ class Validator {
       fail(member(p, "timeout"), "needs \"ask\": the panel waits for an answer only when it asked");
   }
 
+  /* A row's line badge ("badge"): one to three letters and digits (Engine::draw_entities: a bus line's "S12"). */
+  void badge(const cJSON *obj, const std::string &path) {
+    const cJSON *v = cJSON_GetObjectItem(obj, "badge");
+    if (!v)
+      return;
+    const char *s = cJSON_GetStringValue(v);
+    const size_t n = s ? std::strlen(s) : 0;
+    bool ok = n >= 1 && n <= 3;
+    for (size_t i = 0; ok && i < n; i++)
+      ok = (s[i] >= 'A' && s[i] <= 'Z') || (s[i] >= 'a' && s[i] <= 'z') || (s[i] >= '0' && s[i] <= '9');
+    if (!ok)
+      fail(member(path, "badge"), "must be one to three letters (A-Z) and digits, e.g. a line's \"S12\"");
+  }
+
   void row(const cJSON *r, const std::string &p) {
-    allowed(r, p, {"item", "label", "icon", "color", "value_color", "value_style", "format", "factor", "wide",
+    allowed(r, p, {"item", "label", "icon", "badge", "color", "value_color", "value_style", "format", "factor", "wide",
                    "scroll"});
+    badge(r, p);
     boolean(r, "scroll", p);   // a text too long for its field scrolls (else the page's "scroll" counts)
     color(r, p, "value_color");   // the value's colour without a rule (a rule's colour comes first)
     boolean(r, "wide", p);   // this row in the wide layout (a day's date over its lessons, say)

@@ -59,6 +59,13 @@ int main() {
     return doc(R"("pages":[{"id":"p","type":"entities","title":"x",)" + rest + "}]");
   };
   expect_valid("feed", feed_page(R"("feed":{"item":"Bus"})"));
+  // a row's line badge: one to three letters and digits
+  expect_valid("badge", feed_page(R"("rows":[{"item":"A","badge":"12"},{"item":"B","badge":"S1"},{"item":"C","badge":"re5"}])"));
+  expect_issue("badge too long", feed_page(R"("rows":[{"item":"A","badge":"1234"}])"), "pages[0].rows[0].badge");
+  expect_issue("badge empty", feed_page(R"("rows":[{"item":"A","badge":""}])"), "pages[0].rows[0].badge");
+  expect_issue("badge with a space", feed_page(R"("rows":[{"item":"A","badge":"S 1"}])"), "pages[0].rows[0].badge");
+  expect_issue("badge with an umlaut", feed_page(R"("rows":[{"item":"A","badge":"Ü1"}])"), "pages[0].rows[0].badge");
+  expect_issue("badge not a text", feed_page(R"("rows":[{"item":"A","badge":12}])"), "pages[0].rows[0].badge");
   expect_valid("feed asked every minute", feed_page(R"("feed":{"item":"Bus","refresh":60,"timeout":10},"icon":"bus",)"
                                                      R"("color":"yellow","style":"rows")"));
   expect_valid("feed only pushed", feed_page(R"("feed":{"item":"Bus","ask":false})"));

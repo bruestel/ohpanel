@@ -1008,6 +1008,12 @@ int main(int argc, char **argv) {
     CHECK(rec.has("row3_longtext.txt=\"Arbeitsz. > Palme\"") && !rec.has("vis row4_icon,1"));
     CHECK(rec.has("row1_shortval.pco=63488") && rec.has("row2_shortval.pco=65472"));   // <= critical, <= warn
     CHECK(rec.has("row3_shortval.txt=\"–\""));
+    // a member's own line badge in its metadata: in place of its icon
+    members["gPlantsIndoor"][0].metadata["plant"].config["badge"] = "F";
+    rec.out.clear();
+    e.on_options("gPlantsIndoor");
+    CHECK(rec.has("row2_icon.txt=\"" + icon_glyph("ohpanel-badge-start") + icon_glyph("ohpanel-badge-f") +
+                  icon_glyph("ohpanel-badge-end") + "\""));
     if (g_failures) rec.dump();
   }
   {  // the weather page: home's weather icon opens its first day; the days are sheets, swiped left and right
@@ -3658,6 +3664,50 @@ int main(int argc, char **argv) {
     label_asks.clear();
     l.on_message(loaded("entities"));
     CHECK(asked_aged("Lbl_A") && asked_aged("Lbl_Late"));
+    if (g_failures) r.dump();
+  }
+
+  {  // a line badge in place of a row's icon, in its field: its pieces side by side (start, letters and digits, end)
+     // -- a fixed row's, a feed's, a group member's from its metadata; a rule's icon still comes first; three
+     // letters and digits at most, others left out
+    const auto badge = [](const std::string &text) {
+      std::string out = icon_glyph("ohpanel-badge-start");
+      for (const char c : text)
+        out += icon_glyph((std::string("ohpanel-badge-") + c).c_str());
+      return out + icon_glyph("ohpanel-badge-end");
+    };
+    CHECK(!icon_glyph("ohpanel-badge-start").empty() && !icon_glyph("ohpanel-badge-z").empty());
+    Recorder r;
+    Engine b(r, cb);
+    b.release_wait(0);
+    CHECK(b.load_design(read("boards/nspanel/nextion/display-manifest-eu.json").c_str(),
+                        read("boards/nspanel/nextion/weather-icons.json").c_str()));
+    set_state("Bdg_A", "ON", "OnOff");
+    set_state("Bdg_Feed", R"([{"label": "Main station", "value": "3 min", "badge": "S12"},
+                              {"label": "Fair", "value": "7 min", "badge": "re-5 x", "icon": "bus"},
+                              {"label": "Old town", "value": "9 min", "icon": "tram"}])", "String");
+    b.set_config(R"({"version": 1, "swipe": ["fixed", "feed", "home"], "pages": [
+      {"id": "fixed", "type": "entities", "title": "Fixed", "style": "rows",
+       "rows": [{"item": "Bdg_A", "label": "A", "badge": "5", "color": "yellow"},
+                {"item": "Bdg_A", "label": "B", "badge": "7", "value_style": [{"equals": "ON", "icon": "alert"}]}]},
+      {"id": "feed", "type": "entities", "title": "Feed", "style": "cards", "icon": "bus",
+       "feed": {"item": "Bdg_Feed", "ask": false}}]})");
+    int64_t t = 1000;
+    b.idle(t);
+    b.start();
+    b.idle(t += 5000);
+    r.out.clear();
+    b.on_message(loaded("entities_rows"));
+    CHECK(b.current() == "fixed");
+    CHECK(r.has("row1_icon.txt=\"" + badge("5") + "\"") && r.has("row1_icon.pco=65472"));   // in the row's colour
+    CHECK(r.has(std::string("row2_icon.txt=\"") + icon_glyph("alert") + "\""));       // a rule's icon first
+    b.on_message(event("entities_rows", "swipe", "left"));
+    r.out.clear();
+    b.on_message(loaded("entities_cards"));
+    CHECK(b.current() == "feed");
+    CHECK(r.has("card1_icon.txt=\"" + badge("s12") + "\""));                           // capitals as their pieces
+    CHECK(r.has("card2_icon.txt=\"" + badge("re5") + "\""));                           // "re-5 x": three, the rest out
+    CHECK(r.has(std::string("card3_icon.txt=\"") + icon_glyph("tram") + "\""));       // no badge: the icon
     if (g_failures) r.dump();
   }
 

@@ -97,6 +97,9 @@ SLIDER_TRACK = "#3a3f3a"                 # the slider's empty part
 TILE_OFF = "#2c2c2c"                     # generate.py TILES: the button's text sits on it
 
 TEXT_FONT, ICON_FONT, ICON_FONT_LARGE = 3, 7, 8   # the icon font at 24 px; font 8: the same glyphs at 32 px
+# an entity row's icon field holds a line badge too (Engine::draw_entities): its pieces side by side, three bytes
+# each (own_icons.py BADGE) -- the start, three characters and the end
+BADGE_BYTES = 5 * 3
 ICON_FONT_XL = 9   # and at 48 px: a button's icon in the middle of its tile
 
 # The seed's objects by type (main(): from the seed's page, which goes once
@@ -534,7 +537,7 @@ def entities_pages(p: Project) -> None:
     h = layout.ENTITY_LIST_H
     for r in range(1, layout.ENTITY_LIST_N + 1):
         y = layout.ENTITY_LIST_Y + (r - 1) * layout.ENTITY_LIST_STEP
-        icon(page, f"row{r}_icon", layout.ENTITY_ICON_X, y + h / 2, ICON_FONT_LARGE, maxl=4)
+        icon(page, f"row{r}_icon", layout.ENTITY_ICON_X, y + h / 2, ICON_FONT_LARGE, maxl=BADGE_BYTES)
         text(page, f"row{r}_text", (tx, y, layout.RIGHT - vw - tx, h), font, maxl=24, pco=LIGHT_GREY)
         text(page, f"row{r}_value", (layout.RIGHT - vw, y, vw, h), font, xcen=2, maxl=24)
         text(page, f"row{r}_longtext", (tx, y, layout.RIGHT - nw - tx, h), font, maxl=40, pco=LIGHT_GREY)
@@ -553,7 +556,7 @@ def entities_pages(p: Project) -> None:
         c = f"card{k}"
         picture(page, f"{c}_pic", (x, y, w, h), PICTURES[f"card{k}"]["box"])
         part = card_parts(x, y, w)
-        icon(page, f"{c}_icon", x + 24, y + h / 2, ICON_FONT_LARGE, maxl=4, bco=TILE_OFF_565)
+        icon(page, f"{c}_icon", x + 24, y + h / 2, ICON_FONT_LARGE, maxl=BADGE_BYTES, bco=TILE_OFF_565)
         text(page, f"{c}_text", part("text"), layout.SYSTEM_TEXT_FONT, maxl=24, pco=LIGHT_GREY, bco=TILE_OFF_565)
         text(page, f"{c}_value", part("value"), layout.SYSTEM_VALUE_FONT, maxl=24, bco=TILE_OFF_565)
     close(page)
@@ -567,7 +570,7 @@ def entities_pages(p: Project) -> None:
     for r in range(1, layout.ENTITY_ROWS_N + 1):
         y = layout.ENTITY_ROWS_Y + (r - 1) * layout.ENTITY_ROWS_STEP
         picture(page, f"row{r}_pic", (layout.MARGIN, y, row_w, h), PICTURES[f"rowcard{r}"]["box"])
-        icon(page, f"row{r}_icon", layout.ENTITY_ICON_X + 2, y + h / 2, ICON_FONT, maxl=4, bco=TILE_OFF_565)
+        icon(page, f"row{r}_icon", layout.ENTITY_ICON_X + 2, y + h / 2, ICON_FONT, maxl=BADGE_BYTES, bco=TILE_OFF_565)
         text(page, f"row{r}_text", (tx, y + 1, right - (vw - 10) - tx, h - 2), font, maxl=24, pco=LIGHT_GREY,
              bco=TILE_OFF_565)
         text(page, f"row{r}_value", (right - (vw - 10), y + 1, vw - 10, h - 2), font, xcen=2, maxl=24, bco=TILE_OFF_565)

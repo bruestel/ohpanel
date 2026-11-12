@@ -645,6 +645,11 @@ dialog.confirm label.drop b{font:600 14px/1.3 inherit;font-family:inherit;color:
 .edsec span{margin-left:.5rem;font-weight:400;text-transform:none;letter-spacing:0}
 /* an entity page's group: the label template's placeholders, what each member shows now */
 .chips{display:flex;flex-wrap:wrap;gap:.3rem;margin:.1rem 0 .2rem}
+/* a row's line badge being typed, beside it as the display draws it: on a card's grey, the letters cut out */
+.badgeedit{display:flex;align-items:center;gap:.75rem}
+.badgeedit input{max-width:7rem}
+.badgeedit span{display:inline-flex;align-items:center;justify-content:center;min-width:3rem;height:2.5rem;padding:0 .5rem;border-radius:8px;background:#3a3a40}
+.badgeedit span canvas{image-rendering:pixelated}
 .chip{border:1px solid var(--line);border-radius:1rem;background:transparent;color:inherit;font:12px/1.6 ui-monospace,monospace;
   padding:0 .55rem;cursor:pointer}
 .chip:hover{border-color:var(--accent)}
@@ -3427,6 +3432,7 @@ function feedRows(page) {
     // a number in the display language's decimal separator (EngineFeed.cpp feed_row)
     const num = v => (Number.isInteger(v) ? String(v) : String(+v.toPrecision(10))).replace('.', langOf(disp.lang).decimal);
     const row = {text: typeof r.value === 'string' ? r.value : typeof r.value === 'number' ? num(r.value) : ''};
+    if (typeof r.badge === 'string' && r.badge) row.badge = r.badge;
     for (const k of ['label', 'icon', 'color', 'value_color']) {
       const v = typeof r[k] === 'string' ? r[k] : page[k];
       if (typeof v === 'string') row[k] = v;
@@ -3462,6 +3468,7 @@ function entityRows(page) {
       if (md) row.meta = Object.assign({value: md.value}, md.config);
       for (const k of ['icon', 'color', 'value_color', 'value_style', 'format', 'factor']) if (page[k] !== undefined) row[k] = page[k];
       if (md && md.config.icon) row.icon = md.config.icon;
+      if (md && md.config.badge) row.badge = md.config.badge;   // a line badge in place of the icon
       return row;
     }).filter(r => !page.only_on || !stateOf(r) || isOn(r));
 }
@@ -3486,10 +3493,11 @@ function fillEntities(page) {
     if (!r) continue;
     if (!list) f[n + '_pic'] = {bg, radius: cards ? 12 : 10};
     const style = r.item ? ruleStyle(r.value_style || page.value_style, r) : {};
-    const icon = style.icon || r.icon;
+    const badge = badgeOf(r), icon = style.icon || (badge ? '' : r.icon);
     // a rule colours the icon by its icon_color only (Engine::draw_entities)
     const iconColor = style.iconColor || color(r.color, THEME.accent);
-    f[n + '_icon'] = icon ? {icon, color: iconColor, bg} : {text: '', bg};
+    // a rule's icon, else the row's line badge, else its icon
+    f[n + '_icon'] = icon ? {icon, color: iconColor, bg} : badge ? {badge, color: iconColor, bg} : {text: '', bg};
     const value = r.item || r.text !== undefined ? shown(r, page, style) : '';
     const wide = (page.wide || r.wide) && !cards;   // the page's layout, or this row's
     // a value that fits the narrow field leaves the label more room (Engine::draw_entities)
@@ -4251,6 +4259,13 @@ function drawPage(box, cfg, id) {
         placeIcon(i, o, font);
         el.appendChild(i);
       });
+    } else if (want.badge) {   // a line badge: its pieces in the middle of the field, as the display centres them
+      const em = font.icon ? font.icon.em : font.height, c = badgeCanvas(want.badge, el.style.color, em);
+      if (c) {
+        const top = (o.yc === 1 ? Math.floor((o.h - font.height) / 2) : 0) + (font.icon ? font.icon.top : 0);
+        c.style.cssText += ';position:absolute;left:' + Math.floor((o.w - parseFloat(c.style.width)) / 2) + 'px;top:' + top + 'px';
+        el.appendChild(c);
+      }
     } else if (want.icon) {
       const i = iconCanvas(want.icon, el.style.color, font.icon ? font.icon.em : font.height);
       if (i) { placeIcon(i, o, font); el.appendChild(i); }
@@ -6918,6 +6933,54 @@ function loadOptions(item, refresh, then) {
     .catch(() => { o.busy = false; o.at = Date.now(); });
   ask(!!refresh);
 }
+/* A row's line badge: its letters and digits (at most three, lower case, others left out: Engine::draw_entities
+   badge_of), '' without. */
+function badgeOf(r) {
+  return r && typeof r.badge === 'string' ? r.badge.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 3) : '';
+}
+/* A line badge as the display draws it: its pieces (own_icons.py BADGE) side by side, each cut out of its picture
+   in the icon set (drawn in the middle of a square there) -- `px` high, as the icon's em; null without the icon set. */
+function badgeCanvas(chars, color, px) {
+  if (!ICONS.index) return null;
+  const size = ICONS.size, parts = [];
+  for (const piece of ['start', ...chars, 'end']) {
+    const n = ICONS.index.get('ohpanel-badge-' + piece);
+    if (n === undefined) return null;
+    const level = (x, y) => (ICONS.pics[(n * size * size + y * size + x) >> 2] >> (6 - 2 * ((y * size + x) & 3))) & 3;
+    let x0 = size, x1 = -1;
+    for (let x = 0; x < size; x++)
+      for (let y = 0; y < size; y++)
+        if (level(x, y)) { x0 = Math.min(x0, x); x1 = Math.max(x1, x); }
+    parts.push({level, x0, w: x1 - x0 + 1});
+  }
+  const c = document.createElement('canvas');
+  c.width = parts.reduce((s, p) => s + p.w, 0);
+  c.height = size;
+  const ctx = c.getContext('2d'), img = ctx.createImageData(c.width, size), d = img.data;
+  const [r, g, b] = rgbOf(color || '#fff');
+  let at = 0;
+  for (const p of parts) {
+    for (let y = 0; y < size; y++)
+      for (let x = 0; x < p.w; x++) {
+        const q = 4 * (y * c.width + at + x);
+        d[q] = r; d[q + 1] = g; d[q + 2] = b; d[q + 3] = p.level(p.x0 + x, y) * 85;
+      }
+    at += p.w;
+  }
+  ctx.putImageData(img, 0, 0);
+  c.style.height = px + 'px';
+  c.style.width = (c.width * px / size) + 'px';
+  return c;
+}
+/* How wide a badge is on the display, roughly (its pieces as the icon set has them, at the field's em): whether
+   it fits the icon field of the page's style. */
+function badgeFits(page, chars) {
+  const template = templateOf(page), objects = (LAYOUT.pages[template] || {}).objects || [];
+  const o = objects.find(x => x.n === (page.style === 'cards' ? 'card1_icon' : 'row1_icon'));
+  const font = o && LAYOUT.fonts[o.f], c = font && font.icon && badgeCanvas(chars, '#fff', font.icon.em);
+  return !c || parseFloat(c.style.width) <= o.w + 1;
+}
+
 /* An item's label in openHAB, as the panel has it (Engine::row_label): asked for once, '' until it is known --
    a fixed row of an entity page without a label of its own shows it, else the item's name. */
 function itemLabel(item) {
@@ -8101,7 +8164,8 @@ function pvEntityFeedForm(box, page, set, two) {
   help.className = 'sub';
   help.innerHTML = 'The item holds the rows as JSON, e.g. <code>[{"label": "12 Main station", "value": "3 min"}, ' +
     '{"label": "34 Fair", "value": "7 min", "value_color": "red"}]</code>; a row may also have <code>icon</code>, ' +
-    '<code>color</code>, <code>wide</code>, and <code>null</code> is an empty line. Any other text shows as it is. ' +
+    '<code>badge</code> (a line badge in the icon\'s place: one to three letters and digits, e.g. "S12"), <code>color</code>, ' +
+    '<code>wide</code>, and <code>null</code> is an empty line. Any other text shows as it is. ' +
     'The rule answers every "refresh" with the list, from its own cache if it is fresh.';
   box.append(edSection('Data', 'a list from one openHAB item'),
              pvRow(field('Item', item)), facts, ask,
@@ -8377,6 +8441,47 @@ function pvWeatherEditor(box, head, hint, page) {
 }
 
 /* One of the fixed rows (a slot of page.rows). */
+/* A row's icon or its line badge ("badge", Engine::draw_entities): which of them, then the icon chooser or the
+   badge's letters and digits with the badge as the display draws it, at its size in the page's style. */
+const ROW_BADGE_MODE = {};   // "page:row" -> a badge chosen, its letters not typed yet
+function pvIconOrBadge(page, e, set) {
+  const key = page.id + ':' + (PV.target || '');
+  const badge = !!e.badge || !!ROW_BADGE_MODE[key];
+  const mode = selectInput([['icon', 'An icon'], ['badge', 'A line badge: one to three letters and digits']],
+                           badge ? 'badge' : 'icon', v => {
+    ROW_BADGE_MODE[key] = v === 'badge';
+    set(v === 'badge' ? 'icon' : 'badge', '');   // one or the other
+    PV.edKey = null;
+    renderPreview();
+  });
+  if (!badge)
+    return [pvRow(field('Shows', mode)), pvRow(unnamed('Icon', iconField(e.icon, v => set('icon', v))))];
+  const wrap = document.createElement('div');
+  wrap.className = 'badgeedit';
+  const shown = document.createElement('span');
+  const note = document.createElement('p');
+  note.className = 'sub';
+  const template = templateOf(page), objects = (LAYOUT.pages[template] || {}).objects || [];
+  const o = objects.find(x => x.n === (page.style === 'cards' ? 'card1_icon' : 'row1_icon'));
+  const font = o && LAYOUT.fonts[o.f];
+  const show = v => {
+    const chars = badgeOf({badge: v});
+    shown.innerHTML = '';
+    const c = chars && font && font.icon && badgeCanvas(chars, color(e.color, THEME.accent), font.icon.em);
+    if (c) shown.appendChild(c);
+    note.textContent = !v ? 'A line\'s number or name as on the stops, e.g. 12, S1, U55, RE5 – in the colour below.'
+      : /[^a-z0-9]/i.test(v) ? 'Letters A–Z and digits only: the rest is left out.'
+      : !badgeFits(page, chars) ? 'Wider than the icon\'s field in this style: the display cuts it off.'
+      : chars.length === 3 && page.style === 'rows' ? 'Three characters are small in the style "rows".' : '';
+  };
+  const input = textInput(e.badge, v => { set('badge', v.toUpperCase()); show(v); },
+                          {maxLength: 3, spellcheck: false, placeholder: 'e.g. S12', autocapitalize: 'characters'});
+  input.style.textTransform = 'uppercase';
+  show(e.badge || '');
+  wrap.append(input, shown);
+  return [pvRow(field('Shows', mode)), pvRow(field('Line badge', wrap)), note];
+}
+
 function pvEntityRowEditor(box, head, hint, page, slot) {
   if (!slot.entry) {
     head.textContent = 'New row';
@@ -8397,7 +8502,7 @@ function pvEntityRowEditor(box, head, hint, page, slot) {
                            : 'Choose its item: a row needs one before the page can be saved.';
     }))),
     edSection('Icon'),
-    pvRow(unnamed('Icon', iconField(e.icon, v => set('icon', v)))),
+    ...pvIconOrBadge(page, e, set),
     pvRow(field('Color', colorField(e.color, v => set('color', v), 'theme accent', THEME.accent))),
     edSection('Label'),
     pvRow(unnamed('Label', textInput(e.label, v => set('label', v), {maxLength: 40, placeholder: "the item's label"}))),

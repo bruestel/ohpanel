@@ -145,12 +145,17 @@ def icon_em(font_id: int) -> tuple:
 
 def own(em: int, top: int, height: int) -> dict:
     """OHpanel's own icons as characters: the em square at `top`, as wide as
-    its advance (like MDI's)."""
+    its advance (like MDI's) -- a line badge's piece as wide as its picture."""
     chars = {}
+    table = own_icons.icons()
     for name, code in own_icons.code_points().items():
-        pixels = [0] * (em * height)
-        pixels[top * em:(top + em) * em] = own_icons.levels(own_icons.icons()[name][0](em), 3)
-        chars[code] = (em, 0, 0, pixels)
+        img = table[name][0](em)
+        if img.height != em:
+            raise ValueError(f"own icon {name}: {img.height} px high, not {em}")
+        w = img.width
+        pixels = [0] * (w * height)
+        pixels[top * w:(top + em) * w] = own_icons.levels(img, 3)
+        chars[code] = (w, 0, 0, pixels)
     return chars
 
 

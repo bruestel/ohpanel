@@ -10,6 +10,7 @@
 #include <qrcodegen.h>
 
 #include <algorithm>
+#include <cctype>
 #include <cmath>
 #include <cstdio>
 #include <cstring>
@@ -253,6 +254,8 @@ const cJSON *Engine::rows_of(const cJSON *page) {
       cJSON_DeleteItemFromObject(row, "icon");
       cJSON_AddStringToObject(row, "icon", own->second.c_str());
     }
+    if (const auto badge = md.config.find("badge"); badge != md.config.end() && !badge->second.empty())
+      cJSON_AddStringToObject(row, "badge", badge->second.c_str());   // a line badge in the icon's place
     cJSON_AddItemToArray(rows, row);
   }
   group_rows_[id] = rows;
@@ -289,7 +292,28 @@ void Engine::forget_group_rows() {
 }
 
 namespace {
+constexpr int kMaxBadgeChars = 3;
 constexpr int kLabelAgeS = 60;   // a row's openHAB label asked for again as its page opens, when cached longer
+
+/* A row's line badge ("badge": a bus line's "S12"): its pieces in the icon fonts (boards/nspanel/nextion/own_icons.py
+   BADGE) side by side -- the start, its letters and digits (at most three, others left out), the end --, one badge
+   in the colour the icon field draws it in, which the field centres as it does an icon (test/host/badge_test.py
+   measures it); "" without one. */
+std::string badge_of(const cJSON *row) {
+  const std::string text = str(row, "badge");
+  std::string pieces;
+  int chars = 0;
+  for (const char c : text) {
+    const char lower = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
+    if (chars < kMaxBadgeChars && ((lower >= 'a' && lower <= 'z') || (lower >= '0' && lower <= '9'))) {
+      pieces += icon_glyph((std::string("ohpanel-badge-") + lower).c_str());
+      chars++;
+    }
+  }
+  if (!chars)
+    return {};
+  return icon_glyph("ohpanel-badge-start") + pieces + icon_glyph("ohpanel-badge-end");
+}
 }  // namespace
 
 /* What a row of an entity page is called: its own "label", else its item's label in openHAB as known
@@ -423,7 +447,9 @@ void Engine::draw_entities(const cJSON *page, const std::string &physical) {
         vis(field, true);
       }
       // a rule may show another icon or colour it (icon_color), colour the value and let it blink
-      txt(n + "_icon", style.icon.empty() ? glyph(row) : icon_glyph(style.icon.c_str()));
+      // a rule's icon, else the row's line badge, else its icon
+      const std::string badge = badge_of(row);
+      txt(n + "_icon", !style.icon.empty() ? icon_glyph(style.icon.c_str()) : !badge.empty() ? badge : glyph(row));
       num(n + "_icon", "pco", style.icon_color >= 0 ? style.icon_color : color_of(row, "color", theme_.accent));
       show_text(field, v, style.blink);
       num(field, "pco", style.color >= 0 ? style.color : color_of(row, "value_color", theme_.text));

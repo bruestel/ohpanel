@@ -51,3 +51,4 @@ test/host/build/schema_test
 test/host/build/sound_test
 node test/host/melody_test.js
 python3 tools/check_names.py
+python3 test/host/badge_test.py

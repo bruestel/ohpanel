@@ -81,7 +81,7 @@
       [12, 'Main station', 10, 3], [34, 'Fair', 15, 7], [5, 'Old town', 20, 1], [12, 'Main station', 10, 13]]
       .map(([line, to, every, offset], k) => {
         const m = Math.floor(next(every, offset) + (k === 3 ? 10 : 0));
-        return {label: line + ' ' + to, value: m < 1 ? 'now' : m + ' min', icon: line === 5 ? 'tram' : 'bus',
+        return {label: to, badge: String(line), value: m < 1 ? 'now' : m + ' min', color: line === 5 ? 'yellow' : undefined,
                 value_color: m < 3 ? 'yellow' : undefined};
       }));
   }

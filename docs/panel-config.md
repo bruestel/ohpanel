@@ -412,8 +412,12 @@ Fixed `rows`, a `group`, or a `feed`:
 | `wide` | bool | the wide layout (longer values, no labels column; with `cards`: the value without its label) |
 | `scroll` | bool | a label too long for its field scrolls instead of ending in "..." (`list` and `rows`; values and wide rows still end in "...": the display scrolls 10 texts a page at most) |
 
-A **row** is `{"item", "label"?, "icon"?, "color"?, "value_color"?, "value_style"?, "format"?, "factor"?, "wide"?}`;
+A **row** is `{"item", "label"?, "icon"?, "badge"?, "color"?, "value_color"?, "value_style"?, "format"?, "factor"?, "wide"?}`;
 `color` is the icon's, `value_color` the value's (a matching rule's colour comes first);
+`badge` is a line badge in the icon's place, as on the stops: one to three letters and digits (`"badge":
+"S12"`, `"12"`, `"RE5"`) on a band of the icon's colour, cut out of it, rounded at its ends; every number up
+to 999 and a letter or two with digits fit every style (three characters are small in the style `rows`); a
+rule's icon still comes first; it needs the display design of OHpanel 0.24.0 or later;
 `"wide": true` puts this row alone in the wide layout (a day's date above its lessons, say);
 `"scroll"` decides for this row whether a label too long for its field scrolls (else the page's `scroll` counts).
 Without a label the item's openHAB label is used (its name while openHAB has not told it yet). The panel asks
@@ -439,6 +443,7 @@ a namespace of its own rather than one of the panel's, so that other clients
   without it, the member is shown;
 - `icon` (an icon's name) is the member's own instead of the page's; a rule's
   icon still comes first;
+- `badge` (a line badge: one to three letters and digits, e.g. `S12`) shows in place of the icon;
 - any other key is there for the `label` template and for the rules'
   thresholds: `"at_most": "@critical"` compares with the member's `critical`;
 - a member without metadata there shows its item label, and rules with a
@@ -558,8 +563,10 @@ that show the page take it at once.
 ```
 
 A row has `label`, `value` (the text shown, as it is: no format), and may
-have `icon`, `color` (the icon's), `value_color`, `wide` and `scroll` as a
-fixed row; `null` is an empty line. Any state that is no such list (a text
+have `icon`, `badge`, `color` (the icon's and the badge's), `value_color`, `wide` and `scroll`
+as a fixed row; `null` is an empty line.
+A list of departures, say, with the line's number in the icon's place:
+`{"label": "Main station", "badge": "S12", "value": "3 min"}`. Any state that is no such list (a text
 like "No connection to the transit API", or broken JSON) shows as it is, so
 the rule can say what went wrong. The panel takes at most 4096 bytes ("List
 too long" beyond) and 40 rows.
