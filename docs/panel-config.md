@@ -288,6 +288,7 @@ weather, status icons and info lines do not show; the hardware buttons still swi
 | `outdoor_low`, `outdoor_high` | `{item, decimals?}` | today's low and high under it, on the date's line, each after an arrow (`↓9° ↑22°`; up to `-12°` for the low), e.g. items linked to a weather add-on's daily forecast for today (OpenWeatherMap: `forecastToday#max-temperature` / `#min-temperature`) |
 | `weather_icon` | `{item, codes}` | an item holding a weather condition code; `codes` names the code set of the openHAB channel the item is linked to (`boards/nspanel/nextion/weather-icons.json`): `openweathermap` (default; OpenWeatherMap and Open-Meteo `icon-id`: `01d`, `10n`, ...), `openweathermap-condition` (OpenWeatherMap `condition-id`, 200 ... 804), `weathercompany` (`iconCode` 0 ... 47), `meteoblue` (`condition`, pictocode 1 ... 17), `smhi` (`symbol_code`), `fmi` (FMI `weather-id`), `wmo` (Open-Meteo `weather-code`), `darksky` (Pirate Weather `icon-id`, Visual Crossing `icon`). The icons are [Meteocons](https://github.com/basmilius/weather-icons) (fill). |
 | `weather_page` | page id | opened by tapping the weather icon |
+| `clock_page` | page id | opened by tapping the clock or the date |
 | `status_icons` | up to 10 indicators | the small icons in the top row |
 | `shortcuts` | up to 12 indicators | the large icons, three rows of four, numbered as read (the first four the top row, right-aligned); each may `open` a page, tapped while it is shown |
 | `info` | up to 2 lines | two text lines below the value rows, see below |

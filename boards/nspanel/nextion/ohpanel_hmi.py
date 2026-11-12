@@ -461,6 +461,11 @@ def home_page(p: Project) -> None:
              pco=LIGHT_GREY)
     hotspot(home, "weather_hs", layout.WEATHER_HOME, event("home", "weather", "release"),
             event("home", "weather", "press"))
+    # the clock and the date as one touch area: home.clock_page (forum #117)
+    (cx, cy, cw, ch), (dx, dy, dw, dh) = layout.CLOCK, layout.DATE
+    x0, y0 = min(cx, dx), min(cy, dy)
+    hotspot(home, "clock_hs", (x0, y0, max(cx + cw, dx + dw) - x0, max(cy + ch, dy + dh) - y0),
+            event("home", "clock", "release"), event("home", "clock", "press"))
     for n, (x, y) in enumerate(layout.SHORTCUTS, start=1):
         hotspot(home, f"short{n}_hs", (x, y, layout.SHORTCUT, layout.SHORTCUT),
                 event("home", f"short{n}", "release"))

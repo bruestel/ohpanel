@@ -778,7 +778,7 @@ class Validator {
       return;
     allowed(h, path,
             {"relays", "values", "indoor_temperature", "outdoor_temperature", "outdoor_high", "outdoor_low",
-             "weather_icon", "weather_page",
+             "weather_icon", "weather_page", "clock_page",
              "status_icons", "shortcuts", "info"});
     slots(h, "relays", path, kMaxRelays, [&](const cJSON *e, const std::string &p) {
       allowed(e, p, {"label", "item", "relay", "hidden", "open"});
@@ -819,6 +819,8 @@ class Validator {
     item_ref(h, "weather_icon", path, false, true);
     if (const cJSON *v = cJSON_GetObjectItem(h, "weather_page"))
       page_ref(v, member(path, "weather_page"));
+    if (const cJSON *v = cJSON_GetObjectItem(h, "clock_page"))   // a tap on the clock or the date
+      page_ref(v, member(path, "clock_page"));
     slots(h, "status_icons", path, kMaxStatusIcons, [&](const cJSON *e, const std::string &p) { indicator(e, p, false); });
     slots(h, "shortcuts", path, kMaxShortcuts, [&](const cJSON *e, const std::string &p) { indicator(e, p, true); });
     slots(h, "info", path, kMaxInfoLines, [&](const cJSON *e, const std::string &p) {

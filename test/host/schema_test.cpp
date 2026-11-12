@@ -62,6 +62,15 @@ int main() {
   expect_valid("button opens a page, relay on its item", relay_page(R"({"label":"Bus","open":"bus","relay":{"item":"R"}})"));
   expect_valid("button opens the settings", relay_page(R"({"label":"Set","open":"settings","relay":false})"));
   expect_issue("button opens no page", relay_page(R"({"label":"Bus","open":"nowhere"})"), "home.relays[0].open");
+  // a tap on the clock: a page
+  const auto clock_page = [](const std::string &to) {
+    return doc(R"("pages":[{"id":"bus","type":"entities","title":"x","rows":[{"item":"A"}]}],"home":{"clock_page":)" + to + "}");
+  };
+  expect_valid("clock opens a page", clock_page(R"("bus")"));
+  expect_valid("clock opens the settings", clock_page(R"("settings")"));
+  expect_issue("clock opens no page", clock_page(R"("nowhere")"), "home.clock_page");
+  expect_issue("clock opens an item's page", clock_page(R"({"item":"Clock_Target"})"), "home.clock_page");
+  expect_issue("clock opens a number", clock_page("3"), "home.clock_page");
   expect_issue("button opens a page and an item", relay_page(R"({"label":"Bus","open":"bus","item":"A"})"),
                "home.relays[0].item");
   expect_issue("button opens a page and switches", relay_page(R"({"label":"Bus","open":"bus","relay":true})"),

@@ -6653,7 +6653,10 @@ function pvEditor() {
   } else if (t === 'clock') {
     head.textContent = 'Clock';
     hint.textContent = 'How the panel shows the time and the date (display settings of the configuration).';
-    box.append(pvRow($('vTime').closest('label'), $('vDate').closest('label')), pvButtons([]));
+    // a tap on the clock or the date (home.clock_page)
+    const opens = selectInput(pvPageOptions(), h.clock_page,
+                              v => pvEdit(c => { c.home = c.home || {}; if (v) c.home.clock_page = v; else delete c.home.clock_page; }));
+    box.append(pvRow($('vTime').closest('label'), $('vDate').closest('label')), pvRow(field('Tapping it opens', opens)), pvButtons([]));
   } else if (t === 'title') {
     head.textContent = 'Page title';
     box.append(pvRow(field('Title', titleInput(page, v => pvEdit((c, p) => { p.title = v; })))));
@@ -9252,6 +9255,7 @@ function pageRefs(cfg, id) {
   if ((cfg.swipe || []).includes(id)) refs.push(['the swipe row', c => { setSwipe(c, swipeRow(c).filter(x => x !== id)); }]);
   const h = cfg.home || {};
   if (h.weather_page === id) refs.push(['the weather icon on home', c => { delete c.home.weather_page; }]);
+  if (h.clock_page === id) refs.push(['the clock on home', c => { delete c.home.clock_page; }]);
   (h.shortcuts || []).forEach((s, i) => {
     if (s && s.open === id) refs.push(['shortcut ' + (i + 1) + ' on home', c => { delete c.home.shortcuts[i].open; }]);
   });
@@ -9373,6 +9377,7 @@ function renamePage(old, id) {
     if (Array.isArray(c.swipe)) c.swipe = c.swipe.map(x => x === old ? id : x);
     const h = c.home || {};
     if (h.weather_page === old) h.weather_page = id;
+    if (h.clock_page === old) h.clock_page = id;
     (h.shortcuts || []).forEach(s => { if (s && s.open === old) s.open = id; });
     (h.relays || []).forEach(r => { if (r && r.open === old) r.open = id; });
     (c.pages || []).forEach(p => (p.buttons || []).forEach(b => { if (b && b.open === old) b.open = id; }));
@@ -9664,6 +9669,7 @@ function pvAction(component) {
   if (!page) {
     const home = (PV.cfg && PV.cfg.home) || {};
     if (component === 'weather' && home.weather_page && home.weather_icon) return () => pvOpen(home.weather_page);
+    if (component === 'clock' && home.clock_page) return () => pvOpen(home.clock_page);
     const s = n && (home.shortcuts || [])[n[1] - 1];
     if (!s || !s.open) return null;
     // only while it is shown (Engine::act_shortcut)

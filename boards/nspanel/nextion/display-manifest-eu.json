@@ -15557,6 +15557,7 @@
    "short11_icon",
    "short12_icon",
    "weather_hs",
+   "clock_hs",
    "short1_hs",
    "short2_hs",
    "short3_hs",
@@ -16298,5 +16299,5 @@
    "close"
   ]
  },
- "design": "c7de1532"
+ "design": "f26096bb"
 }

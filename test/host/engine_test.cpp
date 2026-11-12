@@ -3807,6 +3807,46 @@ int main(int argc, char **argv) {
     if (g_failures) r.dump();
   }
 
+  {  // a tap on the clock or the date (home.clock_page) opens a page (forum #117)
+    Recorder r;
+    Engine h(r, cb);
+    h.release_wait(0);
+    CHECK(h.load_design(read("boards/nspanel/nextion/display-manifest-eu.json").c_str(),
+                        read("boards/nspanel/nextion/weather-icons.json").c_str()));
+    const auto with_clock = [&](const char *to) {
+      cJSON *doc = cJSON_Parse(read("test/host/data/office.json").c_str());
+      cJSON *home = cJSON_GetObjectItem(doc, "home");
+      cJSON_DeleteItemFromObject(home, "clock_page");
+      if (to)
+        cJSON_AddItemToObject(home, "clock_page", cJSON_Parse(to));
+      char *text = cJSON_PrintUnformatted(doc);
+      h.set_config(text);
+      cJSON_free(text);
+      cJSON_Delete(doc);
+    };
+    const auto back_home = [&] {
+      h.on_message(loaded("buttons"));
+      h.on_message(event("buttons", "close", "release"));
+      h.on_message(loaded("home"));
+    };
+    int64_t t = 1000;
+    with_clock(nullptr);
+    h.idle(t);
+    h.start();
+    h.idle(t += 5000);
+    h.on_message(loaded("home"));
+    h.on_message(event("home", "clock", "release"));   // none: nothing
+    CHECK(h.current() == "home");
+    with_clock(R"("lights")");
+    h.on_message(event("home", "clock", "press"));
+    CHECK(h.current() == "home");
+    h.on_message(event("home", "clock", "release"));
+    CHECK(h.current() == "lights");
+    back_home();
+    CHECK(h.current() == "home");
+    if (g_failures) r.dump();
+  }
+
   if (g_failures) {
     std::fprintf(stderr, "%d engine check(s) failed\n", g_failures);
     return 1;

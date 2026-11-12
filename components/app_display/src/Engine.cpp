@@ -1636,6 +1636,10 @@ void Engine::act(const std::string &page, const std::string &component, const st
       const std::string target = str(member(config_, "home"), "weather_page");
       if (!target.empty())
         open(target);
+    } else if (component == "clock" && value == "release") {   // the clock and the date
+      const std::string target = str(member(config_, "home"), "clock_page");
+      if (!target.empty())
+        open(target);
     }
     return;
   }
