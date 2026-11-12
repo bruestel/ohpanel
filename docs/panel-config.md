@@ -333,6 +333,24 @@ A relay with an item of its own has no way back at the wall: while openHAB or
 the network is away it stays as it is, on as well, and after a power cut it comes
 back as it was.
 
+**Switching a relay from openHAB or another computer.** A relay is switched
+through its item: the entry's `item` (the button switches it too), or an item
+of its own with `"relay": {"item": "..."}` (only that item switches it; the
+button does something else or nothing). The panel has no command of its own for
+it. In openHAB, the item is switched like any other (a rule, the UI, voice);
+from another computer through openHAB's REST API, with an API token:
+
+```sh
+curl -X POST -H "Content-Type: text/plain" -H "Authorization: Bearer <token>" \
+     -d ON https://<openhab>:8443/rest/items/Panel_Relay1
+```
+
+A relay as a momentary switch (on for a moment, then off again: a door opener,
+an air conditioner's button) needs nothing on the panel either: openHAB's
+`expire` switches the item back, e.g.
+`Switch Panel_Relay1 "Aircon button" { expire="1s,command=OFF" }`. The panel
+follows the item, so the relay is on for that second.
+
 An **info line** has three fields, `left`, `main` and `right` (e.g. tram line,
 destination, departure), each `{"item", "format"?, "factor"?}` or `{"text"}`, the left
 one also `{"icon"}`. Each may have a text `color`; the left one may be a
