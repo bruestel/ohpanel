@@ -3992,6 +3992,12 @@ function browserCapSize(rows) {
   }
   return capRatio ? Math.round(rows / capRatio * 10) / 10 : null;
 }
+/* Where a font's cell (`h` px) stands in field `o`, as the display aligns it: centred, at the bottom or at the top --
+   centred, a font higher than its field starts at the field's top, not above it (the clock: 72 px in 62 -- centred,
+   AM/PM sat on its digits; the panel shows a gap; the covers' "all" icons: 32 px in 28). */
+function cellTop(o, h) {
+  return o.yc === 1 ? Math.max(0, Math.floor((o.h - h) / 2)) : o.yc === 2 ? o.h - h : 0;
+}
 function standOnCaps(el, node, o, font) {
   if (!font.cap) return;
   /* its capitals as high as the display's (font.cap: the first and last row of "H"): the usual size, smaller,
@@ -4000,7 +4006,7 @@ function standOnCaps(el, node, o, font) {
   if (size && browserCapTop(size) !== null) el.style.fontSize = size + 'px';
   const have = browserCapTop(parseFloat(el.style.fontSize));
   if (have === null) return;
-  const cell = o.yc === 1 ? Math.floor((o.h - font.height) / 2) : o.yc === 2 ? o.h - font.height : 0;
+  const cell = cellTop(o, font.height);
   el.style.alignItems = 'flex-start';
   node.style.lineHeight = '1';
   node.style.marginTop = (cell + font.cap[0] - have) + 'px';
@@ -4358,7 +4364,7 @@ function drawPage(box, cfg, id) {
     } else if (want.badge) {   // a line badge: its pieces in the middle of the field, as the display centres them
       const em = font.icon ? font.icon.em : font.height, c = badgeCanvas(want.badge, el.style.color, em);
       if (c) {
-        const top = (o.yc === 1 ? Math.floor((o.h - font.height) / 2) : 0) + (font.icon ? iconTop(font, 'ohpanel-badge') : 0);
+        const top = cellTop(o, font.height) + (font.icon ? iconTop(font, 'ohpanel-badge') : 0);
         c.style.cssText += ';position:absolute;left:' + Math.floor((o.w - parseFloat(c.style.width)) / 2) + 'px;top:' + top + 'px';
         el.appendChild(c);
       }
@@ -7191,7 +7197,7 @@ function placeIcon(canvas, o, font, name) {
   if (!font.icon) return;
   const em = font.icon.em, h = font.height;
   const left = o.xc === 1 ? Math.floor((o.w - em) / 2) : o.xc === 2 ? o.w - em : 0;
-  const top = (o.yc === 1 ? Math.floor((o.h - h) / 2) : o.yc === 2 ? o.h - h : 0) + iconTop(font, name);
+  const top = cellTop(o, h) + iconTop(font, name);
   canvas.style.cssText += ';position:absolute;left:' + left + 'px;top:' + top + 'px';
 }
 
