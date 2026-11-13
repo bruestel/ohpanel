@@ -281,9 +281,11 @@ of the placeholders above; its preview shows the date as the panel does.
 
 `"background": "white"` is the one light background, for eyes that find light text on dark hard to read
 (astigmatism: bright parts on dark smear). Black text on white, the quieter parts (date, units, arrows) black too.
-Every tile is the same light grey with black text; a tile that is **on** shows a ring in the accent colour -- any
-accent, also one of your own (`display.theme.accent`) -- instead of turning its colours round. A button that only
-opens a page has no ring. The pills stay filled in the accent with white text.
+Every tile is the same light grey with black text; a tile that is **active** shows a ring in the accent colour -- any
+accent, also one of your own (`display.theme.accent`) -- where the dark backgrounds show it white, instead of
+turning its colours round. So a button that is on has one, and one with `"always_active": true` too (a button that
+opens a page, kept lit to stand out); one without an item and without `always_active` has none. The pills stay
+filled in the accent with white text.
 
 What would not read on white is drawn otherwise: the weather icons in their line style with black lines, the
 palette's `yellow` as orange, `white` as black and `light-grey` as dark grey; a badge's text stays white, the boot
