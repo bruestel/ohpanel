@@ -3536,7 +3536,7 @@ function fillEntities(page) {
     // a rule colours the icon by its icon_color only (Engine::draw_entities)
     const iconColor = style.iconColor || color(r.color, THEME.accent);
     // a rule's icon, else the row's line badge, else its icon
-    f[n + '_icon'] = icon ? {icon, color: iconColor, bg} : badge ? {badge, color: iconColor, bg} : {text: '', bg};
+    f[n + '_icon'] = icon ? {icon, color: iconColor, bg} : badge ? {lineBadge: badge, color: iconColor, bg} : {text: '', bg};
     const value = r.item || r.text !== undefined ? shown(r, page, style) : '';
     const wide = (page.wide || r.wide) && !cards;   // the page's layout, or this row's
     // a value that fits the narrow field leaves the label more room (Engine::draw_entities)
@@ -4377,8 +4377,9 @@ function drawPage(box, cfg, id) {
         placeIcon(i, o, font, name);
         el.appendChild(i);
       });
-    } else if (want.badge) {   // a line badge: its pieces in the middle of the field, as the display centres them
-      const em = font.icon ? font.icon.em : font.height, c = badgeCanvas(want.badge, el.style.color, em);
+    } else if (want.lineBadge) {   // a line badge: its pieces in the middle of the field, as the display centres them
+      // (not want.badge: that is the colour of an info line's badge, its text drawn as any)
+      const em = font.icon ? font.icon.em : font.height, c = badgeCanvas(want.lineBadge, el.style.color, em);
       if (c) {
         const top = cellTop(o, font.height) + (font.icon ? iconTop(font, 'ohpanel-badge') : 0);
         c.style.cssText += ';position:absolute;left:' + Math.floor((o.w - parseFloat(c.style.width)) / 2) + 'px;top:' + top + 'px';
