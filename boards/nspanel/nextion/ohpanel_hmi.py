@@ -70,6 +70,9 @@ import zifont  # noqa: E402
 BACKGROUNDS = os.path.join(layout.ASSETS, "backgrounds")   # the panel variant's (generate.py)
 MANIFEST = os.path.join(HERE, f"display-manifest-{layout.VARIANT}.json")   # the panel variant's (layout.py)
 
+sys.path.insert(0, os.path.join(HERE, "assets"))
+from generate import theme as background_theme  # noqa: E402
+
 # The background the design ships with; the firmware switches pages to the
 # configured one at runtime (page pic and the picc of every cropped object).
 DEFAULT_BACKGROUND = "aurora"
@@ -742,10 +745,12 @@ def covers_page(p: Project) -> None:
                      xcen=2, maxl=16, pco=LIGHT_GREY, bco=TILE_OFF_565)
             by = y + (h - bh) // 2
         buttons = [(part, first + k * (bw + gap), by) for k, part in enumerate(("up", "stop", "down"))]
-        inset = 4 if bh < 40 else 6
+        # the icon centred by its ink (place_icon): the icon font draws its icons low in their cell -- a field as
+        # high as the button, centred, put them a few px under the middle (the awning's arrows alike)
+        glyphs = {"up": "arrow-up", "stop": "stop", "down": "arrow-down"}
         for part, bx, by in buttons:
-            text(page, f"{n}_{part}", (bx + inset, by + inset, bw - 2 * inset, bh - 2 * inset), icon_font, xcen=1,
-                 maxl=4, pco=LIGHT_GREY, bco=button_bco)
+            icon(page, f"{n}_{part}", bx + bw / 2, by + bh / 2, icon_font, glyph=glyphs[part], maxl=4, pco=LIGHT_GREY,
+                 bco=button_bco)
         # the touch areas over the fields (a field takes a touch too): the row's, then the buttons' on top of it
         hotspot(page, f"{n}_hs", (x0, y, w, h), event("covers", n, "release"))
         for part, bx, by in buttons:   # touched: the icon in the accent at once (the display's own; the firmware
@@ -942,9 +947,11 @@ def buttons_page(p: Project) -> None:
         # a state or a bar
         rel = lambda box: (x + box[0], y + box[1], box[2], box[3])
         text(page, f"{b}_icon", rel(layout.TILE_ICON), ICON_FONT_LARGE, xcen=1, maxl=10, pco=0, bco=0)
-        text(page, f"{b}_name", rel(layout.TILE_NAME), 1, maxl=16, pco=0, bco=0)
-        text(page, f"{b}_value", rel(layout.TILE_STATE), 0, maxl=12, pco=0, bco=0)
-        progress(page, f"{b}_bar", rel(layout.TILE_BAR), pco=rgb565("#0080f8"), bco=rgb565("#4a4a4a"))
+        # (a little higher than they were, clear of the ring that marks a tile on with White, layout.RING_LIFT)
+        up = lambda box: (box[0], box[1] - layout.RING_LIFT, box[2], box[3])
+        text(page, f"{b}_name", rel(up(layout.TILE_NAME)), 1, maxl=16, pco=0, bco=0)
+        text(page, f"{b}_value", rel(up(layout.TILE_STATE)), 0, maxl=12, pco=0, bco=0)
+        progress(page, f"{b}_bar", rel(up(layout.TILE_BAR)), pco=rgb565("#0080f8"), bco=rgb565("#4a4a4a"))
         # a button with "layout": "center" (and a favourite): the icon large in the middle, the name centred under it
         text(page, f"{b}_text", rel(layout.TILE_TEXT), 0, xcen=1, maxl=10, pco=0, bco=0)
         dx, dy, w, h = layout.FAV_ICON
@@ -1256,6 +1263,64 @@ def theme_colours(p: Project) -> None:
         root.event("codesload", [f"{o}.pco={v}" for o, v in colours.items()] + root.code("codesload"))
 
 
+# The backgrounds (generate.py STYLES) are dark ones and a light one (White): the colours the design draws with
+# everywhere else -- a tile's flat grey, the white and light grey on it and on the background, a pill's grey --
+# are not the same on all of them. The pages take them from these variables when they load, as they take th_text;
+# the firmware sends them for the background chosen (Engine::send_theme, the manifest's "theme_vars").
+#   variable    for                                             a background's style
+#   th_tile     a tile's, a card's, a row's flat colour         tile
+#   th_ttext    the white on it                                 tile_text
+#   th_tdim     the light grey on it                            tile_dim
+#   th_pill     a pill's colour, a thermostat's minus and plus  pill
+#   th_title    a page's title                                  text on a light background, else its grey
+#   th_ton      a tile that is on: its colour                   tile_on
+#   th_tontext  the text on it                                  tile_on_text
+EXTRA_VARS = ("th_tile", "th_ttext", "th_tdim", "th_pill", "th_title", "th_ton", "th_tontext")
+
+
+def extra_var_values(key: str) -> dict[str, int]:
+    """The variables' values for a background (its theme, generate.py theme())."""
+    t = background_theme(key)
+    title = rgb565(t["text"]) if t.get("light") else TITLE_GREY
+    return {"th_tile": rgb565(t["tile"]), "th_ttext": rgb565(t["tile_text"]), "th_tdim": rgb565(t["tile_dim"]),
+            "th_pill": rgb565(t["pill"]), "th_title": title, "th_ton": rgb565(t["tile_on"]),
+            "th_tontext": rgb565(t["tile_on_text"])}
+
+
+def fixed_colours(p: Project) -> int:
+    """Every object drawn in one of the design's fixed colours takes the variable for it when
+    its page loads (the page's preinitialize code, as theme_colours()). Which variable goes by where it sits --
+    solid on a tile's grey or a pill's (sta 1), cropped from the background (sta 0) --; one on a picture (a
+    badge: its text stays white, sta 2) keeps its colour. Objects the theme colours already are left alone. How
+    many assignments."""
+    on_tile = {WHITE: "th_ttext", LIGHT_GREY: "th_tdim", TITLE_GREY: "th_tdim", WIFI_GREY: "th_tdim"}
+    on_bg = {WHITE: "th_text", LIGHT_GREY: "th_dim", TITLE_GREY: "th_title", WIFI_GREY: "th_dim"}
+    count = 0
+    for name, page in p.pages.items():
+        done = set(THEME_COLOURS.get(name, {}))
+        lines = []
+        for o in page.objects()[1:]:
+            if o.name in done or o.get("type") not in (TEXT, SCROLL, BUTTON):
+                continue
+            sta, pco, bco = o.get("sta"), o.get("pco"), o.get("bco")
+            if sta == 1 and bco in (TILE_OFF_565, PILL_565):
+                lines.append(f"{o.name}.bco={'th_tile' if bco == TILE_OFF_565 else 'th_pill'}")
+                if pco in on_tile:
+                    lines.append(f"{o.name}.pco={on_tile[pco]}")
+            elif sta == 0 and pco in on_bg:
+                lines.append(f"{o.name}.pco={on_bg[pco]}")
+            elif sta == 2 and o.get("type") == BUTTON:   # a button on its tile pictures: the text on each
+                if pco in on_tile:
+                    lines.append(f"{o.name}.pco={on_tile[pco]}")
+                if o.get("pco2") == rgb565(TILE_OFF):
+                    lines.append(f"{o.name}.pco2=th_tontext")
+        if lines:
+            root = page.objects()[0]
+            root.event("codesload", lines + root.code("codesload"))
+            count += len(lines)
+    return count
+
+
 # A busy indicator on every page the firmware builds: three dots in the
 # middle, hidden, and a timer the page starts when it loads. Unless the
 # firmware has begun building the page by then (it stops the timer,
@@ -1397,6 +1462,8 @@ def program(p: Project, version: str, bg: int, close_pic: int) -> None:
         "int no_close=0//the page coming is the start page (not home): no close cross (no_close_on_start())",
         "int swipex=0,swipey=0//where the finger was last while it touched a page",
         f"int th_accent={accent},th_text={text_colour},th_dim={dim}//the theme's colours",
+        "int " + ",".join(f"{k}={v}" for k, v in extra_var_values(DEFAULT_BACKGROUND).items())
+        + "//the colours of the fixed parts (fixed_colours())",
         f"int design_ver={int32(int(version, 16))}//the design's version {version}",
         f"int bg_pic={bg},bg_close={close_pic}//the background's pictures",
         f"baud={BAUD}//the serial line's speed, from here on",
@@ -1421,8 +1488,11 @@ def drawn_boxes(p: Project) -> dict:
     for i, (x, y) in enumerate(layout.button_tiles(), start=1):
         dx, dy, w, h = layout.FAV_ICON
         favorites[f"tile{i}_center"] = [x + dx, y + dy, w, h]
+        # the tile: where the firmware draws the ring round one that is on (a background with a ring, Engine::draw_ring)
+        favorites[f"tile{i}_pic"] = box("buttons", f"tile{i}_pic")
+    sides = {f"{k}_pic": box("light", f"{k}_pic") for k in ("side1", "side2", "side3", "power")}   # so on the light page
     return {"buttons": favorites, "media": {"art_pic": box("media", "art_pic"), "play_hs": box("media", "play_hs")},
-            "light": {"wheel_pic": box("light", "wheel_pic"), "swatch": box("light", "swatch")},
+            "light": {"wheel_pic": box("light", "wheel_pic"), "swatch": box("light", "swatch"), **sides},
             "qr": {"qr_area": box("qr", "qr_area")},
             "cover": {n: box("cover", n) for n in ["draw_hs"] + [f"{b}{k}_hs" for b in ("btn", "preset") for k in range(1, 4)]},
             "covers": {f"{n}{part}": box("covers", f"{n}{part}")
@@ -1439,7 +1509,7 @@ def drawn_boxes(p: Project) -> dict:
 
 def manifest(p: Project, bg_ids: dict[str, int], pictures: dict) -> dict:
     sys.path.insert(0, os.path.join(HERE, "assets"))
-    from generate import BACKGROUNDS as TITLES, THEMES
+    from generate import BACKGROUNDS as TITLES
 
     shown = background_pages(p)
     pages = {}
@@ -1453,8 +1523,12 @@ def manifest(p: Project, bg_ids: dict[str, int], pictures: dict) -> dict:
         pages[name] = entry
     return {
         "note": "generated by boards/nspanel/nextion/ohpanel_hmi.py -- do not edit",
-        "backgrounds": [{"id": k, "title": TITLES[k][0], "pic": v, "theme": THEMES[k]} for k, v in bg_ids.items()],
+        "backgrounds": [{"id": k, "title": TITLES[k][0], "pic": v, "theme": background_theme(k)}
+                        for k, v in bg_ids.items()],
         "default_background": DEFAULT_BACKGROUND,
+        # the variables the pages take their fixed colours from (fixed_colours(): the firmware sends them,
+        # Engine::send_theme)
+        "theme_vars": list(EXTRA_VARS),
         "pages": dict(sorted(pages.items(), key=lambda kv: kv[1]["id"])),
         "pictures": pictures,
     }
@@ -1603,6 +1677,7 @@ def main():
     p.remove_pages([SEED_PAGE])
 
     theme_colours(p)
+    print("fixed colours from the theme:", fixed_colours(p), "assignments")
     busy_indicator(p)
     background_globals(p)
     hidden_until_drawn(p, {pid for bg in pictures.values() for slot in bg.values() for pid in slot.values()})

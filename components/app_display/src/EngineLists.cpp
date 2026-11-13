@@ -35,8 +35,6 @@ std::vector<std::string> button_parts(bool centred) {
     return {"_hs", "_pic", "_center", "_text"};
   return {"_hs", "_pic", "_icon", "_name", "_value"};
 }
-constexpr int kStateOn = 27469, kStateOff = 40147;   // a button's state line: #6b6b6b on the white tile, #9a9a9a on the dark
-constexpr int kBarTrackOn = 57051, kBarTrackOff = 19017;   // its bar's track: #d9d9d9 on the white tile, #4a4a4a on the dark
 }  // namespace
 
 /* What tile i of a button page holds: its own button, or with a group the
@@ -55,6 +53,8 @@ void Engine::draw_button(const cJSON *page, int i) {
     for (const char *part : {"_hs", "_pic", "_icon", "_name", "_value", "_bar", "_text", "_center"})
       vis(n + part, false);
     bar_[i] = false;
+    ring_[i] = false;
+    ring_forget("buttons", n + "_pic");   // its picture hidden: nothing to paint over (another sheet, another page)
     return;
   }
   // active: always, else as its rules say (value_style, "active"), else by its state (on); its icon's place likewise
@@ -73,8 +73,12 @@ void Engine::draw_button(const cJSON *page, int i) {
                                             : type.empty() && action == "toggle"          ? "on_off"
                                                                                           : "none");
   const bool active = flag(b, "always_active") || (style.active >= 0 ? style.active == 1 : on(b));
-  const int bg = active ? kWhite : kDarkGrey;
-  const int fg = active ? kDarkGrey : kLightGrey;
+  // the tile's colours as the background has them (Theme: white with grey text on the standard design's dark ones)
+  const int bg = active ? theme_.tile_on : theme_.tile;
+  const int fg = active ? theme_.tile_on_text : theme_.tile_dim;
+  /* With a ring for "on" (theme_.ring) a tile that only opens a page has none: it is not on -- it looks lit on the
+     dark backgrounds only to be seen as a button (forum #133). */
+  ring_[i] = theme_.ring && active && (member(b, "item") || flag(b, "always_active") || style.active == 1);
   // the tile in this slot's variant for the background
   const int tile = picture("button" + std::to_string(i + 1), active ? "on" : "off");
   if (tile >= 0)
@@ -85,9 +89,9 @@ void Engine::draw_button(const cJSON *page, int i) {
     num(part, "bco", bg);
   // the icon: a rule's colour, else the accent (or the button's colour) while active; a rule's icon, blinking;
   // the state softer than the name -- a rule's colour colours it too, and the bar
-  num(icon, "pco", style.color >= 0 ? style.color : active ? color_of(b, "color", theme_.accent) : theme_.dim);
+  num(icon, "pco", style.color >= 0 ? style.color : active ? color_of(b, "color", lit_icon(theme_.accent)) : theme_.dim);
   num(name, "pco", fg);
-  num(n + "_value", "pco", style.color >= 0 ? style.color : active ? kStateOn : kStateOff);
+  num(n + "_value", "pco", style.color >= 0 ? style.color : active ? theme_.state_on : theme_.state);
   show_text(icon, style.icon.empty() ? glyph(b) : icon_glyph(style.icon.c_str()), style.blink);
   std::string v;
   int percent = -1;   // the bar's: a value in % shown as such
@@ -107,7 +111,7 @@ void Engine::draw_button(const cJSON *page, int i) {
   if (bar_[i]) {
     num(n + "_bar", "val", percent);
     num(n + "_bar", "pco", style.color >= 0 ? style.color : theme_.accent);
-    num(n + "_bar", "bco", active ? kBarTrackOn : kBarTrackOff);
+    num(n + "_bar", "bco", active ? theme_.track_on : theme_.track);
   } else {
     vis(n + "_bar", false);
   }
@@ -145,6 +149,7 @@ void Engine::draw_buttons(const cJSON *page) {
         if (building_buttons_)
           return draw_button(page, i);
         batch_refresh([this, page, i] { draw_button(page, i); });
+        button_rings(page, i);   // after the tile's picture is drawn (batch_refresh ends with ref_star)
       });
     else
       draw_button(page, i);
@@ -160,6 +165,17 @@ void Engine::draw_buttons(const cJSON *page) {
         vis(n + "_bar", true);
     }
   send("ref_star");
+  button_rings(page);
+}
+
+/* The rings round the tiles that are on (ring_, a background with a ring), all or tile `only`: drawn over the
+   pictures the display has drawn by now -- each time a tile's state draws it anew (its picture anew: none left). */
+void Engine::button_rings(const cJSON *page, int only) {
+  if (!theme_.ring || shown_ != "buttons" || type_of(page) != PageType::Buttons)
+    return;
+  for (int i = only < 0 ? 0 : only; i < (only < 0 ? 8 : only + 1); i++)
+    if (button_at(page, i))   // an empty slot's ring is forgotten (draw_button), not painted over on the background
+      ring_at("buttons", "tile" + std::to_string(i + 1) + "_pic", ring_[i], 20);   // the tiles' corners: 20 px
 }
 
 /* An entity page's style ("style": list, cards, rows): the cards hold eight a

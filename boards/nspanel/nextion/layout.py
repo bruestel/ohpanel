@@ -28,3 +28,7 @@ else:
 # The variant's pictures that depend on its layout (generate.py writes them: backgrounds at the display's size,
 # tiles, controls, the logo); the weather icons are the same for all.
 ASSETS = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets", VARIANT)
+
+# On a tile that a ring marks as on (a background whose style has "ring": White), the button's texts and bar
+# stand this much higher, clear of the ring (ohpanel_hmi.py buttons_page) -- on every background, one design.
+RING_LIFT = 4

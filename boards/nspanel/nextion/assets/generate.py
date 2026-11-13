@@ -110,19 +110,6 @@ def bg_aurora():
     return img
 
 
-def bg_candy():
-    """Coloured lights out of focus (bokeh) -- pink, orange, cyan, lime,
-    violet -- on a deep violet."""
-    x, y = grid()
-    img = mix(rgb("#1a0a2a"), rgb("#07040e"), y)
-    rng = np.random.default_rng(5)
-    cols = ["#ff4f9a", "#ffa040", "#3fd6ff", "#a6ff4f", "#b56bff"]
-    for i in range(16):
-        glow(img, rng.uniform(0, 1), rng.uniform(0.05, 0.95), rng.uniform(0.04, 0.12), cols[i % len(cols)],
-             rng.uniform(0.25, 0.5))
-    return img
-
-
 def bg_dunes():
     x, y = grid()
     img = mix(rgb("#1a0d24"), rgb("#05030a"), np.clip(y * 1.4, 0, 1))
@@ -147,12 +134,22 @@ def bg_black():
     return np.zeros((H, W, 3))
 
 
+def flat(colour):
+    """A background of one colour (the light ones: nothing that glows, nothing to read against)."""
+    return lambda: np.broadcast_to(rgb(colour), (H, W, 3)).copy()
+
+
+bg_white = flat("#ffffff")   # as much contrast as there is: black on white (forum #129)
+
+
+# The design's backgrounds, the first its default. The display holds about five with all their pictures (Candy
+# made room for White in 0.25.0).
 BACKGROUNDS = {
     "aurora": ("Aurora", bg_aurora),
-    "candy": ("Candy", bg_candy),
     "dunes": ("Dunes", bg_dunes),
     "forest": ("Forest", bg_forest),
     "black": ("Black", bg_black),
+    "white": ("White", bg_white),
 }
 
 # The colours that go with each background (the firmware's defaults, which the
@@ -160,11 +157,61 @@ BACKGROUNDS = {
 # icon --, text -- icons and values --, dim -- inactive icons.
 THEMES = {
     "aurora": {"accent": "#4fc3f7", "text": "#ffffff", "dim": "#c8ccc8"},
-    "candy": {"accent": "#ff5fa8", "text": "#ffffff", "dim": "#d0c4e0"},
     "dunes": {"accent": "#ffb74d", "text": "#fff8ee", "dim": "#d8c8b0"},
     "forest": {"accent": "#8bd17c", "text": "#ffffff", "dim": "#c0d0c0"},
     "black": {"accent": "#0080f8", "text": "#ffffff", "dim": "#c8ccc8"},
+    # black on white, the dimmed parts black too: no grey on grey (forum #129)
+    "white": {"accent": "#0040a0", "text": "#000000", "dim": "#000000"},
 }
+
+# What else each background's design is drawn in -- the pictures compose.py makes for it and the colours the
+# pages give their fixed parts (ohpanel_hmi.py: th_tile and the others, the firmware sends them, Engine::send_theme):
+#   tile, tile_text, tile_dim        a tile that is off (a button, a card, a row): its colour, its text, its icon
+#   tile_on, tile_on_text            a tile that is on (a button lit, a side tile chosen)
+#   pill                             the pills, the volume and favourite discs, a thermostat's minus and plus
+#   track, track_on                  a bar's empty part on a tile off / on; a thermostat's ring where not filled
+#   state, state_on                  a button's state line ("On", "60 %") on a tile off / on: softer than its name
+#   close                            the close icon's disc and cross
+#   weather                          the weather icons: "fill" (Meteocons as they are), "line-strong" (their line
+#                                    style, its lines black: the white clouds would vanish on a light background)
+#   ring                             a tile that is on stays as light as one that is off, a ring in the accent
+#                                    round it tells it (the firmware draws it: Engine::draw_ring) -- no text turned
+#                                    round to read (forum #133)
+#   light                            a light background: a palette colour that does not read on it is shown in
+#                                    another (`palette`: yellow as orange, white as black), a badge's text stays
+#                                    white, the boot logo's words are dark (compose.py)
+DARK_STYLE = {"tile": "#2c2c2c", "tile_text": "#ffffff", "tile_dim": "#c8ccc8", "tile_on": "#ffffff",
+              "tile_on_text": "#2c2c2c", "pill": "#3c423c", "track": "#4a4a4a", "track_on": "#d9d9d9",
+              "state": "#9a9a9a", "state_on": "#6b6b6b", "close": ("#292c29", "#adaead"), "weather": "fill",
+              "ring": False, "light": False}
+STYLES = {
+    **{k: DARK_STYLE for k in ("aurora", "dunes", "forest", "black")},
+    "white": {"tile": "#e0e0e0", "tile_text": "#000000", "tile_dim": "#000000", "tile_on": "#e0e0e0",
+              "tile_on_text": "#000000", "pill": "#d0d0d0", "track": "#b0b0b0", "track_on": "#b0b0b0",
+              "state": "#000000", "state_on": "#000000", "close": ("#e0e0e0", "#000000"),
+              "weather": "line-strong", "ring": True, "light": True, "base": "#ffffff",
+              # what would not read on white: yellow as orange (forum #133), white and light grey dark
+              "palette": {"yellow": "#ffa500", "white": "#000000", "light-grey": "#4a4a4a"}},
+}
+
+
+def theme(key):
+    """A background's theme as the manifest has it (the firmware's and the web preview's): its colours and
+    the colours and kinds of its style that the firmware draws with."""
+    s = STYLES[key]
+    out = dict(THEMES[key])
+    out.update({k: s[k] for k in ("tile", "tile_text", "tile_dim", "tile_on", "tile_on_text", "pill", "track",
+                                  "track_on", "state", "state_on")})
+    if s["ring"]:
+        out["ring"] = True
+    if s["light"]:
+        out["light"] = True
+        out["base"] = s["base"]   # its colour (one: the web preview takes the design's greys to it)
+    if s.get("palette"):
+        out["palette"] = s["palette"]
+    if s["weather"] != "fill":   # the weather icons' style (the web preview's: its sprite, hmi2layout.py)
+        out["weather"] = s["weather"]
+    return out
 
 # ------------------------------------------------------------ weather icons --
 #
@@ -175,14 +222,29 @@ THEMES = {
 
 ICON_OUT = 200
 METEOCONS = os.path.join(HERE, "meteocons")
+# the same release's line style (design/line/export), for the light backgrounds: its light greys -- the clouds'
+# lines -- made dark, its pale colours deeper (STYLES "weather")
+METEOCONS_LINE = os.path.join(HERE, "meteocons-line")
+LINE_COLOURS = {
+    "line-strong": {"#e5e7eb": "#111111", "#d1d5db": "#333333", "#9ca3af": "#111111", "#374151": "#000000",
+                    "#fde68a": "#a06c00", "#72b8d4": "#0a5f8a", "#72b9d5": "#0a5f8a", "#f59e0b": "#c87400",
+                    "#2885c7": "#0b5aa8"},
+}
+# where each kind's pictures go (compose.py reads them from there)
+WEATHER_DIRS = {"fill": "weather", "line-strong": "weather-line-strong"}
 
 
-def weather_icons():
-    """Icon name -> RGBA picture, one per SVG in meteocons/."""
+def weather_icons(kind="fill"):
+    """Icon name -> RGBA picture, one per SVG of the kind (WEATHER_DIRS)."""
+    import re
     import subprocess
     out = {}
-    for path in sorted(glob.glob(os.path.join(METEOCONS, "*.svg"))):
-        png = subprocess.run(["rsvg-convert", "-w", str(ICON_OUT), "-h", str(ICON_OUT), path],
+    folder = METEOCONS if kind == "fill" else METEOCONS_LINE
+    for path in sorted(glob.glob(os.path.join(folder, "*.svg"))):
+        svg = open(path, encoding="utf-8").read()
+        for old, new in LINE_COLOURS.get(kind, {}).items():
+            svg = re.sub(re.escape(old), new, svg, flags=re.IGNORECASE)
+        png = subprocess.run(["rsvg-convert", "-w", str(ICON_OUT), "-h", str(ICON_OUT)], input=svg.encode(),
                              check=True, capture_output=True).stdout
         out[os.path.splitext(os.path.basename(path))[0]] = Image.open(io.BytesIO(png)).convert("RGBA")
     return out
@@ -248,10 +310,11 @@ def logo_left(w, h, k=1):
     return (w * k - (h * k + GAP * u + w_oh + w_panel)) / 2
 
 
-def logo(w, h):
+def logo(w, h, ink=WHITE, sub=SUB):
     """The mark (as high as the picture), the wordmark beside it and the
     edition line under that ("for NSPanel"), in logo/make.py's proportions,
-    centred in the picture. Drawn at 4x, then scaled down."""
+    centred in the picture. Drawn at 4x, then scaled down. `ink`, `sub`: the words' colours ("panel", "NSPanel";
+    "for") -- dark ones on a light background (compose.py)."""
     k = 4
     img = Image.new("RGBA", (w * k, h * k), (0, 0, 0, 0))
     d = ImageDraw.Draw(img)
@@ -266,13 +329,13 @@ def logo(w, h):
     baseline = EDITION_CAP_TOP * u - cap[1]
     x = left + mark + gap
     d.text((x, baseline), "OH", font=bold, fill=ORANGE, anchor="ls")
-    d.text((x + w_oh, baseline), "panel", font=regular, fill=WHITE, anchor="ls")
+    d.text((x + w_oh, baseline), "panel", font=regular, fill=ink, anchor="ls")
     # the edition line, right-aligned with the wordmark's end
     end = x + w_oh + w_panel
     small, small_bold = font(round(EDITION_SIZE * u), 400), font(round(EDITION_SIZE * u), 600)
     w_name = d.textlength(EDITION, font=small_bold)
-    d.text((end, EDITION_BASELINE * u), EDITION, font=small_bold, fill=WHITE, anchor="rs")
-    d.text((end - w_name, EDITION_BASELINE * u), "for ", font=small, fill=SUB, anchor="rs")
+    d.text((end, EDITION_BASELINE * u), EDITION, font=small_bold, fill=ink, anchor="rs")
+    d.text((end - w_name, EDITION_BASELINE * u), "for ", font=small, fill=sub, anchor="rs")
     return img.resize((w, h), Image.LANCZOS)
 
 
@@ -344,22 +407,26 @@ def button_tile(color):
 
 def main():
     sheet = "--sheet" in sys.argv
-    os.makedirs(os.path.join(OUT, "backgrounds"), exist_ok=True)
-    os.makedirs(os.path.join(HERE, "weather"), exist_ok=True)
+    # compose.py lays its pictures on every one in the folder: the design's only
+    folder = os.path.join(OUT, "backgrounds")
+    shutil.rmtree(folder, ignore_errors=True)
+    os.makedirs(folder)
 
     backgrounds = {}
     for key, (title, fn) in BACKGROUNDS.items():
         img = to_rgb565(np.clip(fn(), 0, 1))
-        img.save(os.path.join(OUT, "backgrounds", key + ".png"), optimize=True)
+        img.save(os.path.join(folder, key + ".png"), optimize=True)
         backgrounds[key] = img
         print(f"background {key}: {title}")
 
-    shutil.rmtree(os.path.join(HERE, "weather"), ignore_errors=True)
-    os.makedirs(os.path.join(HERE, "weather"))
+    for kind, folder in WEATHER_DIRS.items():
+        shutil.rmtree(os.path.join(HERE, folder), ignore_errors=True)
+        os.makedirs(os.path.join(HERE, folder))
+        icons = weather_icons(kind)
+        for key, img in icons.items():
+            img.save(os.path.join(HERE, folder, key + ".png"), optimize=True)
+        print(f"weather ({kind}): {len(icons)} icons (Meteocons)")
     icons = weather_icons()
-    for key, img in icons.items():
-        img.save(os.path.join(HERE, "weather", key + ".png"), optimize=True)
-    print(f"weather: {len(os.listdir(os.path.join(HERE, 'weather')))} icons (Meteocons)")
 
     os.makedirs(os.path.join(OUT, "tiles"), exist_ok=True)
     for key, color in TILES.items():

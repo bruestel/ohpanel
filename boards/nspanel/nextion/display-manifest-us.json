@@ -8,7 +8,17 @@
    "theme": {
     "accent": "#4fc3f7",
     "text": "#ffffff",
-    "dim": "#c8ccc8"
+    "dim": "#c8ccc8",
+    "tile": "#2c2c2c",
+    "tile_text": "#ffffff",
+    "tile_dim": "#c8ccc8",
+    "tile_on": "#ffffff",
+    "tile_on_text": "#2c2c2c",
+    "pill": "#3c423c",
+    "track": "#4a4a4a",
+    "track_on": "#d9d9d9",
+    "state": "#9a9a9a",
+    "state_on": "#6b6b6b"
    }
   },
   {
@@ -18,41 +28,99 @@
    "theme": {
     "accent": "#0080f8",
     "text": "#ffffff",
-    "dim": "#c8ccc8"
-   }
-  },
-  {
-   "id": "candy",
-   "title": "Candy",
-   "pic": 291,
-   "theme": {
-    "accent": "#ff5fa8",
-    "text": "#ffffff",
-    "dim": "#d0c4e0"
+    "dim": "#c8ccc8",
+    "tile": "#2c2c2c",
+    "tile_text": "#ffffff",
+    "tile_dim": "#c8ccc8",
+    "tile_on": "#ffffff",
+    "tile_on_text": "#2c2c2c",
+    "pill": "#3c423c",
+    "track": "#4a4a4a",
+    "track_on": "#d9d9d9",
+    "state": "#9a9a9a",
+    "state_on": "#6b6b6b"
    }
   },
   {
    "id": "dunes",
    "title": "Dunes",
-   "pic": 437,
+   "pic": 291,
    "theme": {
     "accent": "#ffb74d",
     "text": "#fff8ee",
-    "dim": "#d8c8b0"
+    "dim": "#d8c8b0",
+    "tile": "#2c2c2c",
+    "tile_text": "#ffffff",
+    "tile_dim": "#c8ccc8",
+    "tile_on": "#ffffff",
+    "tile_on_text": "#2c2c2c",
+    "pill": "#3c423c",
+    "track": "#4a4a4a",
+    "track_on": "#d9d9d9",
+    "state": "#9a9a9a",
+    "state_on": "#6b6b6b"
    }
   },
   {
    "id": "forest",
    "title": "Forest",
-   "pic": 584,
+   "pic": 437,
    "theme": {
     "accent": "#8bd17c",
     "text": "#ffffff",
-    "dim": "#c0d0c0"
+    "dim": "#c0d0c0",
+    "tile": "#2c2c2c",
+    "tile_text": "#ffffff",
+    "tile_dim": "#c8ccc8",
+    "tile_on": "#ffffff",
+    "tile_on_text": "#2c2c2c",
+    "pill": "#3c423c",
+    "track": "#4a4a4a",
+    "track_on": "#d9d9d9",
+    "state": "#9a9a9a",
+    "state_on": "#6b6b6b"
+   }
+  },
+  {
+   "id": "white",
+   "title": "White",
+   "pic": 558,
+   "theme": {
+    "accent": "#0040a0",
+    "text": "#000000",
+    "dim": "#000000",
+    "tile": "#e0e0e0",
+    "tile_text": "#000000",
+    "tile_dim": "#000000",
+    "tile_on": "#e0e0e0",
+    "tile_on_text": "#000000",
+    "pill": "#d0d0d0",
+    "track": "#b0b0b0",
+    "track_on": "#b0b0b0",
+    "state": "#000000",
+    "state_on": "#000000",
+    "ring": true,
+    "light": true,
+    "base": "#ffffff",
+    "palette": {
+     "yellow": "#ffa500",
+     "white": "#000000",
+     "light-grey": "#4a4a4a"
+    },
+    "weather": "line-strong"
    }
   }
  ],
  "default_background": "aurora",
+ "theme_vars": [
+  "th_tile",
+  "th_ttext",
+  "th_tdim",
+  "th_pill",
+  "th_title",
+  "th_ton",
+  "th_tontext"
+ ],
  "pages": {
   "home": {
    "id": 0,
@@ -588,7 +656,7 @@
     "x": 45
    },
    "ctemp": {
-    "track": 581
+    "track": 556
    },
    "fav": {
     "box": 46
@@ -826,7 +894,7 @@
     "x": 160
    },
    "ctemp": {
-    "track": 581
+    "track": 556
    },
    "fav": {
     "box": 168
@@ -979,7 +1047,7 @@
     "disc": 242
    }
   },
-  "candy": {
+  "dunes": {
    "art": {
     "box": 243
    },
@@ -1067,7 +1135,7 @@
     "x": 288
    },
    "ctemp": {
-    "track": 581
+    "track": 556
    },
    "fav": {
     "box": 289
@@ -1217,7 +1285,7 @@
     "disc": 388
    }
   },
-  "dunes": {
+  "forest": {
    "art": {
     "box": 389
    },
@@ -1305,7 +1373,7 @@
     "x": 434
    },
    "ctemp": {
-    "track": 581
+    "track": 556
    },
    "fav": {
     "box": 435
@@ -1455,242 +1523,242 @@
     "disc": 534
    }
   },
-  "forest": {
+  "white": {
    "art": {
     "box": 535
    },
    "badge1": {
-    "black": 536,
-    "blue": 537,
-    "brown": 538,
-    "dark-grey": 539,
-    "green": 540,
-    "grey": 541,
-    "light-grey": 542,
-    "red": 543,
-    "white": 544,
-    "yellow": 545
+    "black": 543,
+    "blue": 536,
+    "brown": 537,
+    "dark-grey": 538,
+    "green": 539,
+    "grey": 540,
+    "light-grey": 541,
+    "red": 542,
+    "white": 543,
+    "yellow": 544
    },
    "badge2": {
-    "black": 546,
-    "blue": 547,
-    "brown": 548,
-    "dark-grey": 549,
-    "green": 550,
-    "grey": 551,
-    "light-grey": 552,
-    "red": 553,
-    "white": 554,
-    "yellow": 555
+    "black": 543,
+    "blue": 536,
+    "brown": 537,
+    "dark-grey": 538,
+    "green": 539,
+    "grey": 540,
+    "light-grey": 541,
+    "red": 542,
+    "white": 543,
+    "yellow": 544
    },
    "button1": {
-    "off": 556,
-    "on": 557
+    "off": 545,
+    "on": 545
    },
    "button2": {
-    "off": 558,
-    "on": 559
+    "off": 546,
+    "on": 546
    },
    "button3": {
-    "off": 560,
-    "on": 561
+    "off": 547,
+    "on": 547
    },
    "button4": {
-    "off": 562,
-    "on": 563
+    "off": 548,
+    "on": 548
    },
    "button5": {
-    "off": 564,
-    "on": 565
+    "off": 549,
+    "on": 549
    },
    "button6": {
-    "off": 566,
-    "on": 567
+    "off": 550,
+    "on": 550
    },
    "button7": {
-    "off": 568,
-    "on": 569
+    "off": 551,
+    "on": 551
    },
    "button8": {
-    "off": 570,
-    "on": 571
+    "off": 552,
+    "on": 552
    },
    "card1": {
-    "box": 572
+    "box": 553
    },
    "card2": {
-    "box": 573
+    "box": 554
    },
    "card3": {
-    "box": 574
+    "box": 553
    },
    "card4": {
-    "box": 575
+    "box": 554
    },
    "card5": {
-    "box": 576
+    "box": 553
    },
    "card6": {
-    "box": 577
+    "box": 554
    },
    "card7": {
-    "box": 578
+    "box": 553
    },
    "card8": {
-    "box": 579
+    "box": 554
    },
    "close": {
-    "x": 580
+    "x": 555
    },
    "ctemp": {
-    "track": 581
+    "track": 556
    },
    "fav": {
-    "box": 582
+    "box": 563
    },
    "logo": {
-    "boot": 583
+    "boot": 557
    },
    "power": {
-    "off": 585,
-    "on": 586
+    "off": 561,
+    "on": 561
    },
    "restart": {
-    "off": 587,
-    "on": 588
+    "off": 559,
+    "on": 559
    },
    "rowcard1": {
-    "box": 589
+    "box": 560
    },
    "rowcard2": {
-    "box": 590
+    "box": 560
    },
    "rowcard3": {
-    "box": 591
+    "box": 560
    },
    "rowcard4": {
-    "box": 592
+    "box": 560
    },
    "rowcard5": {
-    "box": 593
+    "box": 560
    },
    "rowcard6": {
-    "box": 594
+    "box": 560
    },
    "rowcard7": {
-    "box": 595
+    "box": 560
    },
    "side1": {
-    "off": 596,
-    "on": 597
+    "off": 562,
+    "on": 562
    },
    "side2": {
-    "off": 598,
-    "on": 599
+    "off": 561,
+    "on": 561
    },
    "side3": {
-    "off": 600,
-    "on": 601
+    "off": 562,
+    "on": 562
    },
    "vol": {
-    "box": 602
+    "box": 563
    },
    "wchip1": {
-    "box": 603
+    "box": 564
    },
    "wchip2": {
-    "box": 604
+    "box": 564
    },
    "wchip3": {
-    "box": 605
+    "box": 565
    },
    "wchip4": {
-    "box": 606
+    "box": 565
    },
    "wchip5": {
-    "box": 607
+    "box": 566
    },
    "wchip6": {
-    "box": 608
+    "box": 566
    },
    "weather_home": {
-    "clear-day": 609,
-    "clear-night": 610,
-    "cloudy": 611,
-    "drizzle": 612,
-    "dust-wind": 614,
-    "dust": 613,
-    "fog-day": 616,
-    "fog-night": 617,
-    "fog": 615,
-    "hail": 618,
-    "haze": 619,
-    "hurricane": 620,
-    "mist": 621,
-    "not-available": 622,
-    "overcast-day": 624,
-    "overcast-night": 625,
-    "overcast": 623,
-    "partly-cloudy-day-drizzle": 627,
-    "partly-cloudy-day-rain": 628,
-    "partly-cloudy-day-sleet": 629,
-    "partly-cloudy-day-snow": 630,
-    "partly-cloudy-day": 626,
-    "partly-cloudy-night-rain": 632,
-    "partly-cloudy-night-snow": 633,
-    "partly-cloudy-night": 631,
-    "rain": 634,
-    "sleet": 635,
-    "smoke": 636,
-    "snow": 637,
-    "thunderstorms-day-rain": 640,
-    "thunderstorms-day": 639,
-    "thunderstorms-night-rain": 641,
-    "thunderstorms-rain": 642,
-    "thunderstorms": 638,
-    "tornado": 643,
-    "wind": 644
+    "clear-day": 567,
+    "clear-night": 568,
+    "cloudy": 569,
+    "drizzle": 570,
+    "dust-wind": 572,
+    "dust": 571,
+    "fog-day": 574,
+    "fog-night": 575,
+    "fog": 573,
+    "hail": 576,
+    "haze": 577,
+    "hurricane": 578,
+    "mist": 579,
+    "not-available": 580,
+    "overcast-day": 582,
+    "overcast-night": 583,
+    "overcast": 581,
+    "partly-cloudy-day-drizzle": 585,
+    "partly-cloudy-day-rain": 586,
+    "partly-cloudy-day-sleet": 587,
+    "partly-cloudy-day-snow": 588,
+    "partly-cloudy-day": 584,
+    "partly-cloudy-night-rain": 590,
+    "partly-cloudy-night-snow": 591,
+    "partly-cloudy-night": 589,
+    "rain": 592,
+    "sleet": 593,
+    "smoke": 594,
+    "snow": 595,
+    "thunderstorms-day-rain": 598,
+    "thunderstorms-day": 597,
+    "thunderstorms-night-rain": 599,
+    "thunderstorms-rain": 600,
+    "thunderstorms": 596,
+    "tornado": 601,
+    "wind": 602
    },
    "weather_page": {
-    "clear-day": 645,
-    "clear-night": 646,
-    "cloudy": 647,
-    "drizzle": 648,
-    "dust-wind": 650,
-    "dust": 649,
-    "fog-day": 652,
-    "fog-night": 653,
-    "fog": 651,
-    "hail": 654,
-    "haze": 655,
-    "hurricane": 656,
-    "mist": 657,
-    "not-available": 658,
-    "overcast-day": 660,
-    "overcast-night": 661,
-    "overcast": 659,
-    "partly-cloudy-day-drizzle": 663,
-    "partly-cloudy-day-rain": 664,
-    "partly-cloudy-day-sleet": 665,
-    "partly-cloudy-day-snow": 666,
-    "partly-cloudy-day": 662,
-    "partly-cloudy-night-rain": 668,
-    "partly-cloudy-night-snow": 669,
-    "partly-cloudy-night": 667,
-    "rain": 670,
-    "sleet": 671,
-    "smoke": 672,
-    "snow": 673,
-    "thunderstorms-day-rain": 676,
-    "thunderstorms-day": 675,
-    "thunderstorms-night-rain": 677,
-    "thunderstorms-rain": 678,
-    "thunderstorms": 674,
-    "tornado": 679,
-    "wind": 680
+    "clear-day": 603,
+    "clear-night": 604,
+    "cloudy": 605,
+    "drizzle": 606,
+    "dust-wind": 608,
+    "dust": 607,
+    "fog-day": 610,
+    "fog-night": 611,
+    "fog": 609,
+    "hail": 612,
+    "haze": 613,
+    "hurricane": 614,
+    "mist": 615,
+    "not-available": 616,
+    "overcast-day": 618,
+    "overcast-night": 619,
+    "overcast": 617,
+    "partly-cloudy-day-drizzle": 621,
+    "partly-cloudy-day-rain": 622,
+    "partly-cloudy-day-sleet": 623,
+    "partly-cloudy-day-snow": 624,
+    "partly-cloudy-day": 620,
+    "partly-cloudy-night-rain": 626,
+    "partly-cloudy-night-snow": 627,
+    "partly-cloudy-night": 625,
+    "rain": 628,
+    "sleet": 629,
+    "smoke": 630,
+    "snow": 631,
+    "thunderstorms-day-rain": 634,
+    "thunderstorms-day": 633,
+    "thunderstorms-night-rain": 635,
+    "thunderstorms-rain": 636,
+    "thunderstorms": 632,
+    "tornado": 637,
+    "wind": 638
    },
    "wheel": {
-    "disc": 681
+    "disc": 639
    }
   }
  },
@@ -14822,11 +14890,23 @@
     131,
     58
    ],
+   "tile1_pic": [
+    10,
+    44,
+    147,
+    96
+   ],
    "tile2_center": [
     171,
     52,
     131,
     58
+   ],
+   "tile2_pic": [
+    163,
+    44,
+    147,
+    96
    ],
    "tile3_center": [
     18,
@@ -14834,11 +14914,23 @@
     131,
     58
    ],
+   "tile3_pic": [
+    10,
+    146,
+    147,
+    96
+   ],
    "tile4_center": [
     171,
     154,
     131,
     58
+   ],
+   "tile4_pic": [
+    163,
+    146,
+    147,
+    96
    ],
    "tile5_center": [
     18,
@@ -14846,11 +14938,23 @@
     131,
     58
    ],
+   "tile5_pic": [
+    10,
+    248,
+    147,
+    96
+   ],
    "tile6_center": [
     171,
     256,
     131,
     58
+   ],
+   "tile6_pic": [
+    163,
+    248,
+    147,
+    96
    ],
    "tile7_center": [
     18,
@@ -14858,11 +14962,23 @@
     131,
     58
    ],
+   "tile7_pic": [
+    10,
+    350,
+    147,
+    96
+   ],
    "tile8_center": [
     171,
     358,
     131,
     58
+   ],
+   "tile8_pic": [
+    163,
+    350,
+    147,
+    96
    ]
   },
   "media": {
@@ -14891,6 +15007,30 @@
     412,
     44,
     44
+   ],
+   "side1_pic": [
+    86,
+    398,
+    72,
+    72
+   ],
+   "side2_pic": [
+    162,
+    398,
+    72,
+    72
+   ],
+   "side3_pic": [
+    238,
+    398,
+    72,
+    72
+   ],
+   "power_pic": [
+    10,
+    398,
+    72,
+    72
    ]
   },
   "qr": {
@@ -16151,5 +16291,5 @@
    "close"
   ]
  },
- "design": "a13b2745"
+ "design": "6169e777"
 }

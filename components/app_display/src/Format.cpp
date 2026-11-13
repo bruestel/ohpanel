@@ -721,6 +721,7 @@ std::string nearest_palette(int c) {
 
 namespace {
 int g_theme[3] = {-1, -1, -1};   // accent, text, dim
+std::map<std::string, int> g_palette_overrides;   // set_palette_overrides
 }  // namespace
 
 void set_theme_colors(int accent, int text, int dim) {
@@ -729,12 +730,17 @@ void set_theme_colors(int accent, int text, int dim) {
   g_theme[2] = dim;
 }
 
+void set_palette_overrides(const std::map<std::string, int> &overrides) { g_palette_overrides = overrides; }
+
 int color565(const char *name) {
   if (!name)
     return -1;
   if (std::strcmp(name, "theme-accent") == 0) return g_theme[0];
   if (std::strcmp(name, "theme-text") == 0) return g_theme[1];
   if (std::strcmp(name, "theme-dim") == 0) return g_theme[2];
+  if (!g_palette_overrides.empty())
+    if (const auto o = g_palette_overrides.find(name); o != g_palette_overrides.end())
+      return o->second;
   for (const auto &p : kPalette)
     if (std::strcmp(p.name, name) == 0)
       return p.rgb565;

@@ -827,20 +827,20 @@ int main(int argc, char **argv) {
   // another background: the display's globals change before the page is shown again, which takes them
   // on loading (boards/nspanel/nextion/ohpanel_hmi.py background_globals) -- nothing coloured over after drawing
   std::string cfg = read("test/host/data/office.json");
-  cfg.replace(cfg.find("\"aurora\""), 8, "\"candy\"");
+  cfg.replace(cfg.find("\"aurora\""), 8, "\"dunes\"");
   rec.out.clear();
   e.set_config(cfg);
-  const std::string candy = std::to_string(background_pic("candy"));
-  CHECK(rec.has("bg_pic=" + candy));
-  CHECK(rec.has("bg_close=" + std::to_string(manifest_pic("candy", "close", "x"))));
+  const std::string dunes = std::to_string(background_pic("dunes"));
+  CHECK(rec.has("bg_pic=" + dunes));
+  CHECK(rec.has("bg_close=" + std::to_string(manifest_pic("dunes", "close", "x"))));
   rec.out.clear();
   e.on_message(loaded("entities"));
   CHECK(!rec.has_prefix("entities.pic=") && !rec.has_prefix("row1_value.picc=") && !rec.has("ref 0"));
-  // icons and tiles come in the candy background's variants
+  // icons and tiles come in the dunes background's variants
   e.on_message(event("entities", "close", "release"));
   rec.out.clear();
   e.on_message(loaded("buttons"));
-  CHECK(rec.has(pic_cmd("tile5_pic", "candy", "button5", "on")));  // PV, always active
+  CHECK(rec.has(pic_cmd("tile5_pic", "dunes", "button5", "on")));  // PV, always active
 
   // the info page: from the misc page (shown since the step above), on a page of its own -- eight cards, an
   // icon, a label and the value each
@@ -4018,6 +4018,63 @@ int main(int argc, char **argv) {
     back_home();
     CHECK(h.current() == "home");
     if (g_failures) r.dump();
+  }
+
+  {  // background White: its fixed colours sent as variables, yellow as orange, white as black, a ring in the accent
+     // round a tile that is on -- drawn after the display has drawn the tile (ref_star)
+    Recorder rx;
+    Engine x(rx, cb);
+    x.release_wait(0);
+    CHECK(x.load_design(read("boards/nspanel/nextion/display-manifest-eu.json").c_str(),
+                        read("boards/nspanel/nextion/weather-icons.json").c_str()));
+    std::string cfg = read("test/host/data/office.json");
+    cfg.replace(cfg.find("\"display\": {"), 12, "\"display\": {\"background\": \"white\", ");
+    x.set_config(cfg);
+    x.tick(1791196439);
+    x.start();
+    x.on_message(loaded("home"));
+    CHECK(rx.has("th_tile=59164"));    // #e0e0e0
+    CHECK(rx.has("th_title=0"));       // a light background's title: its text, black
+    CHECK(rx.has("th_text=0") && rx.has("th_accent=532"));   // black, #0040a0
+    CHECK(color565("yellow") == 64800 && color565("white") == 0);   // #ffa500; black
+    set_state("DeskLamp_Switch", "ON", "OnOff");
+    x.on_message(event("home", "swipe", "left"));
+    rx.out.clear();
+    x.on_message(loaded("buttons"));
+    const auto ring_fill = [&rx](size_t from) {   // a fill in the accent at or after `from`
+      for (size_t i = from; i < rx.out.size(); i++)
+        if (rx.out[i].rfind("fill ", 0) == 0 && rx.out[i].size() > 4 && rx.out[i].compare(rx.out[i].size() - 4, 4, ",532") == 0)
+          return static_cast<int>(i);
+      return -1;
+    };
+    CHECK(rx.pos("ref_star") >= 0 && ring_fill(0) > rx.pos("ref_star"));
+    CHECK(rx.has("tile1_name.pco=0"));   // the text on a tile that is on: black (no colours turned round)
+    // off: no ring (the tile's picture drawn anew takes it away); on again: drawn after the tile
+    rx.out.clear();
+    set_state("DeskLamp_Switch", "OFF", "OnOff");
+    x.on_state("DeskLamp_Switch");
+    CHECK(ring_fill(0) < 0);
+    // the ring painted over in the tile's colour: the tile's pictures on and off are one with a ring, the display
+    // draws nothing anew when it goes off
+    const auto erased = [&rx] {
+      for (const std::string &c : rx.out)
+        if (c.rfind("fill ", 0) == 0 && c.size() > 6 && c.compare(c.size() - 6, 6, ",59164") == 0)
+          return true;
+      return false;
+    };
+    CHECK(erased() && rx.pos("ref_star") >= 0);
+    rx.out.clear();
+    set_state("DeskLamp_Switch", "ON", "OnOff");
+    x.on_state("DeskLamp_Switch");
+    CHECK(ring_fill(0) > rx.pos("ref_star") && rx.pos("ref_star") >= 0);
+    // a colour of the configuration's theme read as it shows on the background: "yellow" as orange on White
+    std::string yellow = cfg;
+    yellow.replace(yellow.find("\"display\": {"), 12, "\"display\": {\"theme\": {\"accent\": \"yellow\"}, ");
+    rx.out.clear();
+    x.set_config(yellow);
+    CHECK(rx.has("th_accent=64800"));
+    set_palette_overrides({});   // the palette as it is for what follows
+    if (g_failures) rx.dump();
   }
 
   if (g_failures) {

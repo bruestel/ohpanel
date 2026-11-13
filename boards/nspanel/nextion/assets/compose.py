@@ -53,9 +53,11 @@ import layout  # noqa: E402
 
 OUT = os.path.join(HERE, "composites")
 
-# The close icon: a 25 px disc with a 12 px cross of 2 px strokes.
-CLOSE_DISC = (41, 44, 41, 255)
-CLOSE_CROSS = (173, 174, 173, 255)
+from generate import STYLES, WEATHER_DIRS, button_tile, logo, wide_tile  # noqa: E402  (each background's style)
+
+
+def rgba(hexcode):
+    return tuple(int(hexcode[i:i + 2], 16) for i in (1, 3, 5)) + (255,)
 
 def fit_icon(img, w, h, margin=2, bottom=False):
     """An icon cut to what it draws and scaled to fill a w x h place (its
@@ -98,15 +100,17 @@ def weather_icons():
     return sorted(names)
 
 
-def close_icon():
-    """The disc with the cross, drawn 8x larger and scaled down (anti-aliased)."""
+def close_icon(style):
+    """The disc with the cross (a 25 px disc, a 12 px cross of 2 px strokes) in the background's colours
+    (STYLES "close"), drawn 8x larger and scaled down (anti-aliased)."""
     n, k = layout.CLOSE_DISC, 8
+    disc, cross = (rgba(c) for c in style["close"])
     img = Image.new("RGBA", (n * k, n * k), (0, 0, 0, 0))
     d = ImageDraw.Draw(img)
-    d.ellipse((0, 0, n * k - 1, n * k - 1), fill=CLOSE_DISC)
+    d.ellipse((0, 0, n * k - 1, n * k - 1), fill=disc)
     c, arm = n * k / 2, 5.5 * k
     for dx in (-arm, arm):
-        d.line((c - dx, c - arm, c + dx, c + arm), fill=CLOSE_CROSS, width=round(1.9 * k))
+        d.line((c - dx, c - arm, c + dx, c + arm), fill=cross, width=round(1.9 * k))
     return img.resize((n, n), Image.LANCZOS)
 
 
@@ -118,34 +122,40 @@ def rounded_box(w, h, r, colour):
     return img.resize((w, h), Image.LANCZOS)
 
 
-def slots():
-    """Slot name -> (x, y, w, h, {picture name: RGBA image})."""
-    weather = {n: Image.open(os.path.join(HERE, "weather", n + ".png")).convert("RGBA") for n in weather_icons()}
-    tiles = {n: Image.open(os.path.join(layout.ASSETS, "tiles", n + ".png")).convert("RGBA") for n in ("off", "on")}
+def slots(style):
+    """Slot name -> (x, y, w, h, {picture name: RGBA image}), in a background's style (generate.py STYLES): its
+    tiles, cards, pills, close icon and weather icons."""
+    folder = WEATHER_DIRS[style["weather"]]
+    weather = {n: Image.open(os.path.join(HERE, folder, n + ".png")).convert("RGBA") for n in weather_icons()}
+    off, on = rgba(style["tile"])[:3], rgba(style["tile_on"])[:3]
+    tiles = {"off": button_tile(off), "on": button_tile(on)}
+    tile = rgba(style["tile"])   # a card's, a row's, the art box's flat colour: an icon on it takes it as its own
 
     out = {"weather_home": (*layout.WEATHER_HOME, weather), "weather_page": (*layout.WEATHER_PAGE, weather)}
     for i, (x, y) in enumerate(layout.button_tiles(), start=1):
         out[f"button{i}"] = (x, y, layout.TILE_W, layout.TILE_H, tiles)
-    out["close"] = (*layout.CLOSE_ICON, {"x": close_icon()})
-    wide = {n: Image.open(os.path.join(layout.ASSETS, "tiles", "wide_" + n + ".png")).convert("RGBA") for n in ("off", "on")}
+    out["close"] = (*layout.CLOSE_ICON, {"x": close_icon(style)})
+    _, _, ww, wh = layout.SETTINGS_BUTTON
+    wide = {"off": wide_tile(off, ww, wh, layout.SETTINGS_BUTTON_RADIUS),
+            "on": wide_tile(on, ww, wh, layout.SETTINGS_BUTTON_RADIUS)}
     out["restart"] = (*layout.SETTINGS_BUTTON, wide)
-    card = {"box": rounded_box(layout.SYSTEM_CARD_W, layout.SYSTEM_CARD_H, layout.SYSTEM_CARD_RADIUS, (44, 44, 44, 255))}
+    card = {"box": rounded_box(layout.SYSTEM_CARD_W, layout.SYSTEM_CARD_H, layout.SYSTEM_CARD_RADIUS, tile)}
     for i, (x, y) in enumerate(layout.SYSTEM_CARDS, start=1):
         out[f"card{i}"] = (x, y, layout.SYSTEM_CARD_W, layout.SYSTEM_CARD_H, card)
-    chip = {"box": rounded_box(layout.WEATHER_CHIP_W, layout.WEATHER_CHIP_H, layout.WEATHER_CHIP_RADIUS, (44, 44, 44, 255))}
+    chip = {"box": rounded_box(layout.WEATHER_CHIP_W, layout.WEATHER_CHIP_H, layout.WEATHER_CHIP_RADIUS, tile)}
     for i, (x, y) in enumerate(layout.WEATHER_CHIPS, start=1):
         out[f"wchip{i}"] = (x, y, layout.WEATHER_CHIP_W, layout.WEATHER_CHIP_H, chip)
     row_w = layout.VISIBLE_W - 2 * layout.MARGIN
-    rowcard = {"box": rounded_box(row_w, layout.ENTITY_ROWS_H, layout.ENTITY_ROWS_RADIUS, (44, 44, 44, 255))}
+    rowcard = {"box": rounded_box(row_w, layout.ENTITY_ROWS_H, layout.ENTITY_ROWS_RADIUS, tile)}
     for i in range(layout.ENTITY_ROWS_N):
         out[f"rowcard{i + 1}"] = (layout.MARGIN, layout.ENTITY_ROWS_Y + i * layout.ENTITY_ROWS_STEP, row_w,
                                   layout.ENTITY_ROWS_H, rowcard)
-    tile = (44, 44, 44, 255)   # the inactive tile's flat colour (generate.py TILES["off"]): an icon on it takes it as its own
     box = layout.MEDIA_ART
     out["art"] = (*box, {"box": rounded_box(box[2], box[3], layout.ART_RADIUS, tile)})
     for slot, box in (("vol", layout.MEDIA_VOLUME), ("fav", layout.MEDIA_FAV)):
-        out[slot] = (*box, {"box": rounded_box(box[2], box[3], box[3] // 2, layout.PILL_COLOUR + (255,))})
-    side = {n: Image.open(os.path.join(layout.ASSETS, "tiles", "side_" + n + ".png")).convert("RGBA") for n in ("off", "on")}
+        out[slot] = (*box, {"box": rounded_box(box[2], box[3], box[3] // 2, rgba(style["pill"]))})
+    sz = layout.SIDE_TILE   # the light and cover pages' column of tiles: the button tiles smaller, corners in proportion
+    side = {"off": wide_tile(off, sz, sz, round(20 * sz / 100)), "on": wide_tile(on, sz, sz, round(20 * sz / 100))}
     for i, (x, y) in enumerate(layout.SIDE_TILES, start=1):
         out[f"side{i}"] = (x, y, layout.SIDE_TILE, layout.SIDE_TILE, side)
     out["power"] = (*layout.POWER_TILE, layout.SIDE_TILE, layout.SIDE_TILE, side)
@@ -153,10 +163,19 @@ def slots():
                     {"disc": Image.open(os.path.join(layout.ASSETS, "controls", "wheel.png")).convert("RGBA")})
     out["ctemp"] = (*layout.CONTROL_SLIDER,
                     {"track": Image.open(os.path.join(layout.ASSETS, "controls", "ctemp.png")).convert("RGBA")})
-    out["logo"] = (*layout.BOOT_LOGO, {"boot": Image.open(os.path.join(layout.ASSETS, "logo", "boot.png")).convert("RGBA")})
+    # the boot page's logo: its words dark on a light background (they are light on the dark ones)
+    boot = logo(*layout.BOOT_LOGO[2:], ink=(16, 16, 16), sub=(90, 90, 90)) if style["light"] else \
+        Image.open(os.path.join(layout.ASSETS, "logo", "boot.png")).convert("RGBA")
+    out["logo"] = (*layout.BOOT_LOGO, {"boot": boot})
     out["splash"] = (*layout.SPLASH_LOGO,
                      {"logo": Image.open(os.path.join(layout.ASSETS, "logo", "splash.png")).convert("RGBA")})
-    badges = {name: badge(c) for name, c in PALETTE.items()}
+    # a palette colour shown otherwise on the background (its style's "palette": yellow as orange on White), as the
+    # firmware takes the colour there -- the badge's picture is chosen by the palette's name (Engine::draw_home)
+    def to565(h):
+        r, g, b = rgba(h)[:3]
+        return (r >> 3) << 11 | (g >> 2) << 5 | b >> 3
+    badges = {name: badge(to565(style["palette"][name]) if name in style.get("palette", {}) else c)
+              for name, c in PALETTE.items()}
     for line, y in enumerate(layout.INFO_Y, start=1):
         out[f"badge{line}"] = (layout.INFO_LEFT[0], y - layout.INFO_ICON_UP, layout.INFO_LEFT[1], layout.INFO_ICON_H,
                                badges)
@@ -173,8 +192,32 @@ def rgb565(img):
 
 
 # The display's own start (the splash page, before the firmware has found it) is black whatever the background
-# configured: its logo only on that.
+# configured: its logo only on that -- on black also were there no black background ("black.splash.logo").
 SPLASH_ONLY, SPLASH_BACKGROUND = ("splash",), "black"
+
+
+def compose(bg_name, bg, only=None):
+    """The pictures of every slot (or the slots `only`) on one background; how many."""
+    count = 0
+    style = STYLES.get(bg_name, STYLES[SPLASH_BACKGROUND])
+    for slot, (x, y, w, h, pictures) in slots(style).items():
+        if slot in SPLASH_ONLY and bg_name != SPLASH_BACKGROUND:
+            continue
+        if only is not None and slot not in only:
+            continue
+        under = bg.crop((x, y, x + w, y + h))
+        for name, picture in pictures.items():
+            if picture.size != (w, h):
+                if not slot.startswith("weather"):
+                    sys.exit(f"{name}: {picture.size}, slot {slot} is {w}x{h}")
+            if slot.startswith("weather"):
+                # drawn large with room around: filling its place; on home standing on its
+                # bottom, where the weather block ends (layout.WEATHER_BOTTOM)
+                picture = fit_icon(picture, w, h, bottom=slot == "weather_home")
+            rgb565(Image.alpha_composite(under, picture)).save(
+                os.path.join(OUT, f"{bg_name}.{slot}.{name}.png"), optimize=True)
+            count += 1
+    return count
 
 
 def main():
@@ -183,24 +226,14 @@ def main():
     shutil.rmtree(OUT, ignore_errors=True)
     os.makedirs(OUT)
     count = 0
+    names = []
     for bg_path in sorted(glob.glob(os.path.join(layout.ASSETS, "backgrounds", "*.png"))):
         bg_name = os.path.splitext(os.path.basename(bg_path))[0]
-        bg = Image.open(bg_path).convert("RGBA")
-        for slot, (x, y, w, h, pictures) in slots().items():
-            if slot in SPLASH_ONLY and bg_name != SPLASH_BACKGROUND:
-                continue
-            under = bg.crop((x, y, x + w, y + h))
-            for name, picture in pictures.items():
-                if picture.size != (w, h):
-                    if not slot.startswith("weather"):
-                        sys.exit(f"{name}: {picture.size}, slot {slot} is {w}x{h}")
-                if slot.startswith("weather"):
-                    # drawn large with room around: filling its place; on home standing on its
-                    # bottom, where the weather block ends (layout.WEATHER_BOTTOM)
-                    picture = fit_icon(picture, w, h, bottom=slot == "weather_home")
-                rgb565(Image.alpha_composite(under, picture)).save(
-                    os.path.join(OUT, f"{bg_name}.{slot}.{name}.png"), optimize=True)
-                count += 1
+        names.append(bg_name)
+        count += compose(bg_name, Image.open(bg_path).convert("RGBA"))
+    if SPLASH_BACKGROUND not in names:   # no black background: the splash's logo on black still
+        black = Image.new("RGBA", (layout.SCREEN_W, layout.SCREEN_H), (0, 0, 0, 255))
+        count += compose(SPLASH_BACKGROUND, black, only=SPLASH_ONLY)
     print(f"composites: {count} pictures")
 
 

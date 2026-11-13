@@ -389,15 +389,19 @@ void Engine::cover_refresh(const cJSON *page) {
   for (int k = 0; k < 3 && pg != boxes_.end(); k++) {
     const std::string n = "btn" + std::to_string(k + 1);
     const bool lit = (k == 0 && shown_dir < 0) || (k == 2 && shown_dir > 0);
-    const int bg = lit ? kWhite : kDarkGrey;
-    if (pg->second.count(n + "_hs") && drawn_[n] != std::to_string(bg)) {
-      drawn_[n] = std::to_string(bg);
+    const int bg = lit ? theme_.tile_on : theme_.tile;
+    // (lit or not in the key: with a ring both have the tile's colour)
+    const std::string key = std::to_string(bg) + (lit ? "+" : "-");
+    if (pg->second.count(n + "_hs") && drawn_[n] != key) {
+      drawn_[n] = key;
       const Box &bx = pg->second.at(n + "_hs");
       rounded(bx, 12, bg);
       num(n + "_icon", "bco", bg);
       send("ref " + n + "_icon");
+      if (lit && theme_.ring)
+        draw_ring(bx, 10);   // the ring 2 px in: its corners round as the square's
     }
-    num(n + "_icon", "pco", lit ? theme_.accent : theme_.dim);   // also after a touch coloured it (the display's own)
+    num(n + "_icon", "pco", lit ? lit_icon(theme_.accent) : theme_.dim);   // also after a touch coloured it
   }
   // the drawing, only when it shows something else
   if (pg != boxes_.end() && pg->second.count("draw_hs") && !flag(page, "hide_slider")) {
@@ -416,7 +420,7 @@ void Engine::cover_refresh(const cJSON *page) {
       continue;
     const bool at = (closed >= 0 && std::abs(closed - look.presets[k].second) <= 1) ||
                     (preset_tapped_.live(now_ms_) && preset_tapped_.value == k);
-    const int colour = at ? theme_.accent : kDarkGrey, ink = at ? kWhite : kLightGrey;
+    const int colour = at ? theme_.accent : theme_.tile, ink = at ? kWhite : theme_.tile_dim;
     const Box &bx = pg->second.at(n + "_hs");
     const std::string label = shorten(2, look.presets[k].first, bx.w - 12, false);
     const std::string key = std::to_string(colour) + "|" + label;
@@ -520,7 +524,7 @@ void Engine::cover_tick() {
     return;
   for (auto it = button_lit_.begin(); it != button_lit_.end();)   // a group page's button lit a while: back
     if (now_ms_ >= it->second) {
-      num(it->first, "pco", kLightGrey);
+      num(it->first, "pco", theme_.tile_dim);
       it = button_lit_.erase(it);
     } else {
       ++it;
@@ -633,7 +637,7 @@ void Engine::draw_cover_presets(const cJSON *page) {
       continue;
     const bool at = (closed >= 0 && std::abs(closed - look.presets[k].second) <= 1) ||
                     (preset_tapped_.live(now_ms_) && preset_tapped_.value == k);
-    const int colour = at ? theme_.accent : kDarkGrey, ink = at ? kWhite : kLightGrey;
+    const int colour = at ? theme_.accent : theme_.tile, ink = at ? kWhite : theme_.tile_dim;
     const Box &bx = pg->second.at(n + "_hs");
     const std::string label = shorten(2, look.presets[k].first, bx.w - 12, false);
     const std::string key = std::to_string(colour) + "|" + label;
@@ -653,7 +657,7 @@ void Engine::draw_cover_row(const cJSON *page, const std::string &n, const std::
     return;
   if (drawn_[n] != "card") {   // the card and the buttons: once a page
     drawn_[n] = "card";
-    rounded(pg->second.at(n + "_hs"), all ? 12 : 10, kDarkGrey);
+    rounded(pg->second.at(n + "_hs"), all ? 12 : 10, theme_.tile);
     const int si = cover_style_index(look.style);
     const char *parts[] = {"_up", "_stop", "_down"};
     for (int k = 0; k < 3; k++) {
@@ -675,7 +679,7 @@ void Engine::draw_cover_row(const cJSON *page, const std::string &n, const std::
     const std::string key = look.style + "|" + std::to_string(closed) + "|" + std::to_string(theme_.accent);
     if (drawn_[n + "_mini"] != key) {
       drawn_[n + "_mini"] = key;
-      draw_cover_art(m.x, m.y, m.w, m.h, look.style, closed < 0 ? 0 : closed, kDarkGrey, look.from_left);
+      draw_cover_art(m.x, m.y, m.w, m.h, look.style, closed < 0 ? 0 : closed, theme_.tile, look.from_left);
     }
   }
   (void)page;

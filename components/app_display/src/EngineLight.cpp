@@ -118,14 +118,19 @@ void Engine::draw_light(const cJSON *page) {
       if (const int pic = picture(n, active ? "on" : "off"); pic >= 0)
         num(n + "_pic", "pic", pic);
       for (const std::string &part : {n + "_icon", n + "_text"})
-        num(part, "bco", active ? kWhite : kDarkGrey);
-      num(n + "_icon", "pco", active ? theme_.accent : theme_.dim);
-      num(n + "_text", "pco", active ? kDarkGrey : kLightGrey);
+        num(part, "bco", active ? theme_.tile_on : theme_.tile);
+      num(n + "_icon", "pco", active ? lit_icon(theme_.accent) : theme_.dim);
+      num(n + "_text", "pco", active ? theme_.tile_on_text : theme_.tile_dim);
       txt(n + "_icon", icon_glyph(icons[k]));
       txt(n + "_text", settings_.texts.light_views[k]);
     }
     for (const std::string &part : {n + "_pic", n + "_icon", n + "_text", n + "_hs"})
       vis(part, shown);
+    // after the tile is shown (showing it draws its picture, over a ring drawn before)
+    if (shown)
+      ring_at("light", n + "_pic", active);
+    else
+      ring_forget("light", n + "_pic");
   }
   // one view at a time: the brightness's slider, the colour temperature's, the colour wheel
   if (light_view_ == 2)
@@ -179,11 +184,15 @@ void Engine::light_refresh(const cJSON *page) {
   if (const int pic = picture("power", lit ? "on" : "off"); pic >= 0)
     num("power_pic", "pic", pic);
   for (const char *part : {"power_icon", "power_text"})
-    num(part, "bco", lit ? kWhite : kDarkGrey);
-  num("power_icon", "pco", lit ? theme_.accent : theme_.dim);
-  num("power_text", "pco", lit ? kDarkGrey : kLightGrey);
+    num(part, "bco", lit ? theme_.tile_on : theme_.tile);
+  num("power_icon", "pco", lit ? lit_icon(theme_.accent) : theme_.dim);
+  num("power_text", "pco", lit ? theme_.tile_on_text : theme_.tile_dim);
   txt("power_icon", icon_glyph("power"));
   txt("power_text", lit ? settings_.texts.on : settings_.texts.off);
+  if (light_view_ == 2)   // the colour view: the colour chosen where the tile is (hidden), no ring round it
+    ring_forget("light", "power_pic");
+  else
+    ring_at("light", "power_pic", lit);
   num("slider", "bco1", lit ? theme_.accent : kSliderOff);
   if (slider_held() && light_view_ != 2) {
     // the finger on the slider (or just off it): it stays where the finger put it (slider_moved)

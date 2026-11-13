@@ -285,9 +285,40 @@ class Engine {
      the configuration's display.theme on top. */
   struct Theme {
     int accent = 1055, text = 65535, dim = 52857;
+    /* What the design draws with besides (boards/nspanel/nextion/assets/generate.py STYLES), the standard
+       design's when the manifest does not say: a tile off (its colour, the text and the icon on it), a tile on,
+       a pill, a bar's or a thermostat's track off and on, a button's state line off and on. */
+    int tile = 10597, tile_text = 65535, tile_dim = 52857, tile_on = 65535, tile_on_text = 10597, pill = 14855;
+    int track = 19017, track_on = 57051, state = 40147, state_on = 27469;
+    bool ring = false;    // a tile on stays light, a ring in the accent tells it (draw_ring)
+    bool light = false;   // a light background: a badge's text stays white, palette colours as `palette` has them
+    std::map<std::string, int> palette;   // a palette colour shown otherwise on it ("yellow": orange)
   };
   std::map<std::string, Theme> bg_themes_;
   Theme theme_;
+  /* The design's variables for its fixed colours (manifest "theme_vars": the extra design's th_tile and the
+     others, boards/nspanel/nextion/ohpanel_hmi.py fixed_colours), sent with the theme: none on the standard one. */
+  std::vector<std::string> theme_vars_;
+  int theme_var(const std::string &name) const;
+  /* A tile on in a theme with a ring (theme_.ring): the ring in the accent round the tile `b` (2 px in, 4 px wide,
+     the tile's corners); drawn after the display has drawn the tile's picture (it would paint over it). */
+  void draw_ring(const Box &b, int radius, int colour = -1);   // colour: the accent when -1
+  struct PendingRing {
+    Box box;
+    int radius, colour;
+  };
+  std::vector<PendingRing> rings_pending_;   // asked for while refreshing was held: drawn after ref_star
+  /* The ring round a tile picture of the manifest's "boxes" while `on`, else gone: painted over in the tile's colour
+     where one was drawn (rings_drawn_) -- the tile's pictures on and off are the same with a ring, the display does
+     not draw the tile anew when it goes off. */
+  void ring_at(const char *page, const std::string &tile, bool on, int radius = -1);   // -1: in proportion (20 per 100 px)
+  /* The ring of a tile that is hidden (an empty slot, the colour view's power tile) forgotten, not painted over: hiding
+     the tile repainted the background where it was. */
+  void ring_forget(const char *page, const std::string &tile) { rings_drawn_.erase(std::string(page) + "/" + tile); }
+  std::map<std::string, bool> rings_drawn_;   // cleared with the page (show_physical): a page loads without rings
+  /* An icon on a tile that is on: its colour (the accent, the button's) -- with a ring, the tile's text colour,
+     as everything on it (forum #133: no colours to tell apart, the ring tells it is on). */
+  int lit_icon(int colour) const { return theme_.ring ? theme_.tile_on_text : colour; }
   void update_theme();
   void send_theme();
   void hide_busy();
@@ -350,6 +381,8 @@ class Engine {
   std::string shown_;                      // physical page on screen
   bool building_buttons_ = false;          // draw_buttons shows the buttons itself, all at once
   bool bar_[8] = {};                       // the tiles with a bar (a value in %), for draw_buttons to show
+  bool ring_[8] = {};                      // the tiles with a ring (on, a background with one), for it to draw
+  void button_rings(const cJSON *page, int only = -1);   // the rings of the tiles that have one (draw_ring)
   int sheet_ = 0;                          // entity pages: which eight rows
   int dots_max_ = 8;                       // how many page dots fit in their field (manifest "dots")
   time_t now_ = 0;

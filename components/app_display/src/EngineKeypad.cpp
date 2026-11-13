@@ -180,7 +180,7 @@ void Engine::keypad_refresh(const cJSON *page) {
     const bool lit = btn.toggle                    ? on(btn.toggle)
                      : keypad_tapped_.live(now_ms_) ? keypad_tapped_.value == static_cast<int>(k)
                                                     : !btn.when.empty() && now == btn.when;
-    const int fill_colour = lit ? theme_.accent : kDarkGrey, ink = lit ? kWhite : kLightGrey;
+    const int fill_colour = lit ? theme_.accent : theme_.tile, ink = lit ? kWhite : theme_.tile_dim;
     const Box &bx = pg->second.at(n + "_hs");
     // the label in font 2 (font 1 on the small pills), else smaller; the icon left out where it would not fit
     int font = bx.h >= 44 ? 2 : 1;

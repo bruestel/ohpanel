@@ -97,7 +97,7 @@ with a `format` it shows the whole text instead.
 | `notifications` | `{"item", "wake_and_keep_on"?}` | a String item whose new states show as notifications, see below |
 | `open_page` | `{"item"}` | a String item: a page id set on it opens that page, see below |
 | `current_page` | `{"item"}` | a String item the id of each page that opens is sent to, see below |
-| `background` | background id | the picture behind every page: `aurora` (default), `candy`, `dunes`, `forest`, `black`: the backgrounds of the display design, listed in `boards/nspanel/nextion/display-manifest-<variant>.json` |
+| `background` | background id | the picture behind every page: `aurora` (default), `dunes`, `forest`, `black`, `white`: the backgrounds of the display design, listed in `boards/nspanel/nextion/display-manifest-<variant>.json`. **White** is a light one: black on white, a tile that is on marked by a ring in the accent -- see [White](#the-white-background). One the design does not have (`candy`, before 0.25.0) shows as the default |
 | `theme` | `{"accent", "text", "dim"}`, each a colour (see above) | the colours the panel draws with; each one left out is the background's own (Aurora: a light blue accent, white text, light grey dim). `accent` marks what is active or chosen: lit buttons and icons, sliders, the chosen pill, the thermostat's ring, the QR code; `text` is the texts' colour; `dim` the quieter ones: the date, small labels, inactive icons. The web interface's *Display* card picks them, and resets one to the background's |
 | `texts` | object | overrides single texts of the language: `on`, `off`, `undefined` (shown for NULL/UNDEF states), the name lists `weekdays`, `weekdays_short` (7, starting with Sunday), `months`, `months_short` (12), and the settings page's `settings_title`, `settings` (its 3 slider labels), `never`, `restart`, `restart_confirm` |
 
@@ -276,6 +276,18 @@ September") fits in nearly every language in the full size; on the others
 `%A %e` ("dimanche 28", "Wednesday 23") does, a long month mostly only smaller.
 The web interface offers formats with long names and, under "Own format…", any
 of the placeholders above; its preview shows the date as the panel does.
+
+## The White background
+
+`"background": "white"` is the one light background, for eyes that find light text on dark hard to read
+(astigmatism: bright parts on dark smear). Black text on white, the quieter parts (date, units, arrows) black too.
+Every tile is the same light grey with black text; a tile that is **on** shows a ring in the accent colour -- any
+accent, also one of your own (`display.theme.accent`) -- instead of turning its colours round. A button that only
+opens a page has no ring. The pills stay filled in the accent with white text.
+
+What would not read on white is drawn otherwise: the weather icons in their line style with black lines, the
+palette's `yellow` as orange, `white` as black and `light-grey` as dark grey; a badge's text stays white, the boot
+logo's words are dark.
 
 ## Home screen
 

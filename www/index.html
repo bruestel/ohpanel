@@ -336,6 +336,8 @@ input[type=file]::file-selector-button{appearance:none;height:2rem;padding:0 .9r
 .screenh{margin:1.1rem 0 .2rem;font-size:14px}
 .card h2+.screenh{margin-top:.4rem}
 .screen{display:grid;gap:.9rem;margin-top:.6rem}
+/* a card across the page (Display): its fields side by side, as many as fit */
+.screen.wide{grid-template-columns:repeat(auto-fill,minmax(15rem,1fr));column-gap:1.25rem}
 .screen .scrow{display:grid;gap:.35rem;min-width:0}
 .screen .slider{display:flex;align-items:center;gap:.6rem;min-height:2.1rem;min-width:0}
 .screen .slider input{flex:1;min-width:0;accent-color:var(--theme)}
@@ -1033,6 +1035,20 @@ pre.box{margin:0;padding:.6rem .7rem;max-height:18rem;overflow:auto;background:v
       </div>
     </div>
     <div class="card">
+      <h2>Display</h2>
+      <p class="sub">How the panel's screen looks (time and date formats: the clock in the preview's edit mode).</p>
+      <div class="screen wide">
+        <label>Background<select id="vBg"></select></label>
+        <label>Language<select id="vLang"><!-- texts: begin --><option value="en">English</option><option value="de">Deutsch</option><option value="fr">Français</option><option value="es">Español</option><option value="it">Italiano</option><option value="nl">Nederlands</option><option value="pt">Português</option><option value="da">Dansk</option><option value="sv">Svenska</option><option value="nb">Norsk</option><option value="fi">Suomi</option><option value="bg">Български</option><option value="cs">Čeština</option><option value="el">Ελληνικά</option><option value="et">Eesti</option><option value="ga">Gaeilge</option><option value="hr">Hrvatski</option><option value="hu">Magyar</option><option value="lt">Lietuvių</option><option value="lv">Latviešu</option><option value="mt">Malti</option><option value="pl">Polski</option><option value="ro">Română</option><option value="sk">Slovenčina</option><option value="sl">Slovenščina</option><!-- texts: end --></select></label>
+        <label>Back to the start page<select id="vHomeAfter"></select></label>
+        <label>Swiping to another page<select id="vFade"></select></label>
+        <label>A cover appears<select id="vReveal"><option value="">dissolving in</option>
+          <option value="center">from the middle outwards</option><option value="sharpen">blurred, then sharp</option>
+          <option value="wipe">wiped on from the top</option></select></label>
+      </div>
+      <div class="themerow" id="vTheme"></div>
+    </div>
+    <div class="card">
       <h2>Pages</h2>
       <p class="sub">Swiping goes through the swipe row in this order. Its first page (★) is the start page: the
         panel starts there and goes back to it; drag a page by its handle to order it. Lights, covers, media players
@@ -1050,20 +1066,6 @@ pre.box{margin:0;padding:.6rem .7rem;max-height:18rem;overflow:auto;background:v
       <div class="pgpick" id="pgPick" hidden></div>
     </div>
     <div class="tiles">
-      <div class="card">
-        <h2>Display</h2>
-        <p class="sub">How the panel's screen looks (time and date formats: the clock in the preview's edit mode).</p>
-        <div class="screen">
-          <label>Background<select id="vBg"></select></label>
-          <label>Language<select id="vLang"><!-- texts: begin --><option value="en">English</option><option value="de">Deutsch</option><option value="fr">Français</option><option value="es">Español</option><option value="it">Italiano</option><option value="nl">Nederlands</option><option value="pt">Português</option><option value="da">Dansk</option><option value="sv">Svenska</option><option value="nb">Norsk</option><option value="fi">Suomi</option><option value="bg">Български</option><option value="cs">Čeština</option><option value="el">Ελληνικά</option><option value="et">Eesti</option><option value="ga">Gaeilge</option><option value="hr">Hrvatski</option><option value="hu">Magyar</option><option value="lt">Lietuvių</option><option value="lv">Latviešu</option><option value="mt">Malti</option><option value="pl">Polski</option><option value="ro">Română</option><option value="sk">Slovenčina</option><option value="sl">Slovenščina</option><!-- texts: end --></select></label>
-          <label>Back to the start page<select id="vHomeAfter"></select></label>
-          <label>Swiping to another page<select id="vFade"></select></label>
-          <label>A cover appears<select id="vReveal"><option value="">dissolving in</option>
-            <option value="center">from the middle outwards</option><option value="sharpen">blurred, then sharp</option>
-            <option value="wipe">wiped on from the top</option></select></label>
-        </div>
-        <div class="themerow" id="vTheme"></div>
-      </div>
       <div class="card">
         <h2>Screen</h2>
         <p class="sub">How bright it is in use and idle, and off at night: then a touch only wakes it. Each number
@@ -2955,10 +2957,87 @@ const INACTIVE = PALETTE['light-grey'];
 let THEME = {accent: PALETTE.blue, text: '#ffffff', dim: INACTIVE};
 function themeOf(cfg) {
   const d = (cfg && cfg.display) || {};
-  const bg = (LAYOUT.backgrounds || []).find(b => b.id === (d.background || LAYOUT.default_background)) || {};
+  // a background the design has not (Candy, before 0.25.0): its default one, as the panel shows it
+  const bgs = LAYOUT.backgrounds || [];
+  const bg = bgs.find(b => b.id === (d.background || LAYOUT.default_background))
+          || bgs.find(b => b.id === LAYOUT.default_background) || {};
   const t = Object.assign({accent: PALETTE.blue, text: '#ffffff', dim: INACTIVE}, bg.theme || {});
-  Object.keys(t).forEach(k => { if (d.theme && d.theme[k]) t[k] = color(d.theme[k], t[k]); });
+  ['accent', 'text', 'dim'].forEach(k => { if (d.theme && d.theme[k]) t[k] = color(d.theme[k], t[k]); });
+  t.bg = bg.id;
+  t.base = t.base || '#000000';   // a light background's own colour (its theme's: shade)
   return t;
+}
+
+/* The design's own colours -- its greys, from the black under a tile to the white on it -- as a
+   background with colours of its own has them (its theme's "base", "tile", "tile_text"): the
+   display takes them from variables as it takes th_text. A light background turns them round: a
+   tile as light as the paper, its text dark. Colours (the accent, a rule's red) stay. */
+function shadeRgb([r, g, b]) {
+  if (!THEME.light || Math.max(r, g, b) - Math.min(r, g, b) > 16) return [r, g, b];
+  // the theme's own colours are what they are (a grey "dim" too)
+  if (['text', 'dim', 'accent'].some(k => THEME[k] && rgbOf(THEME[k]).every((v, i) => Math.abs(v - [r, g, b][i]) < 3)))
+    return [r, g, b];
+  const l = (r + g + b) / 765, T = 0.17;
+  const [from, to, k] = l < T ? [THEME.base, THEME.tile, l / T]
+    // a theme for the highest contrast ("strong"): no grey on light grey, the greys of the design dark all
+    : [THEME.tile, THEME.tile_text, Math.min(1, (l - T) / (1 - T) * (THEME.ring ? 1.8 : 1))];
+  const a = rgbOf(from), z = rgbOf(to);
+  return a.map((v, i) => Math.round(v + (z[i] - v) * k));
+}
+function shade(css) {
+  if (!THEME.light || !css) return css;
+  const m = /^rgb\((\d+), (\d+), (\d+)\)$/.exec(css);
+  const c = m ? [+m[1], +m[2], +m[3]] : /^#[0-9a-f]{3,6}$/i.test(css) || PALETTE[css] ? rgbOf(PALETTE[css] || css) : null;
+  return c ? 'rgb(' + shadeRgb(c).join(', ') + ')' : css;
+}
+function retheme(box) {
+  if (!THEME.light) return;   // a dark background: the design's own colours
+  /* On a lit tile of a "strong" theme (as dark as the text) all in one colour, the background's:
+     the icon too, not the accent -- blue on black is hard to read. With "ring" the lit tile stays as
+     light as the others, its text and icon as dark: a ring in the accent tells it is on (its picture). */
+  const lit = 'rgb(' + rgbOf(THEME.tile_text).join(', ') + ')';
+  const ink = THEME.ring ? THEME.tile_text : THEME.base, inkRgb = rgbOf(ink);
+  const onLit = el => THEME.ring && (o => !!o && !!o.dataset.lit)(el.closest('.o'));
+  box.querySelectorAll('*').forEach(el => {
+    if (el.closest('[data-keep]')) return;   // a badge: its text white on its colour, whatever the background
+    const st = el.style;
+    if (st.backgroundColor) st.backgroundColor = shade(st.backgroundColor);
+    if (THEME.ring && el.classList.contains('o') && st.backgroundColor === lit) {
+      el.dataset.lit = 1;
+      // on the ring's tile the fields show its picture through (the design's cropped background), the ring not covered
+      if (THEME.ring) st.backgroundColor = 'transparent';
+    }
+    if (st.color) st.color = onLit(el) ? ink : shade(st.color);
+    if (el.tagName === 'CANVAS' && el.width && el.height && !el.dataset.shaded) {   // what is drawn: pixel by pixel
+      el.dataset.shaded = 1;
+      const one = onLit(el);
+      try {
+        const ctx = el.getContext('2d'), img = ctx.getImageData(0, 0, el.width, el.height), d = img.data;
+        for (let q = 0; q < d.length; q += 4) {
+          if (!d[q + 3]) continue;
+          const [r, g, b] = one ? inkRgb : shadeRgb([d[q], d[q + 1], d[q + 2]]);
+          d[q] = r; d[q + 1] = g; d[q + 2] = b;
+        }
+        ctx.putImageData(img, 0, 0);
+      } catch (e) { /* a canvas of another kind */ }
+    }
+  });
+}
+
+/* A tile's picture, "<kind>_on" or "_off" ("tile" itself: "tile:on"). A theme with a "ring" keeps every tile
+   as light as off and draws a ring in the accent round one that is on, 4 px, on the tile's edge (2 px in,
+   corners of 20 px): the firmware draws it as it draws a pill, so it takes any accent. `plain`: no ring
+   (a button that only opens a page). */
+function tilePic(kind, on, plain) {
+  const pic = on => kind === 'tile' ? (on ? 'tile:on' : 'tile:off') : kind + (on ? '_on' : '_off');
+  if (!THEME.ring) return {pic: pic(on && !plain)};
+  return {pic: pic(false), ring: on && !plain ? THEME.accent : null};
+}
+
+/* A picture as the chosen background has it: compose.py makes the tiles and the weather icons for
+   each background (on a light one, the icons with lines), "<background>/<picture>" in the layout. */
+function themedPicture(pic) {
+  return LAYOUT.pictures[THEME.bg + '/' + pic] || LAYOUT.pictures[pic];
 }
 
 function rgb565(v) {
@@ -2968,7 +3047,9 @@ function rgb565(v) {
 /* The theme's colours by their placeholders (Format.cpp color565): what they are now. */
 const THEME_COLORS = {'theme-accent': 'accent', 'theme-text': 'text', 'theme-dim': 'dim'};
 function color(c, fallback) {
-  return !c ? fallback : THEME_COLORS[c] ? THEME[THEME_COLORS[c]] : (PALETTE[c] || c);
+  // a light background's own shade of a palette colour (yellow is orange there: readable on white)
+  return !c ? fallback : THEME_COLORS[c] ? THEME[THEME_COLORS[c]]
+       : THEME.palette && THEME.palette[c] ? THEME.palette[c] : (PALETTE[c] || c);
 }
 
 /* Texts the panel writes itself, per display language (display.language);
@@ -3359,7 +3440,8 @@ function fillHome(cfg) {
       const look = {};
       if (bg) look.badge = color(ref.bg, THEME.accent);
       if (style.color) look.color = style.color;
-      else if (ref && (ref.color || bg || isIcon)) look.color = color(ref.color, THEME.text);
+      // on a badge white, whatever the theme's text (black on a light one: black on red)
+      else if (ref && (ref.color || bg || isIcon)) look.color = color(ref.color, bg && THEME.light ? '#ffffff' : THEME.text);
       else if (ref && key === 'right') look.color = THEME.dim;   // the side information dimmed (Engine::draw_home)
       if (style.blink) look.blink = style.blink;
       if (k === 2 && !rightText) return;
@@ -3405,7 +3487,9 @@ function fillButtons(page) {
     /* As the panel draws them (Engine::draw_button): the tile picture
        behind, the texts on a matching background. */
     const bg = active ? '#ffffff' : PALETTE['dark-grey'];
-    f[n + '_pic'] = {pic: active ? 'tile:on' : 'tile:off'};
+    // with a ring for "on" (a theme's "ring"), a button that only opens a page has none: it is not on -- one always
+    // active or active by a rule has (Engine::draw_button)
+    f[n + '_pic'] = tilePic('tile', active, THEME.ring && !(b.item || b.always_active || style.active === true));
     const center = buttonCentred(b, style);
     const icon = {icon: style.icon || b.icon, blink: style.blink, color: style.color || (active ? color(b.color, THEME.accent) : THEME.dim), bg};
     const ink = active ? PALETTE['dark-grey'] : INACTIVE, soft = active ? '#6b6b6b' : '#9a9a9a';
@@ -3424,7 +3508,8 @@ function fillButtons(page) {
       const pct = value === 'percent' && known ? Math.max(0, Math.min(100, Math.round(st.numeric))) : null;
       // Engine::draw_button's bar: a progress bar, its track in the tile's tone, filled in the accent or a rule's colour
       f[n + '_bar'] = pct === null ? {hide: true}
-        : {progress: pct, bg: active ? '#d9d9d9' : '#4a4a4a', fill: style.color || THEME.accent};
+        : {progress: pct, bg: active ? THEME.track_on || '#d9d9d9' : THEME.track || '#4a4a4a',
+           fill: style.color || THEME.accent};
     }
   }
   return f;
@@ -4260,9 +4345,14 @@ function drawPage(box, cfg, id) {
       el.style.pointerEvents = 'none';
       const cv = document.createElement('canvas');
       cv.width = dw; cv.height = dh; cv.style.cssText = 'display:block;width:100%;height:100%';
-      const ctx = cv.getContext('2d');
-      ctx.translate(-dx, -dy);   // page coordinates, as the firmware draws
+      const raw = cv.getContext('2d');
+      raw.translate(-dx, -dy);   // page coordinates, as the firmware draws
+      // the design's greys as the background has them (shade), set as the drawing goes
+      const ctx = !THEME.light ? raw : new Proxy(raw, {
+        get: (t, k) => k === 'raw' ? t : typeof t[k] === 'function' ? t[k].bind(t) : t[k],
+        set: (t, k, v) => { t[k] = (k === 'fillStyle' || k === 'strokeStyle') && typeof v === 'string' ? shade(v) : v; return true; }});
       want.draw.fn(ctx);
+      cv.dataset.shaded = 1;
       el.appendChild(cv);
       box.appendChild(el);
       continue;
@@ -4278,6 +4368,7 @@ function drawPage(box, cfg, id) {
       continue;
     }
     let caps = o;   // the field a text stands in by its capitals (standOnCaps); none: centred
+    if (want.badge) el.dataset.keep = 1;
     if (want.badge) {   // a rounded box a pixel clear of its line's top and bottom (compose.py badge()): the line is
       // its text field's (an info line's "_text"), the badge's field may reach higher (the icon's, layout INFO_ICON_UP)
       const line = layout.objects.find(x => x.n === o.n.replace(/_badge(ico)?$/, '_text')) || o;
@@ -4328,14 +4419,34 @@ function drawPage(box, cfg, id) {
     if (o.t === 112) {  // picture
       el.classList.add('pic');
       const pic = want.pic !== undefined ? want.pic : o.pic;
-      if (o.t === 112 && LAYOUT.pictures[pic]) {
-        el.style.background = 'url(' + LAYOUT.pictures[pic] + ') no-repeat';
-        el.style.backgroundSize = '100% 100%';   // the weather icons come larger than their place
+      if (want.ring) {   // a tile that is on in a theme with a ring (tilePic)
+        const ring = document.createElement('i');
+        // the tile's corners: a button's 20 px, a side tile's in proportion (generate.py; Engine::ring_at)
+        const r = o.n.startsWith('tile') ? 20 : Math.round(20 * o.w / 100);
+        ring.style.cssText = 'position:absolute;inset:2px;border:4px solid ' + want.ring + ';border-radius:' + r +
+          'px;box-sizing:border-box';
+        el.appendChild(ring);
+      }
+      if (String(pic).startsWith('weather:') && LAYOUT.weather_sprites) {
+        // a weather icon: its place in the picture of its style's icons (hmi2layout.py weather_sprite), as large as
+        // the field; on home standing on its bottom (compose.py), the sprite's centred
+        const sp = LAYOUT.weather_sprites[THEME.weather || 'fill'] || LAYOUT.weather_sprites.fill;
+        const k = Math.max(0, sp.names.indexOf(String(pic).slice(8)));
+        const drop = !page && o.n === 'weather_pic' ? (LAYOUT.weather_drop || {})[String(pic).slice(8)] || 0 : 0;
+        // the icon's cell alone, moved down by the drop inside the field (which cuts it): moving the sprite in the
+        // field instead showed the icon above it in the sprite
+        const cell = document.createElement('i');
+        cell.style.cssText = 'position:absolute;left:0;right:0;height:100%;top:' + drop + 'px;background:url(' + sp.url +
+          ') no-repeat;background-size:' + sp.cols * 100 + '% ' + sp.rows * 100 + '%;background-position:' +
+          (sp.cols > 1 ? (k % sp.cols) * 100 / (sp.cols - 1) : 0) + '% ' +
+          (sp.rows > 1 ? Math.floor(k / sp.cols) * 100 / (sp.rows - 1) : 0) + '%';
+        el.style.overflow = 'hidden';
         el.style.borderRadius = '0';
-        // on home the icon stands on its field's bottom (compose.py), the pictures here are centred
-        const drop = !page && o.n === 'weather_pic' && String(pic).startsWith('weather:')
-          ? (LAYOUT.weather_drop || {})[String(pic).slice(8)] || 0 : 0;
-        if (drop) el.style.backgroundPosition = '0 ' + drop + 'px';
+        el.appendChild(cell);
+      } else if (o.t === 112 && themedPicture(pic)) {
+        el.style.background = 'url(' + themedPicture(pic) + ') no-repeat';
+        el.style.backgroundSize = '100% 100%';
+        el.style.borderRadius = '0';
       } else {
         el.style.background = want.bg || 'transparent';
         if (want.radius) el.style.borderRadius = want.radius + 'px';   // a box of compose.py (the media page's)
@@ -4347,8 +4458,8 @@ function drawPage(box, cfg, id) {
     const fontId = want.font !== undefined ? want.font : o.f, font = LAYOUT.fonts[fontId] || {height: 18};
     el.style.fontSize = Math.round(font.height * 0.85) + 'px';
     el.style.color = want.color || rgb565(o.pco || 65535);
-    if (want.tile && LAYOUT.pictures[want.tile]) {   // a button on a tile picture (the settings page's restart)
-      el.style.background = 'url(' + LAYOUT.pictures[want.tile] + ') no-repeat';
+    if (want.tile && themedPicture(want.tile)) {   // a button on a tile picture (the settings page's restart)
+      el.style.background = 'url(' + themedPicture(want.tile) + ') no-repeat';
       el.style.backgroundSize = '100% 100%';
       el.style.borderRadius = '0';
     } else if (want.bg) el.style.background = want.bg;
@@ -4424,6 +4535,7 @@ function drawPage(box, cfg, id) {
     }
     box.appendChild(el);
   }
+  retheme(box);
   // what the panel's frame hides (the NSPanel EU's rightmost 30 px) lies outside the preview's visible area (.pvwrap)
   // now that the texts are laid out: each to its width on the display
   box.querySelectorAll('.tw').forEach(span => {
@@ -5221,17 +5333,19 @@ function editTheme(key, value) {
    keeps the text the single source of what gets saved. */
 function syncBackgroundSelect(cfg) {
   const sel = $('vBg');
-  if (!sel.options.length) {
-    const def = document.createElement('option');
-    def.value = ''; def.textContent = '(default: ' + LAYOUT.default_background + ')';
-    sel.appendChild(def);
+  // the design's default background once, "Aurora (default)": chosen, the configuration names none
+  if (sel.options.length !== LAYOUT.backgrounds.length) {
+    sel.innerHTML = '';
     LAYOUT.backgrounds.forEach(b => {
       const o = document.createElement('option');
-      o.value = b.id; o.textContent = b.title;
+      const dflt = b.id === LAYOUT.default_background;
+      o.value = dflt ? '' : b.id; o.textContent = b.title + (dflt ? ' (default)' : '');
       sel.appendChild(o);
     });
   }
-  sel.value = (cfg.display && cfg.display.background) || '';
+  const bg = (cfg.display && cfg.display.background) || '';
+  // the default named (or one the design has not, as the panel shows it): the default's entry
+  sel.value = bg && bg !== LAYOUT.default_background && LAYOUT.backgrounds.some(b => b.id === bg) ? bg : '';
 }
 
 /* The display settings edit display.* in the JSON, like the background. */
@@ -7348,7 +7462,7 @@ function fillControl(page) {
   const fill = {fill: THEME.accent, track: '#3a3f3a', knob: THEME.text};
   const tile = (k, icon, label, active) => {
     const n = 'side' + k, bg = active ? '#ffffff' : rgb565(10597);   // the tile's colour as the display has it
-    f[n + '_pic'] = {pic: active ? 'tile:side_on' : 'tile:side_off'};
+    f[n + '_pic'] = tilePic('tile:side', active);
     f[n + '_icon'] = {icon, color: active ? THEME.accent : THEME.dim, bg};
     f[n + '_text'] = label ? {text: label, color: active ? PALETTE['dark-grey'] : INACTIVE, bg} : {hide: true};
   };
@@ -7359,7 +7473,7 @@ function fillControl(page) {
     f.icon = {icon: page.icon || 'lightbulb', color: lit ? THEME.accent : THEME.dim};
     f.value = {text: st && st.numeric !== undefined && st.type !== 'UnDef' ? level + ' %' : disp.texts.undefined};   // unknown: "-"
     f.slider = {level: level / 100, ...fill, fill: lit ? THEME.accent : '#646464'};
-    f.power_pic = {pic: lit ? 'tile:side_on' : 'tile:side_off'};
+    f.power_pic = tilePic('tile:side', lit);
     const pbg = lit ? '#ffffff' : PALETTE['dark-grey'];
     f.power_icon = {icon: 'power', color: lit ? THEME.accent : THEME.dim, bg: pbg};
     f.power_text = {text: lit ? disp.texts.on : disp.texts.off, color: lit ? PALETTE['dark-grey'] : INACTIVE, bg: pbg};
@@ -7492,8 +7606,9 @@ function roundedRect(ctx, x, y, w, h, r, c) {
 /* A pill the firmware draws (a cover's preset, a thermostat's mode; Engine::pill): round ends, its label on it --
    in the accent while `on`. */
 function drawPill(ctx, b, label, on, icon) {
-  roundedRect(ctx, ...b, b[3] / 2, on ? THEME.accent : PALETTE['dark-grey']);
-  const ink = on ? '#ffffff' : PALETTE['light-grey'];
+  ctx = ctx.raw || ctx;   // its own colours: the label white on the accent, whatever the background
+  roundedRect(ctx, ...b, b[3] / 2, on ? THEME.accent : shade(PALETTE['dark-grey']));
+  const ink = on ? '#ffffff' : shade(PALETTE['light-grey']);
   ctx.fillStyle = ink; ctx.font = '17px Ubuntu, system-ui, sans-serif';
   ctx.textBaseline = 'middle';
   if (!icon) {
@@ -10373,8 +10488,9 @@ function updateArrived() {
 /* The update's firmware or display design: downloaded, checked, sent to the panel (/api/v1/ota, /display/tft). */
 async function installUpdate(kind) {
   const {u, v, channel} = UPD, name = v[kind], size = v[kind + '_size'], sum = v[kind + '_sha256'];
+  const design = v.design;
   if (!confirm(kind === 'firmware' ? 'Install OHpanel ' + u.version + '? The panel restarts with it.'
-               : 'Write the display design ' + v.design + '? The screen is unusable until it has finished (about 15 minutes).'))
+               : 'Write the display design ' + design + '? The screen is unusable until it has finished (about 15 minutes).'))
     return;
   const buttons = [$('uCheck'), $('uFirmware'), $('uDisplay')];
   buttons.forEach(b => { b.disabled = true; });
@@ -10403,6 +10519,14 @@ async function installUpdate(kind) {
     if (hash !== sum) { done('The download does not match its checksum: not sent to the panel.', 'err'); return; }
   }
   setMsg($('uMsg'), kind === 'firmware' ? 'Sending it to the panel…' : 'Writing to the display…');
+  if (kind !== 'firmware') {   // the display design: once more at the slower rate where it breaks off (writeTft)
+    const r = await writeTft(data, text => setMsg($('uMsg'), text), f => { $('uProg').value = 50 + f * 50; });
+    if (!r.ok) { done(r.error, 'err'); return; }
+    $('uProg').value = 100;
+    done('Done. The display restarts with the new design.', 'ok');
+    UPD.waiting = {design};   // the card looks again once the panel says so (updateArrived)
+    return;
+  }
   const xhr = new XMLHttpRequest();   // the upload: the second half
   xhr.open('POST', '/api/v1' + (kind === 'firmware' ? '/ota' : '/display/tft'));
   xhr.setRequestHeader('Content-Type', 'application/octet-stream');
@@ -10415,7 +10539,7 @@ async function installUpdate(kind) {
     done(kind === 'firmware' ? 'Done. The panel restarts with ' + u.version + '; then its display design follows here.'
          : 'Done. The display restarts with the new design.', 'ok');
     // what the message waits for: once the panel says so (refreshInfo), the card looks again (updateArrived)
-    UPD.waiting = kind === 'firmware' ? {version: u.version} : {design: v.design};
+    UPD.waiting = kind === 'firmware' ? {version: u.version} : {design};
   };
   xhr.onerror = () => done('The upload was aborted.', 'err');
   xhr.send(data);
@@ -10433,28 +10557,52 @@ $('uDisplay').addEventListener('click', () => installUpdate('display'));
 /* ---- display firmware ---- */
 /* Sends the chosen file to `path`; progress comes from the browser's upload,
    which runs at the display's pace. */
+/* A display firmware sent to the panel, which writes it to the display as it comes (/api/v1/display/tft): at the
+   design's rate (921600 baud), or `slow` at 115200 -- the proven one, about twice as long. {ok, error}. */
+function postTft(data, slow, onProgress) {
+  return new Promise(resolve => {
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', '/api/v1/display/tft' + (slow ? '?baud=115200' : ''));
+    xhr.setRequestHeader('Content-Type', 'application/octet-stream');
+    xhr.upload.onprogress = ev => { if (ev.lengthComputable) onProgress(ev.loaded / ev.total); };
+    xhr.onload = () => {
+      let r = {};
+      try { r = JSON.parse(xhr.responseText); } catch (e) {}
+      resolve({ok: xhr.status === 200 && r.ok !== false, error: r.error || 'HTTP ' + xhr.status});
+    };
+    xhr.onerror = () => resolve({ok: false, error: 'the upload was aborted'});
+    xhr.send(data);
+    setTimeout(pollTransfer, 800);   // the bar on top follows what the panel reports
+  });
+}
+/* Writing broke off at the fast rate -- some displays do not keep up with it (forum #105, #132): once more at the
+   slow one, from the start (the browser still has the file; the panel finds a display left without a design at
+   any rate). `say` tells what goes on. */
+async function writeTft(data, say, onProgress) {
+  const first = await postTft(data, false, onProgress);
+  // only where the display stopped answering (or the transfer broke off): not for what the rate does not change
+  // (a write already running, no .tft, the panel short of memory)
+  if (first.ok || !/confirm|timeout|abort/i.test(first.error)) return first;
+  say('Writing broke off (' + first.error + '). Once more at the slower rate: about 30 minutes, the screen stays '
+      + 'unusable until then…');
+  await new Promise(r => setTimeout(r, 5000));   // the panel done with the broken one
+  onProgress(0);
+  const second = await postTft(data, true, onProgress);
+  if (!second.ok) second.error += ' (at the slower rate too: write it again, or see docs/install.md)';
+  return second;
+}
+
 async function sendTft(path, label) {
   const file = $('tFile').files[0];
   if (!file) { setMsg($('tMsg'), 'Choose a .tft file first.', 'err'); return; }
-  const xhr = new XMLHttpRequest();
-  xhr.open('POST', '/api/v1' + path);
-  xhr.setRequestHeader('Content-Type', 'application/octet-stream');
   $('tProg').hidden = false;
   $('tProg').value = 0;
   $('tStart').disabled = true;
   setMsg($('tMsg'), label + '…');
-  xhr.upload.onprogress = ev => { if (ev.lengthComputable) $('tProg').value = ev.loaded * 100 / ev.total; };
-  const done = () => { $('tStart').disabled = false; };
-  xhr.onload = () => {
-    let r = {};
-    try { r = JSON.parse(xhr.responseText); } catch (e) {}
-    if (xhr.status === 200 && r.ok) { $('tProg').value = 100; setMsg($('tMsg'), 'Done.', 'ok'); }
-    else setMsg($('tMsg'), r.error || ('HTTP ' + xhr.status), 'err');
-    done();
-  };
-  xhr.onerror = () => { setMsg($('tMsg'), 'Upload aborted.', 'err'); done(); };
-  xhr.send(file);
-  setTimeout(pollTransfer, 800);  // the bar on top follows what the panel reports
+  const r = await writeTft(file, text => setMsg($('tMsg'), text), f => { $('tProg').value = f * 100; });
+  if (r.ok) { $('tProg').value = 100; setMsg($('tMsg'), 'Done.', 'ok'); }
+  else setMsg($('tMsg'), r.error, 'err');
+  $('tStart').disabled = false;
 }
 
 /* The display firmware this firmware was built for: by its design version, which names its file too (build.sh). */
@@ -10495,7 +10643,7 @@ $('tStart').addEventListener('click', () => {
   const other = tftMismatch();
   if (!confirm((other ? 'This file is design ' + other + ', not ' + info.display.design_expected + '. ' : '') +
                'Write it to the display? The screen is unusable until it has finished.')) return;
-  sendTft('/display/tft', 'Writing to the display');   // at 921600 baud, the design's rate
+  sendTft('/display/tft', 'Writing to the display');   // at 921600 baud, the design's rate; 115200 if it breaks off
 });
 /* The stored core dump in one paragraph: where it crashed, and which .elf
    decodes it (build/elf/<version>-<elf_sha256>.elf, see docs/crash-analysis.md). */

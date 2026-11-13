@@ -136,6 +136,9 @@ int color565(const char *name);
 /* The theme's colours (Engine::update_theme) that the placeholders "theme-accent", "theme-text" and "theme-dim"
    stand for wherever a colour is configured: they follow the theme. */
 void set_theme_colors(int accent, int text, int dim);
+/* Palette colours shown otherwise on the background in use (its theme's "palette", a light one: "yellow" as orange,
+   which reads on white): name -> RGB565, wherever the name is configured. Empty: the palette as it is. */
+void set_palette_overrides(const std::map<std::string, int> &overrides);
 /* The palette colour nearest to an RGB565 one, by name. */
 std::string nearest_palette(int rgb565);
 

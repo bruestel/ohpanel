@@ -34,8 +34,9 @@ web interface, which shows a live preview of the display: what you change there 
   or a melody (RTTTL) to play set by items (the doorbell on the panel)
 - **Setup without a cable** after the first flash: the panel opens a hotspot, finds openHAB in the network
   and is updated over WiFi, both the firmware and the display's design
-- **Themes**: five backgrounds (Aurora, Black, Candy, Dunes, Forest), each with its own accent and text colours;
-  any of the three colours can be set to one of your own
+- **Themes**: five backgrounds (Aurora, Black, Dunes, Forest and White, a light one: black on white, a ring
+  marks what is on), each with its own accent and text colours; any of the three colours can be set to one of your
+  own
 - **Night and idle**: dimmed when idle, off at night, back to home after a while
 - **HTTPS** with a certificate authority of the panel's own, or one shared by all your panels
 - **Backups** of everything, to move a configuration to another panel

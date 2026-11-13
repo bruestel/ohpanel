@@ -223,7 +223,7 @@ void Engine::media_refresh(const cJSON *page) {
   }
   if (logo && art_drawn != logo_key) {
     txt("art_icon", "");
-    queue_logo("art_pic", logo_code->second, kDarkGrey, logo_key, kCoverScale);
+    queue_logo("art_pic", logo_code->second, theme_.tile, logo_key, kCoverScale);
   }
   // the art: what plays as a large icon on its box -- left alone while a cover or a logo is drawn over it
   if (!logo && art_drawn.empty()) {
@@ -482,9 +482,9 @@ void Engine::draw_favorites(const cJSON *page) {
     const std::string glyph = icon_glyph(s.icon.c_str());
     const std::string field = n + "_center";
     for (const std::string &part : {field, n + "_text"})
-      num(part, "bco", kDarkGrey);
+      num(part, "bco", theme_.tile);
     num(field, "pco", theme_.accent);
-    num(n + "_text", "pco", kLightGrey);
+    num(n + "_text", "pco", theme_.tile_dim);
     txt(field, glyph.empty() ? icon_glyph("radio") : glyph);
     txt(n + "_text", s.short_name);
     for (const std::string &part : {n + "_hs", n + "_pic", field, n + "_text"})
@@ -505,8 +505,8 @@ void Engine::draw_favorites(const cJSON *page) {
       drawn_.erase(field);
       continue;
     }
-    queue_logo(field, list[i].image, kDarkGrey,
-               std::to_string(std::hash<std::string>{}(list[i].image)) + "|" + std::to_string(kDarkGrey));
+    queue_logo(field, list[i].image, theme_.tile,
+               std::to_string(std::hash<std::string>{}(list[i].image)) + "|" + std::to_string(theme_.tile));
   }
 }
 
@@ -587,8 +587,8 @@ void Engine::draw_volume_page() {
       num("mute", "pic", muted ? onp : off);
       num("mute", "pic2", muted ? off : onp);
     }
-    num("mute", "pco", muted ? kDarkGrey : kWhite);
-    num("mute", "pco2", muted ? kWhite : kDarkGrey);
+    num("mute", "pco", muted ? theme_.tile_on_text : theme_.tile_text);
+    num("mute", "pco2", muted ? theme_.tile_text : theme_.tile_on_text);
     txt("mute", icon_glyph(muted ? "volume-off" : "volume-high") + "  " + settings_.texts.mute);
     vis("mute", member(page, "mute") != nullptr);
   };

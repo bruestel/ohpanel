@@ -112,19 +112,19 @@ void Engine::draw_relays() {
       vis(side + "_text", false);
       vis(side + "_bar", false);
       if (upright)
-        relay_label(pg->second.at(side + "_label"), side, "", kWhite);
+        relay_label(pg->second.at(side + "_label"), side, "", theme_.text);
       continue;
     }
     // the relay where the button switches it (at once) or has no item, else the button's item
     const bool is_on = member(r, "item") && relay_ref(r) != r ? on(r) : relays_[i];
     if (upright) {
       vis(side + "_text", false);
-      relay_label(pg->second.at(side + "_label"), side, str(r, "label"), i == 0 ? kWhite : kLightGrey);
+      relay_label(pg->second.at(side + "_label"), side, str(r, "label"), i == 0 ? theme_.text : theme_.dim);
     } else {
       txt(side + "_text", str(r, "label"));
     }
     // the bar under it (boards/nspanel/nextion/ohpanel_hmi.py home_page): the accent while on
-    num(side + "_bar", "bco", is_on ? theme_.accent : kDarkGrey);
+    num(side + "_bar", "bco", is_on ? theme_.accent : theme_.tile);
   }
 }
 
@@ -272,9 +272,14 @@ void Engine::draw_home() {
         variants = {plain, wide};
       const bool icon = f == 0 && member(ref, "icon"), bg = f == 0 && member(ref, "bg");
       const int fg = color_of(ref, "color", theme_.text);
-      const std::string badge_pic = bg ? std::to_string(picture("badge" + std::to_string(line + 1),
-                                                                nearest_palette(color_of(ref, "bg", 0))))
-                                       : "";
+      // the badge's picture by its palette colour's name (composed per background: yellow is orange on White), a
+      // colour of its own (#rrggbb, theme-*) by the palette colour nearest to it
+      const std::string bg_name = str(ref, "bg");
+      const bool named = !bg_name.empty() && bg_name[0] != '#' && bg_name.rfind("theme-", 0) != 0;
+      const std::string badge_pic =
+          bg ? std::to_string(picture("badge" + std::to_string(line + 1),
+                                      named ? bg_name : nearest_palette(color_of(ref, "bg", 0))))
+             : "";
       const bool coloured = member(ref, "color") != nullptr;
       const std::function<void()> draw = [this, ref, variants, plain, ico, icon, bg, fg, coloured, badge_pic, f, badge_of,
                                            right, wide, draw_main] {
@@ -296,6 +301,8 @@ void Engine::draw_home() {
         // field (a time, mostly) dimmed (th_*)
         if (style.color >= 0)
           num(obj, "pco", style.color);
+        else if (obj != base && !coloured && theme_.light)
+          num(obj, "pco", kWhite);   // on a badge white, also where the text is black (a light background)
         else if (coloured || obj != base || icon)
           num(obj, "pco", fg);
         else

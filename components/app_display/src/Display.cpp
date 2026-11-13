@@ -51,7 +51,6 @@ struct Job {
 };
 
 QueueHandle_t g_queue = nullptr;
-std::string g_manifest_json, g_weather_json;   // inflated by begin(), read by the task, then dropped
 
 /* A zlib stream of the firmware inflated into `out`, `size` bytes -- the
    decompressor on the heap (about 11 KB, too much for the caller's stack;
@@ -69,6 +68,21 @@ bool inflate_asset(const unsigned char *z, size_t z_size, size_t size, std::stri
   heap_caps_free(inflator);
   if (status != TINFL_STATUS_DONE || got != size) {
     out.clear();
+    return false;
+  }
+  return true;
+}
+
+/* The display manifest (and the weather icon sets) into the engine: inflated for it, dropped after. */
+bool load_manifest(Engine &engine) {
+  std::string manifest, weather;
+  if (!inflate_asset(display_manifest_json_z, display_manifest_json_z_size, display_manifest_json_size, manifest) ||
+      !inflate_asset(weather_icons_json_z, weather_icons_json_z_size, weather_icons_json_size, weather)) {
+    ESP_LOGE(TAG, "the embedded display manifest or weather icon sets are damaged");
+    return false;
+  }
+  if (!engine.load_design(manifest.c_str(), weather.c_str())) {
+    ESP_LOGE(TAG, "display manifest or weather icon sets do not parse");
     return false;
   }
   return true;
@@ -418,10 +432,7 @@ void task(void *) {
   };
   Engine engine(sink, cb);
   engine.link_down();   // nothing drawn before the display is found and has said who it is
-  if (!engine.load_design(g_manifest_json.c_str(), g_weather_json.c_str()))
-    ESP_LOGE(TAG, "display manifest or weather icon sets do not parse");
-  std::string().swap(g_manifest_json);   // read: not needed any more
-  std::string().swap(g_weather_json);
+  load_manifest(engine);
   link_enter(Link::Search);
 
   for (;;) {
@@ -503,14 +514,18 @@ void task(void *) {
 
 bool begin(const nextion::Config &uart, Hooks hooks) {
   g_hooks = std::move(hooks);
-  if (!inflate_asset(display_manifest_json_z, display_manifest_json_z_size, display_manifest_json_size, g_manifest_json) ||
-      !inflate_asset(weather_icons_json_z, weather_icons_json_z_size, weather_icons_json_size, g_weather_json))
-    ESP_LOGE(TAG, "the embedded display manifest or weather icon sets are damaged");
-  if (cJSON *m = cJSON_Parse(g_manifest_json.c_str())) {
-    const cJSON *v = cJSON_GetObjectItem(m, "design");
-    g_design.expected = cJSON_IsString(v) ? v->valuestring : "";
-    cJSON_Delete(m);
+  {  // the design this firmware is built for: its version (the manifest itself is inflated again by the task) -- the
+     // text freed before the task starts, not two copies at once
+    std::string json;
+    if (inflate_asset(display_manifest_json_z, display_manifest_json_z_size, display_manifest_json_size, json))
+      if (cJSON *m = cJSON_Parse(json.c_str())) {
+        const cJSON *v = cJSON_GetObjectItem(m, "design");
+        g_design.expected = cJSON_IsString(v) ? v->valuestring : "";
+        cJSON_Delete(m);
+      }
   }
+  if (g_design.expected.empty())
+    ESP_LOGE(TAG, "the embedded display manifest is damaged");
   icons_begin();
   // the openHAB snapshot after a (re)connect: a state for every item at once
   g_queue = xQueueCreate(128, sizeof(Job *));

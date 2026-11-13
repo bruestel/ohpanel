@@ -212,8 +212,29 @@ bool Engine::load_design(const char *manifest_json, const char *weather_json) {
     theme.accent = color_of(t, "accent", theme.accent);
     theme.text = color_of(t, "text", theme.text);
     theme.dim = color_of(t, "dim", theme.dim);
+    theme.tile = color_of(t, "tile", theme.tile);
+    theme.tile_text = color_of(t, "tile_text", theme.tile_text);
+    theme.tile_dim = color_of(t, "tile_dim", theme.tile_dim);
+    theme.tile_on = color_of(t, "tile_on", theme.tile_on);
+    theme.tile_on_text = color_of(t, "tile_on_text", theme.tile_on_text);
+    theme.pill = color_of(t, "pill", theme.pill);
+    theme.track = color_of(t, "track", theme.track);
+    theme.track_on = color_of(t, "track_on", theme.track_on);
+    theme.state = color_of(t, "state", theme.state);
+    theme.state_on = color_of(t, "state_on", theme.state_on);
+    theme.ring = flag(t, "ring");
+    theme.light = flag(t, "light");
+    const cJSON *pal = member(t, "palette");
+    for (const cJSON *c = cJSON_IsObject(pal) ? pal->child : nullptr; c; c = c->next)
+      if (const int v = color_of(pal, c->string, -1); v >= 0)
+        theme.palette[c->string] = v;
     bg_themes_[str(b, "id")] = theme;
   }
+  theme_vars_.clear();
+  const cJSON *vars = member(m, "theme_vars");
+  for (const cJSON *v = cJSON_IsArray(vars) ? vars->child : nullptr; v; v = v->next)
+    if (cJSON_IsString(v))
+      theme_vars_.emplace_back(v->valuestring);
   default_background_ = str(m, "default_background");
   const cJSON *pages = member(m, "pages");
   for (const cJSON *p = cJSON_IsObject(pages) ? pages->child : nullptr; p; p = p->next) {
@@ -317,14 +338,33 @@ bool Engine::load_design(const char *manifest_json, const char *weather_json) {
 }
 
 void Engine::update_theme() {
-  const auto it = bg_themes_.find(settings_.background.empty() ? default_background_ : settings_.background);
+  // a background the design has not (one of the other design's): its default background's, as send_theme shows it
+  auto it = bg_themes_.find(settings_.background.empty() ? default_background_ : settings_.background);
+  if (it == bg_themes_.end())
+    it = bg_themes_.find(default_background_);
   theme_ = it != bg_themes_.end() ? it->second : Theme{};
+  // the background's palette first: a colour of the configuration's theme ("yellow") is read as it shows on it
+  set_palette_overrides(theme_.palette);
   const cJSON *t = member(member(config_, "display"), "theme");
   theme_.accent = color_of(t, "accent", theme_.accent);
   theme_.text = color_of(t, "text", theme_.text);
   theme_.dim = color_of(t, "dim", theme_.dim);
   set_theme_colors(theme_.accent, theme_.text, theme_.dim);   // what "theme-accent" & co. stand for
   send_theme();
+}
+
+/* The value of one of the design's variables for its fixed colours (theme_vars_; ohpanel_hmi.py
+   extra_var_values says the same for the design's start): a page's title in the text's colour on a light
+   background, else in its grey. */
+int Engine::theme_var(const std::string &name) const {
+  if (name == "th_tile") return theme_.tile;
+  if (name == "th_ttext") return theme_.tile_text;
+  if (name == "th_tdim") return theme_.tile_dim;
+  if (name == "th_pill") return theme_.pill;
+  if (name == "th_title") return theme_.light ? theme_.text : 50712;
+  if (name == "th_ton") return theme_.tile_on;
+  if (name == "th_tontext") return theme_.tile_on_text;
+  return -1;
 }
 
 /* The theme in the display's global variables (th_accent, th_text, th_dim,
@@ -341,8 +381,10 @@ void Engine::send_theme() {
   const auto bg = backgrounds_.find(want) != backgrounds_.end() ? backgrounds_.find(want)
                                                                 : backgrounds_.find(default_background_);
   const int pic = bg != backgrounds_.end() ? bg->second : -1, close = picture("close", "x");
-  const std::string v = std::to_string(theme_.accent) + "," + std::to_string(theme_.text) + "," +
-                        std::to_string(theme_.dim) + "," + std::to_string(pic) + "," + std::to_string(close);
+  std::string v = std::to_string(theme_.accent) + "," + std::to_string(theme_.text) + "," +
+                  std::to_string(theme_.dim) + "," + std::to_string(pic) + "," + std::to_string(close);
+  for (const std::string &var : theme_vars_)   // the extra design's fixed colours (ohpanel_hmi.py fixed_colours)
+    v += "," + std::to_string(theme_var(var));
   if (v == theme_sent_)
     return;
   const bool other_background = pic != bg_sent_;
@@ -351,6 +393,9 @@ void Engine::send_theme() {
   send("th_accent=" + std::to_string(theme_.accent));
   send("th_text=" + std::to_string(theme_.text));
   send("th_dim=" + std::to_string(theme_.dim));
+  for (const std::string &var : theme_vars_)
+    if (const int c = theme_var(var); c >= 0)
+      send(var + "=" + std::to_string(c));
   if (pic >= 0)
     send("bg_pic=" + std::to_string(pic));
   if (close >= 0)
@@ -485,6 +530,11 @@ void Engine::batch_refresh(const std::function<void()> &draw) {
   hold_refresh_ = 0;
   if (sent)
     send("ref_star");
+  // rings asked for meanwhile: over the pictures drawn now
+  std::vector<PendingRing> rings;
+  rings.swap(rings_pending_);
+  for (const PendingRing &r : rings)
+    draw_ring(r.box, r.radius, r.colour);
 }
 
 void Engine::fill(int x, int y, int w, int h, int colour, bool over_note) {
@@ -551,6 +601,79 @@ void Engine::rounded(int x, int y, int w, int h, int r, int colour, bool over_no
     fill(x + run->first, at, w - 2 * run->first, run->second, colour, over_note);
     at += run->second;
   }
+}
+
+/* The ring round a tile that is on (a background with "ring": White), in the accent: 4 px wide along the tile's
+   edge -- the tile is its picture's box 2 px in, its corners of `radius` (generate.py wide_tile) --, row by row as
+   rounded() draws, a run of rows alike in one fill (a side's straight part: two). The picture under it is drawn by
+   the display when its page refreshes: this goes after that (ref_star), else the picture paints over it. */
+void Engine::draw_ring(const Box &b, int radius, int colour) {
+  if (colour < 0)
+    colour = theme_.accent;
+  constexpr int kIn = 2, kWidth = 4;
+  const int ox = b.x + kIn, oy = b.y + kIn, ow = b.w - 2 * kIn, oh = b.h - 2 * kIn;
+  const int ix = ox + kWidth, iy = oy + kWidth, iw = ow - 2 * kWidth, ih = oh - 2 * kWidth;
+  const int ir = std::max(0, radius - kWidth);
+  if (ow <= 0 || oh <= 0)
+    return;
+  if (hold_refresh_) {   // the pictures not drawn yet: after them (batch_refresh)
+    rings_pending_.push_back({b, radius, colour});
+    return;
+  }
+  // how far in a rounded box (h rows, corners r) starts on row dy: as rounded() and disc() round
+  const auto inset = [](int r, int dy, int h) {
+    const int d = dy < r ? dy : dy >= h - r ? h - 1 - dy : -1;
+    return d < 0 ? 0 : r - static_cast<int>(std::sqrt((r + 0.5) * (r + 0.5) - (r - d) * (r - d)));
+  };
+  struct Row {
+    int x1, w1, x2, w2;
+    bool operator==(const Row &o) const { return x1 == o.x1 && w1 == o.w1 && x2 == o.x2 && w2 == o.w2; }
+  };
+  Row run{};
+  int run_y = oy, run_h = 0;
+  const auto flush = [&] {
+    if (run_h > 0) {
+      fill(run.x1, run_y, run.w1, run_h, colour);
+      fill(run.x2, run_y, run.w2, run_h, colour);
+    }
+  };
+  for (int dy = 0; dy < oh; dy++) {
+    const int y = oy + dy, lo = inset(radius, dy, oh);
+    Row row{ox + lo, ow - 2 * lo, 0, 0};
+    if (y >= iy && y < iy + ih) {   // beside the inside: the band left and right of it
+      const int li = inset(ir, y - iy, ih);
+      row = {ox + lo, ix + li - (ox + lo), ix + iw - li, ox + ow - lo - (ix + iw - li)};
+    }
+    if (run_h > 0 && row == run) {
+      run_h++;
+      continue;
+    }
+    flush();
+    run = row;
+    run_y = y;
+    run_h = 1;
+  }
+  flush();
+}
+
+/* The ring round a tile picture the manifest's "boxes" name (a page's tile, its corners in proportion to its
+   size: 20 px on a 100 px tile, generate.py). */
+void Engine::ring_at(const char *page, const std::string &tile, bool on, int radius) {
+  if (!theme_.ring)
+    return;
+  const auto pg = boxes_.find(page);
+  if (pg == boxes_.end())
+    return;
+  const auto box = pg->second.find(tile);
+  if (box == pg->second.end())
+    return;
+  bool &drawn = rings_drawn_[std::string(page) + "/" + tile];
+  if (!on && !drawn)
+    return;   // nothing to take away (a page loaded anew has none: painting over does no harm)
+  // the tile's corners: the button pages' tiles 20 px whatever their size, the side tiles in proportion (generate.py)
+  draw_ring(box->second, radius >= 0 ? radius : static_cast<int>(std::lround(20.0 * box->second.w / 100)),
+            on ? -1 : theme_.tile);
+  drawn = on;
 }
 
 /* A pill's shape in `colour`: round ends (2r + 1 px across), the middle as high -- from kRoundFrom row by row from
@@ -1241,6 +1364,7 @@ void Engine::on_page_loaded(const std::string &name) {
   note_drawn_ = false;  // the page covers it
   sent_.clear();
   drawn_.clear();
+  rings_drawn_.clear();
   logo_queue_.clear();
   cover_job_.reset();
   bindings_.clear();
@@ -1316,6 +1440,7 @@ void Engine::display_away() {
   expected_.clear();
   sent_.clear();
   drawn_.clear();
+  rings_drawn_.clear();
   logo_queue_.clear();
   cover_job_.reset();
   bindings_.clear();

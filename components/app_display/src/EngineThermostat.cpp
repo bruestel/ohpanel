@@ -25,8 +25,6 @@ constexpr int kThermoBead = 7;           // a bead's radius
 constexpr int kThermoKnob = 11;          // the knob's
 constexpr int kThermoPitch = 3;          // px between two beads' middles (5 showed the beads' edges)
 constexpr int kThermoButton = 24;        // minus and plus: their discs' radius (layout.py THERMO_BUTTON_R)
-constexpr int kThermoDisc = 14855;       // ... their colour, the pills' (#3c423c)
-constexpr int kThermoTrack = 19017;      // #4a4a4a: the ring where it is not filled
 constexpr int kIconFont = 7;             // the icon font at 24 px (ohpanel_hmi.py ICON_FONT)
 constexpr int kHeating = 64615, kCooling = 20031;   // #ff8a3d, #4fc3f7
 constexpr int64_t kThermoSentMs = 6000;  // a target sent shows this long at most before the item's comes back
@@ -157,7 +155,7 @@ void Engine::draw_thermostat(const cJSON *page) {
   // loads, the display paints its background over)
   for (const char *n : {"minus", "plus"}) {   // shown by thermo_refresh unless locked
     txt(n, icon_glyph(n));   // the design's fields wait for their icon
-    num(n, "bco", kThermoDisc);
+    num(n, "bco", theme_.pill);
   }
   for (const char *part : {"now", "target", "ring_hs"})
     vis(part, true);
@@ -236,20 +234,20 @@ void Engine::thermo_refresh(const cJSON *page) {
         if (drawn_[n] == "disc")
           restore(b.x, b.y, b.w, b.h);
       } else {
-        disc(b.x + b.w / 2, b.y + b.h / 2, kThermoButton, kThermoDisc);
+        disc(b.x + b.w / 2, b.y + b.h / 2, kThermoButton, theme_.pill);
         vis(n, true);
         send("ref " + std::string(n));   // the icon over it again
       }
       drawn_[n] = locked ? "none" : "disc";
     }
     vis(hs, !locked);
-    num(n, "pco", kWhite);   // also after a touch coloured it (the display's own)
+    num(n, "pco", theme_.tile_text);   // also after a touch coloured it (the display's own)
   }
   // the switch: a pill, its icon ("power") and label (on / off), in the accent while its item is on
   if (const cJSON *sw = member(page, "switch"); !str(sw, "item").empty() && pg != boxes_.end() &&
                                                  pg->second.count("power_hs")) {
     const bool lit = !has_state(sw) || state_of(sw).undefined() || on(sw);   // not known yet: as on
-    const int colour = lit ? theme_.accent : kDarkGrey, ink = lit ? kWhite : kLightGrey;
+    const int colour = lit ? theme_.accent : theme_.tile, ink = lit ? kWhite : theme_.tile_dim;
     const std::string label = str(sw, "label", lit ? t.on : t.off), icon = str(sw, "icon", "power");
     const std::string key = std::to_string(colour) + "|" + label + "|" + icon;
     if (drawn_["power"] != key) {
@@ -266,7 +264,7 @@ void Engine::thermo_refresh(const cJSON *page) {
       continue;
     const bool at = (!off && mode == modes[k].second && !mode_tapped_.set) ||
                     (mode_tapped_.live(now_ms_) && mode_tapped_.value == static_cast<int>(k));
-    const int colour = at ? theme_.accent : kDarkGrey, ink = at ? kWhite : kLightGrey;
+    const int colour = at ? theme_.accent : theme_.tile, ink = at ? kWhite : theme_.tile_dim;
     const Box &bx = pg->second.at(n + "_hs");
     const std::string label = shorten(2, modes[k].first, bx.w - 12, false);
     const std::string key = std::to_string(colour) + "|" + label;
@@ -292,7 +290,7 @@ void Engine::thermo_ring(const cJSON *page, double share) {
   const int knob = share < 0 ? -1 : static_cast<int>(std::lround(share * (g.beads - 1)));
   const auto colour = [&](int i) {
     if (knob < 0 || i > knob)
-      return kThermoTrack;
+      return theme_.track;
     if (!gradient)
       return theme_.accent;
     // #00a0ff to #ff2828 along the ring, by its "curve" (the share's power: below 1 red the sooner; default 0.5)
@@ -321,7 +319,7 @@ void Engine::thermo_ring(const cJSON *page, double share) {
   }
   if (knob >= 0 && redraw_knob) {
     const auto [kx, ky] = bead_at(g, knob);
-    disc(kx, ky, kThermoKnob, kWhite);
+    disc(kx, ky, kThermoKnob, theme_.tile_text);   // white, black on a light background
   }
   thermo_knob_ = knob;
 }

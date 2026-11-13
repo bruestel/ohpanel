@@ -13,6 +13,9 @@ web interface, which loads it from /api/v1/layout (the firmware embeds it):
 for the panel variant of OHPANEL_VARIANT (boards/nspanel/nextion/layout.py), which the layout names
 with the display's size and what of it shows (the preview's size).
 
+The weather icons come as one picture per style (a sprite: "weather_sprites", their names in its
+order), the backgrounds as WebP: the firmware embeds the layout, its flash has little room.
+
 Run it again whenever the HMI or one of the catalogues changes.
 """
 
@@ -144,14 +147,14 @@ def picture_previews(entries):
 
 
 def data_uri(png, jpeg=False):
-    if jpeg:
+    if jpeg:   # a background, a page's picture: WebP (a third of a JPEG's size; every browser of the last years)
         buf = io.BytesIO()
         img = Image.open(io.BytesIO(png)).convert("RGBA")
         # Transparent parts become the display's black, as on the panel.
         flat = Image.new("RGB", img.size, (0, 0, 0))
         flat.paste(img, mask=img.split()[3])
-        flat.save(buf, "JPEG", quality=80, optimize=True)
-        return "data:image/jpeg;base64," + base64.b64encode(buf.getvalue()).decode()
+        flat.save(buf, "WEBP", quality=70, method=6)
+        return "data:image/webp;base64," + base64.b64encode(buf.getvalue()).decode()
     return "data:image/png;base64," + base64.b64encode(png).decode()
 
 
@@ -183,6 +186,24 @@ def value(raw):
         return int(raw)
     except ValueError:
         return raw
+
+
+def png_uri(img, colors=32):
+    """A picture of few colours (a tile, a card: one colour, its corners) as a small PNG."""
+    buf = io.BytesIO()
+    img.convert("RGBA").quantize(colors=colors, method=Image.Quantize.FASTOCTREE).save(buf, "PNG", optimize=True)
+    return "data:image/png;base64," + base64.b64encode(buf.getvalue()).decode()
+
+
+def weather_sprite(folder, names):
+    """The weather icons of a style in one picture: a row of `cols` each at home's size, few colours."""
+    size, cols = compose.layout.WEATHER_HOME[2], 6
+    rows = (len(names) + cols - 1) // cols
+    sheet = Image.new("RGBA", (cols * size, rows * size), (0, 0, 0, 0))
+    for k, name in enumerate(names):
+        icon = compose.fit_icon(Image.open(os.path.join(folder, name + ".png")).convert("RGBA"), size, size)
+        sheet.alpha_composite(icon, ((k % cols) * size, (k // cols) * size))
+    return {"url": png_uri(sheet, 32), "cols": cols, "rows": rows, "names": names}
 
 
 def main():
@@ -231,21 +252,38 @@ def main():
     for name, page in layout["pages"].items():
         page["background"] = manifest["pages"].get(name, {}).get("background", False)
 
+    names = set()
     for set_id, icon_set in json.load(open(WEATHER)).items():
         layout["weather"][set_id] = icon_set
-        for name in sorted(set(icon_set["codes"].values()) | {icon_set["default"]}):
-            # drawn at 200 px; the preview shows them at home's size at most
-            # home's icon stands on its field's bottom (compose.py): how far below the centred picture
-            layout.setdefault("weather_drop", {})[name] = weather_drop(os.path.join(ASSETS, "weather", name + ".png"))
-            layout["pictures"].setdefault("weather:" + name, alpha_uri(os.path.join(ASSETS, "weather", name + ".png"),
-                                                                       compose.layout.WEATHER_HOME[2]))
+        names |= set(icon_set["codes"].values()) | {icon_set["default"]}
+    names = sorted(names)
+    for name in names:
+        # home's icon stands on its field's bottom (compose.py): how far below the centred picture
+        layout.setdefault("weather_drop", {})[name] = weather_drop(os.path.join(ASSETS, "weather", name + ".png"))
+    # the icons as one picture per style (generate.py WEATHER_DIRS: filled, and their line style for White), at
+    # home's size -- one PNG of few colours takes a third of the icons each on its own
+    layout["weather_sprites"] = {kind: weather_sprite(os.path.join(ASSETS, folder), names)
+                                 for kind, folder in compose.WEATHER_DIRS.items()}
     # the button pages' tiles and the settings page's restart button (wide_*)
     for name in ("off", "on", "wide_off", "side_off", "side_on"):
         layout["pictures"]["tile:" + name] = alpha_uri(os.path.join(lay.ASSETS, "tiles", name + ".png"))
     buf = io.BytesIO()
-    compose.close_icon().save(buf, "PNG", optimize=True)
+    compose.close_icon(compose.STYLES[manifest["default_background"]]).save(buf, "PNG", optimize=True)
     layout["pictures"]["close:x"] = data_uri(buf.getvalue())
-
+    # a background of another style (White): its tiles and close icon ("white/tile:on", the preview's themedPicture)
+    default = compose.STYLES[manifest["default_background"]]
+    for bg in manifest["backgrounds"]:
+        style = compose.STYLES[bg["id"]]
+        if style == default:
+            continue
+        off, on = compose.rgba(style["tile"])[:3], compose.rgba(style["tile_on"])[:3]
+        side, (_, _, ww, wh) = lay.SIDE_TILE, lay.SETTINGS_BUTTON
+        for key, img in (("tile:off", compose.button_tile(off)), ("tile:on", compose.button_tile(on)),
+                         ("tile:wide_off", compose.wide_tile(off, ww, wh, lay.SETTINGS_BUTTON_RADIUS)),
+                         ("tile:side_off", compose.wide_tile(off, side, side, round(20 * side / 100))),
+                         ("tile:side_on", compose.wide_tile(on, side, side, round(20 * side / 100))),
+                         ("close:x", compose.close_icon(style))):
+            layout["pictures"][f"{bg['id']}/{key}"] = png_uri(img)
     # one line, keys in the order written: unchanged input gives the same file, and git sees no change
     blob = json.dumps(layout, ensure_ascii=False, separators=(",", ":"))
     open(target, "w", encoding="utf-8").write(blob)
