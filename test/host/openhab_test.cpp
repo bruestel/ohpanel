@@ -117,6 +117,28 @@ int main(int argc, char **argv) {
       CHECK(s.undefined() && !s.has_numeric);
   }
 
+  /* An openHAB without numericState (older ones): the number read from a number's state, the unit from its display
+     text; a text is no number (forum #124). */
+  {
+    std::map<std::string, ItemState> old;
+    CHECK(parse_states(R"({"T": {"state": "8.6 °C", "displayState": "8.6 °C", "type": "Quantity"},
+                           "N": {"state": "20.1", "type": "Decimal"}, "P": {"state": "45", "type": "Percent"},
+                           "S": {"state": "12 apples", "type": "String"}, "U": {"state": "NULL", "type": "UnDef"},
+                           "X": {"state": "-", "type": "Decimal"}, "K": {"state": "2700 K", "type": "Quantity"},
+                           "W": {"state": "1.5E3 W", "type": "Quantity", "unit": "kW"},
+                           "H": {"state": "0x10", "type": "Decimal"}, "A": {"state": "12abc", "type": "Decimal"},
+                           "L": {"state": " 5", "type": "Decimal"}})",
+                       [&](const std::string &item, const ItemState &s) { old[item] = s; }));
+    CHECK(old["T"].has_numeric && old["T"].numeric == 8.6 && old["T"].unit == "°C");
+    CHECK(old["N"].unit.empty() && old["P"].unit.empty());   // a quantity's only
+    CHECK(old["N"].has_numeric && old["N"].numeric == 20.1);
+    CHECK(old["P"].has_numeric && old["P"].numeric == 45);
+    CHECK(!old["S"].has_numeric && !old["U"].has_numeric && !old["X"].has_numeric);
+    CHECK(old["K"].unit == "K" && old["K"].numeric == 2700);       // a colour temperature in Kelvin
+    CHECK(old["W"].unit == "W" && old["W"].numeric == 1500);       // the unit of the number read, not another
+    CHECK(!old["H"].has_numeric && !old["A"].has_numeric && !old["L"].has_numeric);   // no hex, no text after, no space
+  }
+
   std::printf("%zu items decoded from %d state events (%d keepalives)\n", st.size(), reference.state_events,
               reference.alive);
   for (const auto &[name, s] : st)
