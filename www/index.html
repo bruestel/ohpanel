@@ -1026,7 +1026,9 @@ pre.box{margin:0;padding:.6rem .7rem;max-height:18rem;overflow:auto;background:v
       </div>
       <div class="pved" id="vEd" hidden></div>
       <div id="vStash" hidden>
-        <label>Date format<select id="vDate"></select></label>
+        <label>Date format<select id="vDate"></select>
+          <input id="vDateOwn" type="text" maxlength="48" spellcheck="false" placeholder="%A, %e %B" hidden
+                 title="%a/%A weekday short/long, %b/%B month short/long, %e/%d day, %m month, %y/%Y year (see the docs)"></label>
         <label>Time format<select id="vTime"></select></label>
       </div>
     </div>
@@ -3006,7 +3008,10 @@ const LANGUAGES = {"en": {"name": "English", "decimal": ".", "group": ",", "date
 // then longer ones (the long "%A, %e %B" does not fit it)
 const DATE_FORMATS = [...new Set(Object.values(LANGUAGES).map(l => l.date)), '%a, %e %b %Y', '%a, %e. %b %y',
                       '%a %e %b %Y', '%a %e. %b %Y', '%a, %b %e, %Y', '%d.%m.%Y', '%d/%m/%Y', '%d-%m-%Y',
-                      '%-d.%-m.%Y', '%Y-%m-%d', '%m/%d/%Y'];
+                      '%-d.%-m.%Y', '%Y-%m-%d', '%m/%d/%Y',
+                      // long names: wider, the home screen ends what does not fit in "…" (docs/panel-config.md)
+                      '%A, %e %B', '%A, %e. %B', '%A %e %B', '%A %e'];
+const OWN_DATE = '\u0000own';   // the date select's last entry: a format typed in (vDateOwn)
 const TIME_FORMATS = ['%H:%M', '%-H:%M', '%I:%M %p', '%-I:%M %p'];
 const DEFAULT_TIME = TIME_FORMATS[0];
 /* What a language brings when the configuration does not say: its date format, its decimal separator. */
@@ -3250,7 +3255,8 @@ function fillHome(cfg) {
   const h = cfg.home || {}, f = {};
   const now = new Date();
   f.clock = {text: strftime(disp.time.replace(/ ?%p/, ''), now)};
-  f.date = {text: strftime(disp.date, now), color: THEME.dim};
+  const date = strftime(disp.date, now);
+  f.date = {text: date, color: THEME.dim, font: fontToFit('home', 'date', date, 2)};
   f.ampm = {text: disp.time.includes('%p') ? strftime('%p', now) : ''};
   // without an item they do not show (Engine::draw_home)
   const wIcon = homeWeather(h, 'weather_icon'), wNow = homeWeather(h, 'outdoor_temperature');
@@ -4031,6 +4037,16 @@ function withinBytes(text, maxl) {
     out += ch;
   }
   return out + '...';
+}
+
+/* As Engine::font_to_fit: the field's font if the text fits it, else the next smaller text
+   font it fits in, `steps` down at most (the home screen's date). */
+function fontToFit(template, obj, text, steps) {
+  const fit = LAYOUT.fit && LAYOUT.fit[template] && LAYOUT.fit[template][obj];
+  if (!fit) return undefined;
+  let font = fit[0];
+  for (let k = 0; k < steps && font > 0 && (textWidth(text, font) || 0) > fit[1]; k++) font--;
+  return font;
 }
 
 function fitted(text, font, room, maxl) {
@@ -5274,10 +5290,28 @@ function syncDisplaySelects(cfg) {
                                         v => editDisplay('current_page', v.trim() ? {item: v.trim()} : '', ''), 'String'));
   }
   const sample = new Date(2026, 9, 5, 13, 35);
-  fillSelect($('vDate'), DATE_FORMATS, d.date_format || defaultDate(), v => strftime(v, sample) + '  (' + v + ')');
+  fillDate(d.date_format || defaultDate(), sample);
   fillSelect($('vTime'), TIME_FORMATS, d.time_format || DEFAULT_TIME, v => strftime(v, sample) + '  (' + v + ')');
   /* The samples are in the chosen language, so rebuild them when it changes. */
-  [...$('vDate').options].forEach(o => { o.textContent = strftime(o.value, sample) + '  (' + o.value + ')'; });
+  [...$('vDate').options].forEach(o => { if (o.value !== OWN_DATE) o.textContent = strftime(o.value, sample) + '  (' + o.value + ')'; });
+}
+
+/* The date formats to choose from and, last, "Own format": a format of one's own in the field
+   under it (any of strftime's placeholders the panel knows, docs/panel-config.md), shown while
+   the format is none of the list's. */
+function fillDate(current, sample) {
+  const sel = $('vDate'), own = $('vDateOwn'), listed = DATE_FORMATS.includes(current);
+  if (!sel.options.length) {
+    DATE_FORMATS.concat([OWN_DATE]).forEach(v => {
+      const o = document.createElement('option');
+      o.value = v; o.textContent = v === OWN_DATE ? 'Own format…' : strftime(v, sample) + '  (' + v + ')';
+      sel.appendChild(o);
+    });
+  }
+  if (sel.value === OWN_DATE && document.activeElement === own) return;   // being typed
+  sel.value = listed ? current : OWN_DATE;
+  own.hidden = listed;
+  if (!listed && document.activeElement !== own) own.value = current;
 }
 
 function editDisplay(key, value, fallback) {
@@ -5304,7 +5338,19 @@ $('vNoteWake').addEventListener('change', () => editNotify('wake_and_keep_on', $
 $('vHomeAfter').addEventListener('change', () => editDisplay('home_after', +$('vHomeAfter').value, HOME_AFTER_DEFAULT));
 $('vFade').addEventListener('change', () => editDisplay('page_fade', +$('vFade').value, 0));
 $('vReveal').addEventListener('change', () => editDisplay('cover_reveal', $('vReveal').value, ''));
-$('vDate').addEventListener('change', () => editDisplay('date_format', $('vDate').value, defaultDate()));
+$('vDate').addEventListener('change', () => {
+  const own = $('vDateOwn');
+  if ($('vDate').value !== OWN_DATE) { own.hidden = true; editDisplay('date_format', $('vDate').value, defaultDate()); return; }
+  own.hidden = false;   // the format so far to start from
+  let cur = '';
+  try { cur = (JSON.parse($('pJson').value).display || {}).date_format || ''; } catch (e) { /* the JSON is being edited */ }
+  own.value = own.value || cur || defaultDate();
+  own.focus();
+});
+$('vDateOwn').addEventListener('input', () => {
+  const v = $('vDateOwn').value;
+  if (v.trim()) editDisplay('date_format', v, defaultDate());
+});
 $('vTime').addEventListener('change', () => editDisplay('time_format', $('vTime').value, DEFAULT_TIME));
 
 $('vBg').addEventListener('change', () => {

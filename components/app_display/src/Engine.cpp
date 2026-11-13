@@ -62,6 +62,22 @@ Engine::~Engine() {
    outside the known range counts as "?". What counts is the ink: the blank
    columns of the first character before it and of the last after it may
    stick out (a 72 px "12:33" is 164 px of advances, its ink fits 160). */
+/* The font obj shows text in when it may take a smaller one: its own (the manifest's) if
+   the text fits, else the next smaller of the design's text fonts -- `steps` at most --
+   that it fits in, else the smallest of them. -1: obj not in the manifest. */
+int Engine::font_to_fit(const std::string &page, const std::string &obj, const std::string &text, int steps) const {
+  const auto p = fit_.find(page);
+  if (p == fit_.end())
+    return -1;
+  const auto o = p->second.find(obj);
+  if (o == p->second.end())
+    return -1;
+  int font = o->second.font;
+  for (int k = 0; k < steps && font > 0 && text_width(font, text) > o->second.width; k++)
+    font--;
+  return font;
+}
+
 std::string Engine::fitted(const std::string &page, const std::string &obj, const std::string &text, int font) const {
   const auto p = fit_.find(page);
   if (p == fit_.end())

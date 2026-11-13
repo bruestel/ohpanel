@@ -258,6 +258,7 @@ class Engine {
   };
   std::map<std::string, std::map<std::string, Box>> boxes_;   // page -> field -> where the firmware draws (a logo, the QR code)
   std::string fitted(const std::string &page, const std::string &obj, const std::string &text, int font = -1) const;
+  int font_to_fit(const std::string &page, const std::string &obj, const std::string &text, int steps) const;
   static std::string within_bytes(const std::string &text, int maxl);
   int text_width(int font, const std::string &text) const;
   /* Whether `text` fits field `obj` of page `page` (its font and width, the manifest's "fit"). */

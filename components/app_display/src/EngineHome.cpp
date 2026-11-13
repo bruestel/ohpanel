@@ -91,7 +91,13 @@ void Engine::draw_clock() {
   }
   if (pause)
     send("ref_star");
-  txt("date", format_time(settings_.date_format, t, settings_.texts));  // dimmed by the page (th_dim)
+  /* A date wider than its field (long names: "%A, %e %B") in a smaller font first, two
+     sizes down at most (26, 22, 18 px), only then shortened with "..." */
+  const std::string date = format_time(settings_.date_format, t, settings_.texts);
+  const int font = font_to_fit(shown_, "date", date, 2);
+  if (font >= 0)
+    num("date", "font", font);   // the design's again when the date fits it (the page loaded: sent anew)
+  txt("date", date, font);  // dimmed by the page (th_dim)
 }
 
 void Engine::draw_relays() {

@@ -315,6 +315,7 @@ int main(int argc, char **argv) {
   CHECK(rec.has("high3.txt=\"19°\"") && rec.has("vis high_arrow3,1") && rec.has("vis high3,1"));
   CHECK(rec.has("vis high0,0") && rec.pos("vis high0,0") < rec.pos("vis high3,1"));   // hidden first
   CHECK(rec.has("date.txt=\"Mo, 5. Okt. 26\""));
+  CHECK(rec.has("date.font=3"));                          // fits: the design's font
   CHECK(!rec.has_prefix("date.pco="));                    // coloured by the page (th_dim)
   CHECK(!rec.has_prefix("info1_right.pco="));
   CHECK(rec.has(pic_cmd("weather_pic", "aurora", "weather_home", "rain")));  // 10d -> rain
@@ -2050,6 +2051,30 @@ int main(int argc, char **argv) {
     CHECK(chars.size() == 5 && chars[0].find("\"L\"") != std::string::npos && chars[4].find("\"t\"") != std::string::npos);
     const auto y = [](const std::string &c) { return std::stoi(c.substr(c.find(',') + 1)); };
     CHECK(chars.size() == 5 && y(chars[0]) + 16 < 172 + 132 && y(chars[1]) < y(chars[0]) && y(chars[4]) > 172);
+  }
+
+  {  // a date wider than its field (long names): a smaller font first, two sizes down at most, then "..."
+    const auto date_with = [&](const char *format, std::string &font, std::string &text) {
+      Recorder rd;
+      Engine d(rd, cb);
+      CHECK(d.load_design(read("boards/nspanel/nextion/display-manifest-eu.json").c_str(), read("boards/nspanel/nextion/weather-icons.json").c_str()));
+      std::string cfg = read("test/host/data/office.json");
+      const size_t at = cfg.find("\"date_format\"");
+      const size_t open = cfg.find('"', cfg.find(':', at)) + 1;   // the value, a comma in it too
+      cfg.replace(open, cfg.find('"', open) - open, format);
+      d.set_config(cfg);
+      d.tick(1791196439);  // Mon 5 Oct 2026
+      d.start();
+      d.on_message(loaded("home"));
+      font = rd.with_prefix("date.font=");
+      text = rd.with_prefix("date.txt=");
+    };
+    std::string font, text;
+    date_with("%A, %e. %B", font, text);          // "Montag, 5. Oktober": too wide in 26 px, whole in a smaller one
+    CHECK((font == "date.font=2" || font == "date.font=1") && text == "date.txt=\"Montag, 5. Oktober\"");
+    date_with("%A, %e. %B %Y um Mitternacht", font, text);   // too wide even in 18 px: 18 px, cut
+    CHECK(font == "date.font=1" && text.size() > 4 && text.compare(text.size() - 4, 4, "...\"") == 0);
+    if (g_failures) printf("%s / %s\n", font.c_str(), text.c_str());
   }
 
   {  // switched on with the panel: the display's boot page reported before anyone listened -- not
