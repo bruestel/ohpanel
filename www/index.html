@@ -2831,12 +2831,36 @@ function updateSaveBar(error) {
 /* The version of the configuration this page edits (the panel's ETag): sent with a save, which the panel refuses
    when another browser or the panel itself saved since (forum #113). */
 let panelVersion = null;
+let panelBase = null;   // the configuration as this page loaded it (or last saved it): what a merge starts from
+
+/* Three versions of the configuration merged (GitHub #6): what this page loaded (`base`), what it would save
+   (`mine`), what the panel has now (`theirs`: saved meanwhile by the panel -- its settings page keeps the
+   brightness, the dimming, the volumes -- or by another browser). What only one of them changed is taken from it;
+   a value both changed otherwise is a conflict (its path). Objects merge key by key, anything else as a whole. */
+function mergeConfig(base, mine, theirs, path = '') {
+  const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+  const obj = v => v !== null && typeof v === 'object' && !Array.isArray(v);
+  if (same(mine, theirs) || same(theirs, base)) return {value: mine, conflicts: []};
+  if (same(mine, base)) return {value: theirs, conflicts: []};
+  if (obj(mine) && obj(theirs) && (base === undefined || obj(base))) {
+    const value = {}, conflicts = [];
+    for (const k of new Set([...Object.keys(mine), ...Object.keys(theirs)])) {
+      const r = mergeConfig(base ? base[k] : undefined, mine[k], theirs[k], path ? path + '.' + k : k);
+      if (r.value !== undefined) value[k] = r.value;
+      conflicts.push(...r.conflicts);
+    }
+    return {value, conflicts};
+  }
+  return {value: mine, conflicts: [path || '(all)']};
+}
+
 async function loadPanel() {
   try {
     const res = await fetch('/api/v1/panel', {cache: 'no-store'});
     if (!res.ok) throw new Error('HTTP ' + res.status);
     const cfg = await res.json();
     panelVersion = res.headers.get('ETag');
+    panelBase = cfg;
     $('pJson').value = JSON.stringify(cfg, null, 2);
     panelSaved = canonical($('pJson').value);
     setMsg($('pMsg'), '');
@@ -2891,13 +2915,38 @@ async function savePanel(text, overwrite = false) {
     await api('/panel', {method: 'PUT', headers, body: JSON.stringify(parsed, null, 2)});
     setMsg($('pMsg'), dropped.length ? 'Saved. Out of the swipe row (a type it does not take): ' + dropped.join(', ') + '.' : 'Saved.', 'ok');
     panelSaved = canonical(JSON.stringify(parsed));
+    panelBase = parsed;
     updateSaveBar();
     loadPanel();
   } catch (e) {
-    if (e.status === 412) {   // saved elsewhere since this page loaded it: overwrite that only when asked to
-      if (confirm('The panel configuration was changed elsewhere since this page loaded it (in another browser, ' +
-                  'or on the panel). Saving now replaces those changes with this page\'s.\n\n' +
-                  'OK: save anyway. Cancel: keep editing (Discard loads the newest).')) {
+    if (e.status === 412) {   // saved elsewhere since this page loaded it: merged with that where they do not clash
+      let newest = null, version = null;
+      try {
+        const res = await fetch('/api/v1/panel', {cache: 'no-store'});
+        if (res.ok) { newest = await res.json(); version = res.headers.get('ETag'); }
+      } catch (err) { /* asked below */ }
+      if (newest && panelBase) {
+        const m = mergeConfig(panelBase, parsed, newest);
+        if (!m.conflicts.length) {   // the other changes kept, this page's on top: saved on the newest version
+          panelVersion = version;
+          panelBase = newest;
+          $('pJson').value = JSON.stringify(m.value, null, 2);
+          savePanel($('pJson').value);
+          return;
+        }
+        if (confirm('The panel configuration was changed elsewhere since this page loaded it (in another browser, ' +
+                    'or on the panel), and so was this page: ' + m.conflicts.join(', ') + '.\n\n' +
+                    'OK: save, with this page\'s values there (the other changes are kept). Cancel: keep editing ' +
+                    '(Discard loads the newest).')) {
+          panelVersion = version;
+          panelBase = newest;
+          $('pJson').value = JSON.stringify(m.value, null, 2);
+          savePanel($('pJson').value);
+          return;
+        }
+      } else if (confirm('The panel configuration was changed elsewhere since this page loaded it (in another ' +
+                         'browser, or on the panel). Saving now replaces those changes with this page\'s.\n\n' +
+                         'OK: save anyway. Cancel: keep editing (Discard loads the newest).')) {
         savePanel(text, true);
         return;
       }
