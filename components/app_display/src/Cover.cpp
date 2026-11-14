@@ -205,41 +205,65 @@ std::string not_jpeg(const uint8_t *head, size_t n) {
   return "not a picture it knows";
 }
 
-bool data_uri_bytes(const std::string &uri, Chunks &out) {
-  if (uri.rfind("data:", 0) != 0)
-    return false;
-  const size_t comma = uri.find(',');
-  if (comma == std::string::npos || comma < 7 || uri.compare(comma - 7, 7, ";base64") != 0)
-    return false;
-  out = Chunks{};
-  char run[256];   // decoded bytes handed on in runs
-  size_t in_run = 0;
-  uint32_t acc = 0;
-  int bits = 0;
-  for (size_t i = comma + 1; i < uri.size(); i++) {
-    const char c = uri[i];
+bool DataUriReader::feed(const char *data, size_t n, Chunks &out) {
+  for (size_t i = 0; i < n; i++) {
+    const char c = data[i];
+    if (bad_ || done_)
+      return !bad_;
+    if (!in_body_) {   // "data:<type>;base64," first
+      if (c != ',') {
+        if (head_.size() >= 256) {
+          bad_ = true;
+          return false;
+        }
+        head_ += c;
+        continue;
+      }
+      if (head_.rfind("data:", 0) != 0 || head_.size() < 12 || head_.compare(head_.size() - 7, 7, ";base64") != 0) {
+        bad_ = true;
+        return false;
+      }
+      in_body_ = true;
+      continue;
+    }
     int v;
     if (c >= 'A' && c <= 'Z') v = c - 'A';
     else if (c >= 'a' && c <= 'z') v = c - 'a' + 26;
     else if (c >= '0' && c <= '9') v = c - '0' + 52;
     else if (c == '+' || c == '-') v = 62;
     else if (c == '/' || c == '_') v = 63;
-    else if (c == '=') break;
-    else if (c == ' ' || c == '\n' || c == '\r' || c == '\t') continue;
-    else return false;
-    acc = acc << 6 | static_cast<uint32_t>(v);
-    bits += 6;
-    if (bits >= 8) {
-      bits -= 8;
-      run[in_run++] = static_cast<char>(acc >> bits & 0xFF);
-      if (in_run == sizeof(run)) {
-        out.append(run, in_run);
-        in_run = 0;
+    else if (c == '=') {
+      done_ = true;
+      continue;
+    } else if (c == ' ' || c == '\n' || c == '\r' || c == '\t') continue;
+    else {
+      bad_ = true;
+      return false;
+    }
+    acc_ = acc_ << 6 | static_cast<uint32_t>(v);
+    bits_ += 6;
+    if (bits_ >= 8) {
+      bits_ -= 8;
+      run_[in_run_++] = static_cast<char>(acc_ >> bits_ & 0xFF);
+      if (in_run_ == sizeof(run_)) {
+        out.append(run_, in_run_);
+        in_run_ = 0;
       }
     }
   }
-  out.append(run, in_run);
-  return out.size > 0;
+  return true;
+}
+
+bool DataUriReader::finish(Chunks &out) {
+  out.append(run_, in_run_);
+  in_run_ = 0;
+  return in_body_ && !bad_ && out.size > 0;
+}
+
+bool data_uri_bytes(const std::string &uri, Chunks &out) {
+  out = Chunks{};
+  DataUriReader r;
+  return r.feed(uri.data(), uri.size(), out) && r.finish(out);
 }
 
 }  // namespace appdisplay

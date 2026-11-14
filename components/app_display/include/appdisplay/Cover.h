@@ -51,6 +51,21 @@ struct Chunks {
 /* The bytes of a "data:...;base64,..." address; false for anything else. */
 bool data_uri_bytes(const std::string &uri, Chunks &out);
 
+/* The same as it comes, in parts (openHAB's REST answer for an Image item's state is such a text): feed() each
+   part, finish() at the end; false once it is not such a text. The text itself is never held. */
+class DataUriReader {
+ public:
+  bool feed(const char *data, size_t n, Chunks &out);
+  bool finish(Chunks &out);   // the last bytes; false if there were none
+ private:
+  std::string head_;          // "data:image/jpeg;base64"
+  bool in_body_ = false, bad_ = false, done_ = false;
+  uint32_t acc_ = 0;
+  int bits_ = 0;
+  char run_[256];             // decoded bytes handed on in runs
+  size_t in_run_ = 0;
+};
+
 /* What a picture is, from its first bytes: "" a JPEG, else a word for what it is ("a PNG", "a GIF", ...). */
 std::string not_jpeg(const uint8_t *head, size_t n);
 

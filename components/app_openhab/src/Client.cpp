@@ -10,8 +10,7 @@
 
 #include "appoh/OpenHab.h"
 #include "Http.h"
-#include "Sse.h"
-#include "States.h"
+#include "StateStream.h"
 
 #include <cJSON.h>
 #include <esp_crt_bundle.h>
@@ -48,10 +47,14 @@ constexpr int kReadSliceMs = 100;
    own, it would take minutes to. */
 constexpr int64_t kSilenceUs = 30 * 1000000LL;
 
-/* The snapshot after subscribing is a single data line holding every item;
-   150 items come to 10-20 KB. Anything far beyond is not a state event. Large
-   strings land in PSRAM by themselves (CONFIG_SPIRAM_USE_MALLOC). */
-constexpr size_t kMaxEventBytes = 128 * 1024;
+/* The stream is read item by item (StateStream): the snapshot after subscribing, a single data line holding every
+   item, is never held whole. A state is kept up to kMaxStateText (a list, a weather feed: a few KB); a picture (an
+   Image item, "data:image/...;base64,...") up to kMaxInlinePicture, a larger one as its address on openHAB, fetched
+   when it is shown (a cover: appdisplay CoverLoad) -- before, a picture of ~100 KB made the stream too long, which
+   dropped it, and the snapshot after reconnecting again, over and over. Large strings land in PSRAM by themselves
+   (CONFIG_SPIRAM_USE_MALLOC). */
+constexpr size_t kMaxStateText = 64 * 1024;
+constexpr size_t kMaxInlinePicture = 16 * 1024;
 
 constexpr int64_t kBackoffMinUs = 1 * 1000000LL;
 constexpr int64_t kBackoffMaxUs = 30 * 1000000LL;
@@ -243,20 +246,24 @@ int post(const appcfg::OpenHab &cfg, const std::string &path, const char *conten
 
 // ------------------------------------------------------------ state events ----
 
-/* Stores every state of an event in the cache and hands it to the callback. */
-void handle_states(const std::string &data) {
-  const bool ok = parse_states(data, [](const std::string &item, const ItemState &s) {
-    {
-      Lock l;
-      g_cache[item] = s;
-      g_predicted.erase(item);   // openHAB's word counts
-    }
-    /* Outside the lock: the callback may well ask for other states. */
-    if (g_on_state)
-      g_on_state(item, s);
-  });
-  if (!ok)
-    ESP_LOGW(TAG, "Unparseable state event (%u bytes)", static_cast<unsigned>(data.size()));
+/* Stores a state in the cache and hands it to the callback. */
+void handle_state(const std::string &item, const ItemState &s) {
+  {
+    Lock l;
+    g_cache[item] = s;
+    g_predicted.erase(item);   // openHAB's word counts
+  }
+  /* Outside the lock: the callback may well ask for other states. */
+  if (g_on_state)
+    g_on_state(item, s);
+}
+
+void handle_large(const std::string &item, size_t bytes, bool as_address) {
+  if (as_address)
+    ESP_LOGI(TAG, "%s: a picture of %u KB, fetched from openHAB when shown", item.c_str(),
+             static_cast<unsigned>(bytes / 1024));
+  else
+    ESP_LOGW(TAG, "%s: a state of %u KB, too large: left out", item.c_str(), static_cast<unsigned>(bytes / 1024));
 }
 
 void handle_event(const std::string &event, const std::string &data) {
@@ -268,11 +275,8 @@ void handle_event(const std::string &event, const std::string &data) {
       g_subscribed = false;
     }
     enqueue(new Job{Job::Kind::Subscribe, {}, {}});
-  } else if (event == "alive") {
-    // keepalive; receiving it already reset the silence timer
-  } else if ((event.empty() || event == "message") && !data.empty()) {
-    handle_states(data);
   }
+  // "alive": keepalive; receiving it already reset the silence timer
 }
 
 // ------------------------------------------------------------------ stream ----
@@ -303,7 +307,8 @@ bool run_stream() {
       set_error("openHAB stream failed (HTTP " + std::to_string(status) + ")");
     } else {
       esp_http_client_set_timeout_ms(client, kReadSliceMs);
-      SseParser parser(kMaxEventBytes, handle_event);
+      StateStream parser(kMaxStateText, kMaxInlinePicture, handle_state, handle_event, handle_large);
+      int bad = 0;
       int64_t last_rx = esp_timer_get_time();
       char buf[1024];
 
@@ -316,9 +321,10 @@ bool run_stream() {
         if (n > 0) {
           last_rx = now;
           got_data = true;
-          if (!parser.feed(buf, static_cast<size_t>(n))) {
-            set_error("oversized event on the stream");
-            break;
+          parser.feed(buf, static_cast<size_t>(n));
+          if (parser.bad_events() != bad) {
+            bad = parser.bad_events();
+            ESP_LOGW(TAG, "Unparseable state event on the stream");
           }
         } else if (n == -ESP_ERR_HTTP_EAGAIN) {
           if (now - last_rx > kSilenceUs) {

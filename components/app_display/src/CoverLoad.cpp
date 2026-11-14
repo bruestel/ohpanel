@@ -23,6 +23,7 @@
 #include <algorithm>
 #include <cstring>
 #include <mutex>
+#include <string>
 
 namespace appdisplay {
 namespace {
@@ -137,17 +138,46 @@ std::shared_ptr<Cover> load(const Request &r) {
       ESP_LOGW(TAG, "not a base64 data address");
       return nullptr;
     }
-  } else if (!appoh::fetch(r.source, kMaxBytes, [&](const char *data, size_t n) {
-               // its first bytes say what it is: anything but a JPEG goes no further
-               if (bytes.size == 0 && n >= 4 && !(what = not_jpeg(reinterpret_cast<const uint8_t *>(data), n)).empty() &&
-                   what != "a PNG")
-                 return false;
-               bytes.append(data, n);
-               return true;
-             }, &error)) {
-    ESP_LOGW(TAG, "%.80s: %s", r.source.c_str(),
-             what.empty() ? error.c_str() : (what + ", the panel decodes JPEG and PNG").c_str());
-    return nullptr;
+  } else {
+    /* The picture, or a text with it (openHAB's answer for an Image item's state: "data:image/...;base64,...", the
+       address the stream gave for a picture too large to send along, appoh::rest_state_path): decoded as it comes,
+       the text never held. Its base64 is a third longer than the picture. */
+    DataUriReader text;
+    bool is_text = false, started = false;
+    const bool ok = appoh::fetch(r.source, kMaxBytes * 4 / 3 + 1024, [&](const char *data, size_t n) {
+      if (!started) {
+        started = true;
+        is_text = n >= 5 && std::memcmp(data, "data:", 5) == 0;
+        // its first bytes say what it is: anything but a JPEG or a PNG goes no further
+        if (!is_text && n >= 4 && !(what = not_jpeg(reinterpret_cast<const uint8_t *>(data), n)).empty() &&
+            what != "a PNG")
+          return false;
+      }
+      if (is_text) {
+        if (!text.feed(data, n, bytes)) {
+          what = "a text that is no picture";
+          return false;
+        }
+      } else {
+        bytes.append(data, n);
+      }
+      if (bytes.size > kMaxBytes) {
+        what = "larger than " + std::to_string(kMaxBytes / 1024) + " KB";
+        return false;
+      }
+      return true;
+    }, &error);
+    if (ok && is_text && !text.finish(bytes)) {
+      ESP_LOGW(TAG, "%.80s: a text that is no picture", r.source.c_str());
+      return nullptr;
+    }
+    if (!ok) {
+      ESP_LOGW(TAG, "%.80s: %s", r.source.c_str(),
+               what.empty() ? error.c_str()
+               : what.rfind("a ", 0) == 0 && what != "a text that is no picture" ? (what + ", the panel decodes JPEG and PNG").c_str()
+                                                                                   : what.c_str());
+      return nullptr;
+    }
   }
   uint8_t head[12] = {};
   const std::string kind = not_jpeg(head, bytes.read(0, head, sizeof(head)));

@@ -221,6 +221,42 @@ int main() {
     CHECK(decode_png(chunks_of(whole.substr(0, whole.size() / 2)), 11, kUnder, p) == "a broken PNG");
     CHECK(decode_png(chunks_of("\xff\xd8\xff\xe0 a JPEG"), 11, kUnder, p) == "not a PNG");
   }
+  /* A data: text read as it comes (DataUriReader: openHAB's answer for an Image item's state) gives the bytes
+     data_uri_bytes gives for it whole, however it is cut; a text that is none is refused. */
+  {
+    std::string bytes;
+    for (int i = 0; i < 5000; i++)
+      bytes += static_cast<char>(i * 31 + 7);
+    static const char *abc = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+    std::string text = "data:image/jpeg;base64,";
+    for (size_t i = 0; i < bytes.size(); i += 3) {
+      uint32_t v = static_cast<uint8_t>(bytes[i]) << 16;
+      if (i + 1 < bytes.size()) v |= static_cast<uint8_t>(bytes[i + 1]) << 8;
+      if (i + 2 < bytes.size()) v |= static_cast<uint8_t>(bytes[i + 2]);
+      text += abc[v >> 18 & 63];
+      text += abc[v >> 12 & 63];
+      text += i + 1 < bytes.size() ? abc[v >> 6 & 63] : '=';
+      text += i + 2 < bytes.size() ? abc[v & 63] : '=';
+    }
+    Chunks whole;
+    CHECK(data_uri_bytes(text, whole) && whole.size == bytes.size());
+    for (size_t piece : {1, 5, 1000}) {
+      Chunks out;
+      DataUriReader r;
+      bool ok = true;
+      for (size_t at = 0; at < text.size(); at += piece)
+        ok = ok && r.feed(text.data() + at, std::min(piece, text.size() - at), out);
+      CHECK(ok && r.finish(out) && out.size == bytes.size());
+      std::string got(out.size, '\0');
+      out.read(0, reinterpret_cast<uint8_t *>(got.data()), out.size);
+      CHECK(got == bytes);
+    }
+    Chunks out;
+    DataUriReader bad;
+    CHECK(!bad.feed("<html>,no", 9, out));
+    DataUriReader plain;
+    CHECK(!plain.feed("data:text/plain,hello", 21, out));
+  }
   if (failures) {
     std::printf("%d png check(s) failed\n", failures);
     return 1;

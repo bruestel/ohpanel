@@ -12,7 +12,7 @@ gcc -c -g -fsanitize=address,undefined components/qrcodegen/src/qrcodegen.c -Ico
     -o test/host/build/qrcodegen.o
 
 g++ $FLAGS -Icomponents/app_openhab/src -Icomponents/app_openhab/include -Icomponents/app_config/include \
-    test/host/openhab_test.cpp components/app_openhab/src/States.cpp test/host/build/cJSON.o \
+    test/host/openhab_test.cpp components/app_openhab/src/States.cpp components/app_openhab/src/StateStream.cpp test/host/build/cJSON.o \
     -o test/host/build/openhab_test
 g++ $FLAGS -Icomponents/panel/include -Icomponents/sound/include \
     test/host/schema_test.cpp components/panel/src/Schema.cpp components/sound/src/Sound.cpp test/host/build/cJSON.o \
