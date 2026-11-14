@@ -885,6 +885,19 @@ pre.box{margin:0;padding:.6rem .7rem;max-height:18rem;overflow:auto;background:v
       </div>
     </div>
     <div class="card">
+      <h2 data-doc="docs/install.md#a-server-certificate-of-your-own">Security</h2>
+      <p class="sub">How this page and the panel are protected; changed under <a href="#security">Security</a>.</p>
+      <div class="stats">
+        <div class="stat"><b id="sConn">–</b><span>This connection</span></div>
+        <div class="stat"><b id="sHttps">–</b><span>HTTPS server</span></div>
+        <div class="stat"><b id="sHttp">–</b><span>Plain http</span></div>
+        <div class="stat"><b id="sCert">–</b><span>Server certificate</span></div>
+        <div class="stat" id="sCertNamesBox" hidden><b id="sCertNames" style="overflow-wrap:anywhere">–</b><span>Valid for</span></div>
+        <div class="stat"><b id="sCa">–</b><span>Certificate authority</span></div>
+        <div class="stat"><b id="sAuth">–</b><span>Password protection</span></div>
+      </div>
+    </div>
+    <div class="card">
       <h2 data-doc="docs/install.md#connect-openhab">openHAB</h2>
       <p class="sub">The connection to openHAB's event stream.</p>
       <div class="stats">
@@ -1885,6 +1898,39 @@ function relinkDocs(version) {
 }
 relinkDocs();
 
+/* The status page's Security card: this page's connection, the password and the https server from /info (each
+   look), the certificates from /tls (as the page opens: they change seldom). */
+function showStatusSecurity() {
+  const secure = location.protocol === 'https:', h = info.https || {}, a = info.auth || {};
+  withDot($('sConn'), secure ? 'ok' : 'warn', secure ? 'encrypted (https)' : 'not encrypted (http)');
+  if (!secure && h.running) {
+    const go = document.createElement('a');
+    go.href = 'https://' + location.hostname + location.pathname + location.hash;
+    go.textContent = 'Use https';
+    $('sConn').append(' · ', go);
+  }
+  withDot($('sHttps'), h.running ? 'ok' : 'warn', h.running ? 'running on port 443' : 'not running: its certificate is being made, or failed (see the log)');
+  $('sHttp').textContent = h.force ? 'redirected to https' : 'open as well';
+  withDot($('sAuth'), a.enabled ? 'ok' : 'warn', a.enabled ? 'on' + (a.user ? ' (user ' + a.user + ')' : '') : 'off: anyone in the network can change the panel');
+}
+async function loadStatusTls() {
+  let t;
+  try { t = await api('/tls'); } catch (e) { $('sCert').textContent = $('sCa').textContent = 'unknown'; return; }
+  const date = d => { const x = new Date(d + 'T12:00:00'); return isNaN(x) ? d : x.toLocaleDateString('en-GB', {day: 'numeric', month: 'short', year: 'numeric'}); };
+  const days = Math.floor((new Date(t.server.valid_to + 'T23:59:59') - Date.now()) / 86400000);
+  withDot($('sCert'), !t.server.valid_to ? '' : days < 0 ? 'err' : days < 30 ? 'warn' : 'ok',
+          !t.server.valid_to ? 'none yet'
+          : (days < 0 ? 'expired ' : 'until ') + date(t.server.valid_to) + ' · ' + (t.server.own ? 'your own' : 'made by this panel'));
+  const names = t.server.names || [];
+  $('sCertNamesBox').hidden = !names.length;
+  $('sCertNames').replaceChildren(...names.flatMap((n, i) => i ? [document.createElement('br'), n] : [n]));
+  const fp = t.ca.fingerprint || '', name = (t.ca.subject || '').replace(/^CN=/, '').replace(/, O=.*/, '');
+  $('sCa').textContent = !name ? 'none yet'
+    : name + ' · ' + (t.ca.own ? 'your own' : 'made by this panel') + (t.ca.valid_to ? ' · until ' + date(t.ca.valid_to) : '')
+      + (fp ? ' · ' + fp.slice(0, 5) + ' … ' + fp.slice(-5) : '');
+  $('sCa').title = fp ? 'SHA-256 ' + fp : '';
+}
+
 function showTab(name) {
   if (TABS.indexOf(name) < 0) name = 'status';
   document.querySelectorAll('[data-page]').forEach(s => { s.hidden = s.dataset.page !== name; });
@@ -1904,6 +1950,7 @@ function showTab(name) {
   if (name === 'firmware') loadOtaInfo();
   showDesign();   // the note: not on the firmware page
   if (name === 'security') loadTls();
+  if (name === 'status') loadStatusTls();
   if (name === 'diagnostics') { loadHealth(); followLog(); }
 }
 document.querySelectorAll('#tabs button[data-tab]').forEach(b => {
@@ -2191,6 +2238,7 @@ async function refreshInfo() {
   $('hdrNet').textContent = n.provisioning ? 'hotspot ' + n.ssid : (STATE_TEXT[n.state] || n.state);
 
   $('sVersion').textContent = info.version;
+  showStatusSecurity();
   // the relays as they are switched (as the NSPanel Pro's status page shows them)
   const relayList = Array.isArray(info.relays) ? info.relays : [];
   $('sRelayCard').hidden = !relayList.length;
