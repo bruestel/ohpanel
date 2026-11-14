@@ -8520,9 +8520,10 @@ function pvImage(src) {
   if (!im) {
     im = PV_IMAGES[src] = new Image();
     im.onload = () => refreshPreview();
+    im.onerror = () => { im.failed = true; refreshPreview(); };
     im.src = src;
   }
-  return im.complete && im.naturalWidth ? im : null;
+  return im;
 }
 function imageArea() {
   const q = ((LAYOUT.pages.qr || {}).objects || []).find(o => o.n === 'qr_area');
@@ -8534,12 +8535,34 @@ function fillImage(page) {
   const src = page.item ? (st && st.state && !/^(NULL|UNDEF)$/.test(st.state) ? String(st.state) : '') : (page.url || '');
   const fetchable = /^(https?:\/\/|data:image\/)/.test(src);
   const [x, y, w, h] = imageArea(), px = Math.min(6, Math.max(2, page.pixel || 3));
-  const im = fetchable ? pvImage(src) : null;
-  const f = {title: {text: page.title}, caption2: {text: ''},
-             caption1: {text: src ? '' : '–', color: THEME.text}};
+  const loading = fetchable ? pvImage(src) : null, im = loading && loading.complete && loading.naturalWidth ? loading : null;
+  const f = {title: {text: page.title}, caption1: {text: ''}, caption2: {text: ''}};
+  // what shows instead where the browser cannot show the picture: from where it comes, and why not here
+  const what = page.item ? 'The picture of ' + page.item : page.url ? page.url : 'No picture yet';
+  const why = !page.item && !page.url ? 'choose an item or an address below'
+            : !src ? 'the item has no picture yet'
+            : !fetchable ? 'the panel fetches it from openHAB and shows it there (not here)'
+            : loading.failed ? 'this browser could not load it (the panel may)' : 'loading…';
   f.qr_area = {draw: {box: [x, y, w, h], fn: ctx => {
     const round = (bx, by, bw, bh) => { ctx.beginPath(); ctx.roundRect(bx, by, bw, bh, 8); };
-    if (im) {   // as the panel draws it: fitted, in points of px x px
+    if (!im) {
+      round(x + 1, y + 1, w - 2, h - 2);
+      ctx.fillStyle = THEME.light ? 'rgba(0,0,0,.06)' : 'rgba(255,255,255,.07)';
+      ctx.fill();
+      ctx.setLineDash([6, 5]); ctx.lineWidth = 2; ctx.strokeStyle = THEME.dim; ctx.stroke(); ctx.setLineDash([]);
+      ctx.textAlign = 'center'; ctx.fillStyle = THEME.text;
+      const fit = (text, size) => {   // one line, shortened to the area
+        ctx.font = size + 'px sans-serif';
+        let t = text;
+        while (t.length > 4 && ctx.measureText(t).width > w - 30) t = t.slice(0, -2);
+        return t === text ? t : t.slice(0, -1) + '…';
+      };
+      ctx.fillText(fit(what, 18), x + w / 2, y + h / 2 - 6);
+      ctx.fillStyle = THEME.dim;
+      ctx.fillText(fit(why, 14), x + w / 2, y + h / 2 + 18);
+      return;
+    }
+    {   // as the panel draws it: fitted, in points of px x px
       const k = Math.min(w / px / im.naturalWidth, h / px / im.naturalHeight);
       const pw = Math.max(1, Math.round(im.naturalWidth * k)), ph = Math.max(1, Math.round(im.naturalHeight * k));
       const small = document.createElement('canvas');
@@ -8550,11 +8573,6 @@ function fillImage(page) {
       ctx.imageSmoothingEnabled = false;
       ctx.drawImage(small, bx, by, pw * px, ph * px);
       ctx.restore();
-    } else if (src) {   // the panel fetches it (from openHAB): only it can show it
-      ctx.fillStyle = 'rgba(128,128,128,.25)';
-      round(x, y, w, h); ctx.fill();
-      ctx.fillStyle = THEME.text; ctx.font = '16px sans-serif'; ctx.textAlign = 'center';
-      ctx.fillText(fetchable ? 'loading the picture…' : 'the panel fetches the picture from openHAB', x + w / 2, y + h / 2);
     }
   }}};
   return f;
