@@ -1572,10 +1572,25 @@ function setMsg(el, text, kind) {
   el.className = 'msg' + (kind ? ' ' + kind : '');
 }
 
+/* A 401: the panel wants its password (protection switched on, the password changed -- here, in another tab, by a
+   restore). A request in the background gets no login dialog from the browser; the page loaded anew does (its
+   index asks, get_index): reloaded once -- not over unsaved panel changes, which the reload would lose. */
+let authReload = false;
+function needAuth() {
+  if (authReload) return;
+  if (typeof panelDirty === 'function' && panelDirty()) {
+    setMsg($('vMsg'), 'The panel now asks for its password. Reloading the page would lose your unsaved changes: '
+                    + 'copy the JSON (Advanced) first, then reload.', 'err');
+    return;
+  }
+  authReload = true;
+  location.reload();
+}
 async function api(path, opts) {
   const res = await fetch('/api/v1' + path, opts || {});
   let body = null;
   try { body = await res.json(); } catch (e) { body = null; }
+  if (res.status === 401) needAuth();
   if (!res.ok) throw Object.assign(new Error((body && body.error) || ('HTTP ' + res.status)), {status: res.status});
   return body;
 }
@@ -10677,8 +10692,12 @@ $('aForm').addEventListener('submit', async ev => {
     $('aPass').focus();
     return;
   }
+  const was = (info && info.auth) || {};
   try {
     await postJson('/config/auth', data);
+    /* Protection now on, a new password or user while it is: every later request in the background is refused
+       (401), and gets no login dialog -- the page loaded anew does (below). */
+    const ask = data.enabled && (!was.enabled || !!data.password || data.user !== was.user);
     PASS.set = removing ? false : PASS.set || !!data.password;
     PASS.mode = '';
     $('aPass').value = '';
@@ -10686,7 +10705,9 @@ $('aForm').addEventListener('submit', async ev => {
     delete $('aForm').dataset.touched;
     showPass();
     setMsg($('aMsg'), removing ? 'Saved: the password is removed, protection is off.'
+                               : ask ? 'Saved. The page loads anew: log in with ' + (data.password ? 'the new password.' : 'the password.')
                                : data.password ? 'Saved, with the new password.' : 'Saved.', 'ok');
+    if (ask) { authReload = true; setTimeout(() => location.reload(), 1500); }
   } catch (e) {
     setMsg($('aMsg'), e.message, 'err');
   }
