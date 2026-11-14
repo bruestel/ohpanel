@@ -682,6 +682,42 @@ int main(int argc, char **argv) {
     CHECK(rec.has("title.txt=\"Door\""));
     CHECK(pictures.size() == 1 && std::get<0>(pictures.back()) == "/rest/items/CamPic/state?v=0000000000000001" &&
           std::get<3>(pictures.back()) == 2);
+    // a new picture while one is being drawn: the old one goes on until the new one has come, then the new one
+    // over it (the same shape: the page not anew), the rest of the old one left out; one between them is never drawn
+    {
+      std::vector<uint8_t> a(40 * 40 * 3), b(40 * 40 * 3, 30);
+      for (size_t i = 0; i < a.size(); i++)
+        a[i] = static_cast<uint8_t>(i * 37);   // a noisy one: many rectangles, many parts to draw
+      e.on_cover("/rest/items/CamPic/state?v=0000000000000001", std::make_shared<Cover>(picture_rects(a.data(), 40, 40, 2, 8)));
+      e.idle(t += 50);
+      e.idle(t += 50);
+      CHECK(e.pending());   // still drawing
+      set_state("CamPic", "/rest/items/CamPic/state?v=00000000000000aa", "Raw");
+      e.on_state("CamPic");
+      set_state("CamPic", "/rest/items/CamPic/state?v=00000000000000bb", "Raw");
+      e.on_state("CamPic");
+      CHECK(std::get<0>(pictures.back()) == "/rest/items/CamPic/state?v=00000000000000bb");
+      rec.out.clear();
+      e.idle(t += 50);
+      CHECK(rec.has_prefix("fill "));   // the old one goes on meanwhile
+      e.on_cover("/rest/items/CamPic/state?v=00000000000000aa", std::make_shared<Cover>(picture_rects(b.data(), 40, 40, 2, 8)));
+      e.idle(t += 50);
+      e.on_cover("/rest/items/CamPic/state?v=00000000000000bb", std::make_shared<Cover>(picture_rects(b.data(), 40, 40, 2, 8)));
+      rec.out.clear();
+      for (int i = 0; i < 400 && e.pending(); i++)
+        e.idle(t += 50);
+      CHECK(!e.pending() && !rec.has_prefix("page "));
+      // the new one only: its colour (30, 30, 30 -> RGB565), none of the old one's after it came
+      bool only_new = true;
+      for (const std::string &l : rec.out)
+        if (l.rfind("fill ", 0) == 0 && l.substr(l.rfind(',') + 1) != std::to_string((30 >> 3) << 11 | ((30 >> 3) << 1 | (30 >> 3) >> 4) << 5 | (30 >> 3)))
+          only_new = false;
+      CHECK(only_new && rec.has_prefix("fill "));
+    }
+    pictures.clear();
+    set_state("CamPic", "/rest/items/CamPic/state?v=0000000000000001", "Raw");
+    e.on_state("CamPic");
+    CHECK(pictures.size() == 1 && std::get<0>(pictures.back()) == "/rest/items/CamPic/state?v=0000000000000001");
     e.on_cover("/rest/items/CamPic/state?v=0000000000000001", nullptr);   // it could not be fetched
     e.idle(t += 60000);
     CHECK(pictures.size() == 1);   // no refresh: not again by itself
