@@ -1159,7 +1159,7 @@ as the media page's cover, a picture fetched again over the last one too).
 | `pixel` | 2 ... 6 | how large a point is drawn (default 3): 2 is finer and takes about twice as long, 4 coarser and faster |
 | `icon` | icon | for the page list and shortcuts |
 
-The panel reads JPEG (baseline, not progressive) and PNG, up to 400 KB. Smaller is faster: the display shows at most
+The panel reads JPEG (baseline, not progressive) and PNG, up to 400 KB (a PNG's transparent parts show dark grey). Smaller is faster: the display shows at most
 about 140 x 80 points anyway, so ask the camera for a small picture. Frigate:
 `http://frigate:5000/api/<camera>/latest.jpg?h=320`. An address the panel cannot reach, or a picture it cannot
 read: the page stays empty, the log says why (Diagnostics).
