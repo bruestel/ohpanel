@@ -16,6 +16,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <ctime>
 #include <mutex>
 
 namespace appweb::tls {
@@ -23,8 +24,33 @@ namespace {
 
 const char *const TAG = "tls";
 const char *const kNs = "tls";
-// valid whatever the panel's clock says: the browser checks the dates, against its own
+// the CA: valid whatever the panel's clock says (the browser checks the dates, against its own)
 const char *const kNotBefore = "20250101000000", *const kNotAfter = "20491231235959";
+/* The server certificate: 820 days from when it is issued -- Apple's devices take none valid longer than 825 days
+   (iOS 13, macOS 10.15), not even from a CA of one's own --, issued anew 30 days before it runs out, by the same CA
+   (a browser trusting the CA notices nothing). Issued while the clock is not set yet (the first start, before NTP)
+   it gets the CA's dates, and is issued anew once the clock is. */
+constexpr int kServerDays = 820;
+constexpr int kRenewDays = 30;
+constexpr int kMaxServerDays = 825;
+constexpr time_t kClockSet = 1735689600;   // 2025-01-01: a clock before it is not set
+
+std::string x509_time(time_t t) {
+  struct tm tm;
+  gmtime_r(&t, &tm);
+  char out[16];
+  std::strftime(out, sizeof(out), "%Y%m%d%H%M%S", &tm);
+  return out;
+}
+
+/* A certificate's time (UTC) in seconds since 1970 -- not mktime(): that one takes the panel's time zone. */
+time_t x509_epoch(const mbedtls_x509_time &t) {
+  // days from 1970-01-01 to the date (the proleptic Gregorian calendar, Howard Hinnant's days_from_civil)
+  const int y = t.year - (t.mon <= 2), era = (y >= 0 ? y : y - 399) / 400, yoe = y - era * 400;
+  const int doy = (153 * (t.mon + (t.mon > 2 ? -3 : 9)) + 2) / 5 + t.day - 1, doe = yoe * 365 + yoe / 4 - yoe / 100 + doy;
+  const long long days = era * 146097LL + doe - 719468;
+  return static_cast<time_t>(days * 86400 + t.hour * 3600 + t.min * 60 + t.sec);
+}
 constexpr size_t kPemMax = 4096;
 constexpr size_t kChainMax = 8192;   // an own server certificate with its chain (Let's Encrypt: 3 to 6 KB)
 
@@ -201,7 +227,8 @@ std::vector<std::string> split(const std::string &list) {
 
 /* Writes a certificate for `subject_key` signed with `issuer_key` -- the CA's own (self-signed) when `ca`. */
 bool issue(bool ca, mbedtls_pk_context &subject_key, mbedtls_pk_context &issuer_key, const std::string &subject,
-           const std::string &issuer, const Names *names, std::string &pem) {
+           const std::string &issuer, const Names *names, std::string &pem, const char *not_before = kNotBefore,
+           const char *not_after = kNotAfter) {
   mbedtls_x509write_cert c;
   mbedtls_x509write_crt_init(&c);
   mbedtls_x509write_crt_set_version(&c, MBEDTLS_X509_CRT_VERSION_3);
@@ -215,7 +242,7 @@ bool issue(bool ca, mbedtls_pk_context &subject_key, mbedtls_pk_context &issuer_
   int r = mbedtls_x509write_crt_set_subject_name(&c, subject.c_str());
   r = r ? r : mbedtls_x509write_crt_set_issuer_name(&c, issuer.c_str());
   r = r ? r : mbedtls_x509write_crt_set_serial_raw(&c, serial, sizeof(serial));
-  r = r ? r : mbedtls_x509write_crt_set_validity(&c, kNotBefore, kNotAfter);
+  r = r ? r : mbedtls_x509write_crt_set_validity(&c, not_before, not_after);
   r = r ? r : mbedtls_x509write_crt_set_basic_constraints(&c, ca ? 1 : 0, ca ? 0 : -1);
   r = r ? r : mbedtls_x509write_crt_set_subject_key_identifier(&c);
   r = r ? r : mbedtls_x509write_crt_set_authority_key_identifier(&c);
@@ -408,15 +435,33 @@ bool ensure(const Names &given, std::string &chain_pem, std::string &key_pem, bo
   }
   std::string srv_key = nvs_get("srv_key"), srv_crt = nvs_get("srv_crt");
   const std::string want = names_key(names);
-  if (srv_key.empty() || srv_crt.empty() || !names_covered(nvs_get("srv_names"), want)) {   // a name it goes by is new
-    ESP_LOGI(TAG, "Issuing the server certificate for %s", want.c_str());
+  // its dates: from the clock where it is set (kServerDays), else the CA's -- and the stored one due when it runs out
+  // within kRenewDays or is valid longer than Apple takes (issued before 0.26, or before the clock was set)
+  const time_t now = time(nullptr);
+  const bool clock = now >= kClockSet;
+  bool due = false;
+  if (clock && !srv_crt.empty()) {
+    mbedtls_x509_crt crt;
+    mbedtls_x509_crt_init(&crt);
+    if (parse_cert(srv_crt, crt)) {
+      const time_t from = x509_epoch(crt.valid_from), to = x509_epoch(crt.valid_to);
+      due = to - now < kRenewDays * 86400LL || to - from > kMaxServerDays * 86400LL;
+    }
+    mbedtls_x509_crt_free(&crt);
+  }
+  const bool named = names_covered(nvs_get("srv_names"), want);
+  if (srv_key.empty() || srv_crt.empty() || !named || due) {   // none, a name it goes by is new, or it runs out
+    ESP_LOGI(TAG, "Issuing the server certificate for %s%s", want.c_str(),
+             !clock ? " (the clock not set yet: anew once it is)" : due && named ? " (the old one runs out)" : "");
+    const std::string from = clock ? x509_time(now - 86400) : kNotBefore,   // a day back: a client's clock behind
+                      to = clock ? x509_time(now - 86400 + kServerDays * 86400LL) : kNotAfter;
     mbedtls_pk_context key, ca;
     mbedtls_pk_init(&key);
     mbedtls_pk_init(&ca);
     const std::string issuer = nvs_get("ca_dn");   // as the CA certificate has it
     const std::string subject = "CN=" + (names.dns.empty() ? name : names.dns.front()) + ",O=OHpanel";
     const bool ok = !issuer.empty() && (srv_key.empty() ? new_key(srv_key) : true) && parse_key(srv_key, key) &&
-                    parse_key(ca_key, ca) && issue(false, key, ca, subject, issuer, &names, srv_crt);
+                    parse_key(ca_key, ca) && issue(false, key, ca, subject, issuer, &names, srv_crt, from.c_str(), to.c_str());
     mbedtls_pk_free(&key);
     mbedtls_pk_free(&ca);
     if (!ok || !nvs_put({{"srv_key", srv_key}, {"srv_crt", srv_crt}, {"srv_names", want}}))

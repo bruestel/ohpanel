@@ -9,6 +9,8 @@
 
 #pragma once
 
+#include <ctime>
+
 #include "appcfg/Config.h"
 
 #include <cstdint>
@@ -132,6 +134,11 @@ struct Time {
   int64_t boot_epoch_ms = 0;  // epoch time at which the uptime clock read zero
 };
 Time time_info();
+
+/* The time from another source (openHAB's answers: their Date header) while NTP has not set the clock -- a network
+   without a way to a time server: the clock, and the dates of the panel's https certificate, from it. NTP, once it
+   answers, wins; the source only corrects a clock more than 2 s off. */
+void set_time_fallback(time_t now, const char *source);
 
 /* Takes the time server and timezone from the settings (appcfg::clock): sets
    TZ, and restarts SNTP if it runs with another server. Call at boot, before

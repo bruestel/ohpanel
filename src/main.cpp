@@ -359,6 +359,8 @@ extern "C" void app_main() {
   for (int i = 0; i < 2; i++)
     appdisplay::relay_state(i, appcfg::relay(i));
 
+  // openHAB's answers carry the time: the clock from them while NTP has not set it (a network without internet)
+  appoh::set_server_time_listener([](time_t t) { appnet::set_time_fallback(t, "openHAB"); });
   appoh::begin([](const std::string &item, const appoh::ItemState &) { appdisplay::state_changed(item); });
   apply_panel();
 

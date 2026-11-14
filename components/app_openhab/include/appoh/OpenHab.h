@@ -20,6 +20,7 @@
 #include "appcfg/Config.h"
 
 #include <cstdint>
+#include <ctime>
 #include <functional>
 #include <map>
 #include <string>
@@ -41,6 +42,10 @@ struct ItemState {
 /* Called on the client's stream task for every state that arrives, the
    snapshot after (re)subscribing included. Keep it short. */
 using StateCallback = std::function<void(const std::string &item, const ItemState &state)>;
+
+/* The time openHAB's answers carry (their Date header, seconds since 1970, UTC), handed on as they come: a clock
+   for a panel without NTP. Set before begin(). */
+void set_server_time_listener(std::function<void(time_t)> listener);
 
 /* Starts the client tasks. Nothing connects until on_network(true). */
 bool begin(StateCallback on_state = {});

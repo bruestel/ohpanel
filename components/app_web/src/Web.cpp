@@ -888,7 +888,9 @@ void start_tls() {
 
 void tls_task(void *) {
   for (;;) {
-    ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
+    // an address that changed, else once an hour: the server certificate issued anew when it runs out (Tls.cpp),
+    // or once the clock is set after it was issued without
+    ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(3600 * 1000));
     start_tls();
   }
 }

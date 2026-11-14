@@ -22,9 +22,13 @@
 #include <freertos/semphr.h>
 #include <freertos/task.h>
 
+#include <strings.h>
+
 #include <algorithm>
 #include <atomic>
+#include <cstdio>
 #include <cstdlib>
+#include <cstring>
 #include <map>
 
 namespace appoh {
@@ -129,9 +133,37 @@ bool enqueue(Job *job) {
   return true;
 }
 
+std::function<void(time_t)> g_on_server_time;
+
+/* "Sat, 14 Nov 2026 12:00:00 GMT" (RFC 9110's form) in seconds since 1970; 0 if it is not that. */
+time_t http_date(const char *text) {
+  static const char *const kMonths = "JanFebMarAprMayJunJulAugSepOctNovDec";
+  char mon[4] = "";
+  int d, y, h, mi, se;
+  if (std::sscanf(text, "%*3s, %d %3s %d %d:%d:%d", &d, mon, &y, &h, &mi, &se) != 6)
+    return 0;
+  const char *at = std::strstr(kMonths, mon);
+  if (!at || mon[0] == 0 || (at - kMonths) % 3)
+    return 0;
+  const int m = static_cast<int>(at - kMonths) / 3 + 1;
+  // days from 1970-01-01 (Howard Hinnant's days_from_civil)
+  const int yy = y - (m <= 2), era = yy / 400, yoe = yy - era * 400;
+  const int doy = (153 * (m + (m > 2 ? -3 : 9)) + 2) / 5 + d - 1, doe = yoe * 365 + yoe / 4 - yoe / 100 + doy;
+  return static_cast<time_t>((era * 146097LL + doe - 719468) * 86400 + h * 3600 + mi * 60 + se);
+}
+
+esp_err_t on_http_event(esp_http_client_event_t *e) {
+  if (e->event_id == HTTP_EVENT_ON_HEADER && g_on_server_time && e->header_key && e->header_value &&
+      strcasecmp(e->header_key, "Date") == 0)
+    if (const time_t t = http_date(e->header_value))
+      g_on_server_time(t);
+  return ESP_OK;
+}
+
 esp_http_client_handle_t make_client(const appcfg::OpenHab &cfg, const std::string &url, int timeout_ms,
                                      bool keep_session = false) {
   esp_http_client_config_t hc = {};
+  hc.event_handler = on_http_event;   // openHAB's Date: a clock without NTP
   hc.url = url.c_str();
   hc.timeout_ms = timeout_ms;
   hc.buffer_size = 2048;
@@ -522,6 +554,8 @@ void worker_task(void *) {
 }
 
 }  // namespace
+
+void set_server_time_listener(std::function<void(time_t)> listener) { g_on_server_time = std::move(listener); }
 
 bool begin(StateCallback on_state) {
   g_on_state = std::move(on_state);

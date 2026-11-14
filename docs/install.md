@@ -178,7 +178,10 @@ Each panel is set up on its own. To start a second one like the first:
   hotspot, before it even has a network. Then give it its own name under **Device**.
 - **HTTPS:** each panel makes a certificate authority (CA) of its own, to be trusted once per device. For
   several panels, make one CA (`tools/make_ca.sh "My home CA"`) and upload it to each under
-  **Security → Use your own CA**: then your devices trust all panels at once.
+  **Security → Use your own CA**: then your devices trust all panels at once. The server certificate the CA
+  issues is valid for 820 days (Apple's devices take none longer than 825) and is issued anew 30 days before it
+  runs out, by the same CA: a device that trusts the CA notices nothing. The dates come from the panel's clock:
+  from NTP, else from openHAB's answers (a network without internet).
 - **A certificate of your own**, from Let's Encrypt for example: see below.
 
 ## A server certificate of your own

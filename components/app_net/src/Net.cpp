@@ -84,6 +84,7 @@ esp_timer_handle_t g_sta_retry_timer = nullptr;
 esp_timer_handle_t g_unpin_timer = nullptr;
 
 bool g_time_synced = false;
+std::atomic<bool> g_time_ntp{false};   // set by NTP: a fallback (set_time_fallback) no more
 
 void on_time_sync(struct timeval *tv) {
   char buf[32] = "";
@@ -93,6 +94,7 @@ void on_time_sync(struct timeval *tv) {
   strftime(buf, sizeof(buf), "%Y-%m-%d %H:%M:%S", &utc);
   ESP_LOGI(TAG, "Clock %s from NTP: %s UTC", g_time_synced ? "corrected" : "set", buf);
   g_time_synced = true;
+  g_time_ntp = true;
 }
 
 /* Started once the station has an address, never in AP mode -- there is no
@@ -911,6 +913,23 @@ bool scan(std::vector<Network> &out) {
                    security_of(r.authmode)});
   }
   return true;
+}
+
+void set_time_fallback(time_t now, const char *source) {
+  if (g_time_ntp.load() || now < 1735689600)   // NTP's word counts; a time before 2025 is none
+    return;
+  struct timeval tv = {};
+  gettimeofday(&tv, nullptr);
+  if (g_time_synced && std::llabs(static_cast<long long>(now) - static_cast<long long>(tv.tv_sec)) <= 2)
+    return;   // close enough (the source's time is in whole seconds)
+  const struct timeval set = {now, 0};
+  settimeofday(&set, nullptr);
+  char buf[32] = "";
+  struct tm utc;
+  gmtime_r(&now, &utc);
+  strftime(buf, sizeof(buf), "%Y-%m-%d %H:%M:%S", &utc);
+  ESP_LOGI(TAG, "Clock %s from %s (no NTP): %s UTC", g_time_synced ? "corrected" : "set", source, buf);
+  g_time_synced = true;
 }
 
 Time time_info() {
