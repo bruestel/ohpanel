@@ -416,8 +416,14 @@ bool ensure(const Names &given, std::string &chain_pem, std::string &key_pem, bo
   }
   Names names = given;   // and the names the user added
   for (const std::string &h : split(nvs_get("hosts")))
-    if (h.find('/') == std::string::npos)   // a prefix: the addresses in it come with `given` (covered())
+    if (h.find('/') == std::string::npos) {   // a prefix: the addresses in it come with `given` (covered())
       names.dns.push_back(h);
+      /* and the names right under it, as the CA may vouch for them (name_constraints): "kitchen.panel.home.example"
+         under an added "panel.home.example" -- a wildcard covers one label, and none under a single label
+         ("*.example": browsers refuse it) */
+      if (h.find('.') != std::string::npos)
+        names.dns.push_back("*." + h);
+    }
   std::string ca_key = nvs_get("ca_key"), ca_crt = nvs_get("ca_crt");
   const std::string name = device_name(names);
   if ((ca_key.empty() || ca_crt.empty()) && nvs_get("ca_own") != "1") {   // the first start: the CA
