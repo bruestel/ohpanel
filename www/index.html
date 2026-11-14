@@ -8198,13 +8198,14 @@ function pvThermostatEditor(box, head, hint, page) {
       setTimeout(again, 700);
     }
     const fromOptions = !modes.length && om && om.known ? om.list.slice(0, 4) : [];
+    // the four rows as typed: a name typed before what it sends is kept here until it has a value (the schema
+    // wants one) -- it was dropped before, the mode saved with "label": "" (forum #143)
+    const rows = [0, 1, 2, 3].map(k => Object.assign({}, modes[k] || {}));
     for (let k = 0; k < 4; k++) {
       const m = modes[k] || {}, ph = fromOptions[k];
       const set = (key, v) => pvEdit((c, p) => {
-        const list = Array.isArray(p.modes) ? p.modes : [];
-        while (list.length <= k) list.push({label: '', value: ''});
-        if (v) list[k][key] = v; else delete list[k][key];
-        p.modes = list.filter(e => e.value);
+        if (v) rows[k][key] = v; else delete rows[k][key];
+        p.modes = rows.filter(e => e.value).map(e => e.label ? {label: e.label, value: e.value} : {value: e.value});
         if (!p.modes.length) delete p.modes;
       });
       box.append(two(field('Mode ' + (k + 1), textInput(m.label, v => set('label', v), {maxLength: 16, placeholder: ph ? ph.label || ph.value : k ? '' : 'e.g. Auto'})),
