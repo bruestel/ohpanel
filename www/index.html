@@ -8284,8 +8284,10 @@ function pvCoverEditor(box, head, hint, page) {
   box.append(pvRow(field('Up sends', cmd('open', 'UP')), field('Stop sends', cmd('stop', 'STOP')),
                    field('Down sends', cmd('close', 'DOWN'))));
   if (grouped) {
-    box.append(note('A member taking up / stop / down on an item of its own (a String item beside a Dimmer) names it in '
-                  + 'its metadata: ' + ns + '=" " [command_item="Curtain_Command"].'));
+    box.append(note('The table\'s "Moving item" and "Command item" come from each member\'s metadata too, set in openHAB '
+                  + '(the item, Add Metadata, namespace "' + ns + '"): an item saying UP / DOWN / STOP while the cover moves, '
+                  + ns + '=" " [moving="Curtain_Moving"]; an item of its own taking up / stop / down (a String item beside '
+                  + 'a Dimmer), ' + ns + '=" " [command_item="Curtain_Command"]. Both optional: "–" is none.'));
   } else {
     const ci = (page.commands || {}).item || '';
     box.append(two(field('Command item (optional)', itemField(ci, v => pvEdit((c, p) => {
