@@ -1033,20 +1033,26 @@ not set yet shows "–", a text that is no such JSON (or more than 6 KB) shows
 as it is. The home screen takes today's icon, high and low from the same
 item with `"weather_feed": {"item": "Weather_Days", "codes": "bom"}`.
 
-A rule for the Bureau of Meteorology's forecast (JavaScript Scripting): `BOMdata`
-holds the daily forecast as it comes from BOM's API, as
-[openhab3-BOM-program](https://github.com/ubeaut/openhab3-BOM-program) writes it:
+A rule for the Bureau of Meteorology's forecast (JavaScript Scripting), by ubeaut: it fetches the daily
+forecast straight from BOM's API every two hours (poll it no more often) and writes `Weather_Days`. `geohash`
+is your place's: look it up with your coordinates, e.g.
+`https://api.weather.bom.gov.au/v1/locations?search=-27.4705,153.0260` (Brisbane) gives `"geohash": "r7hgdpn"`.
 
 ```javascript
+const geohash = 'r7hgdpn';         // your place's (see above)
+const target = 'Weather_Days';     // the item the panel reads
+
 rules.JSRule({
   name: 'OHpanel weather from BOM',
-  triggers: [triggers.ItemStateChangeTrigger('BOMdata')],
+  triggers: [triggers.GenericCronTrigger('0 5 */2 * * ?'), triggers.SystemStartlevelTrigger(100)],
   execute: () => {
+    const text = actions.HTTP.sendHttpGetRequest('https://api.weather.bom.gov.au/v1/locations/' + geohash
+                                                 + '/forecasts/daily', 30000);
     let bom;
     try {
-      bom = JSON.parse(items.BOMdata.state);
+      bom = JSON.parse(text);
     } catch (e) {
-      items.Weather_Days.postUpdate('BOM data not readable');
+      items[target].postUpdate('BOM data not readable');
       return;
     }
     const days = (bom.data || []).slice(0, 7).map(d => {
@@ -1067,10 +1073,14 @@ rules.JSRule({
     const now = bom.data && bom.data[0] && bom.data[0].now;
     if (now && now.temp_now !== null && now.temp_now !== undefined)
       out.now = {temp: now.temp_now};
-    items.Weather_Days.postUpdate(JSON.stringify(out));
+    items[target].postUpdate(JSON.stringify(out));
   }
 });
 ```
+
+Already fetching BOM's forecast into an item (say with
+[openhab3-BOM-program](https://github.com/ubeaut/openhab3-BOM-program), as `BOMdata`)? Then trigger on that item
+instead (`triggers.ItemStateChangeTrigger('BOMdata')`) and parse `items.BOMdata.state` in place of fetching.
 
 A rule for the Open-Meteo binding's daily time series (the binding's default):
 the coming days of its items (linked to the `forecastDaily` channels) are kept
