@@ -80,8 +80,8 @@ void Engine::draw_image(const cJSON *page) {
   const std::string key = image_refresh_s(page) > 0 ? source + "#" + std::to_string(image_gen_) : source;
   if (drawn == key)
     return;
-  // the first one as the display's settings say (cover_reveal), one over it from the top: a camera's next picture
-  const std::string reveal = drawn.empty() ? settings_.cover_reveal : "wipe";
+  // as the display's settings say (cover_reveal), as the media page's cover -- a picture fetched again too
+  const std::string &reveal = settings_.cover_reveal;
   if (cover_ && cover_->source == key) {
     if (cover_->picture && !cover_->picture->rects.empty() && !(cover_job_ && cover_job_->source == key))
       cover_job_ = CoverJob{key, 0};

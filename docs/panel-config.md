@@ -1144,8 +1144,8 @@ A QR code on a white card, drawn by the panel itself, with a caption of up to tw
 
 One picture under the title, as large as the page has room for, its shape kept: a camera's snapshot, a picture
 openHAB holds. The panel fetches it and draws it itself, in points of 3 x 3 pixels (the display takes no picture at
-runtime: a photo is a few thousand rectangles, 2 to 3 seconds to draw, from the middle outwards as
-`display.cover_reveal` says; a picture fetched again is drawn over the last one from the top).
+runtime: a photo is a few thousand rectangles, a few seconds to draw; it appears as `display.cover_reveal` says,
+as the media page's cover, a picture fetched again over the last one too).
 
 | Key | Value | |
 |---|---|---|
