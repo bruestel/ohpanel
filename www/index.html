@@ -198,6 +198,10 @@ input[type=checkbox]:focus:not(:focus-visible){outline:none}  /* a click leaves 
 #uTestBox .sub{color:var(--dim);font-size:13px}
 #uMsg{margin-top:.45rem}
 #uNotes{color:var(--theme);font-size:14px;margin-left:.25rem}
+.doclink{float:right;font-size:12px;font-weight:400;color:var(--theme);text-decoration:none;margin-left:.5rem}
+.doclink:hover{text-decoration:underline}
+.helplinks{margin:.4rem 0 0;padding-left:1.1rem;line-height:1.9}
+.helplinks a{color:var(--theme)}
 button.b,a.b{appearance:none;height:2rem;padding:0 .9rem;font-size:14px;font-weight:600;cursor:pointer;
          color:#fff;background:var(--theme-shade);border:1px solid var(--theme-shade);border-radius:6px}
 button.b:hover,a.b:hover{background:var(--theme);border-color:var(--theme)}
@@ -783,6 +787,7 @@ pre.box{margin:0;padding:.6rem .7rem;max-height:18rem;overflow:auto;background:v
         <button data-tab="maintenance"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12,4C14.1,4 16.1,4.8 17.6,6.3C20.7,9.4 20.7,14.5 17.6,17.6C15.8,19.5 13.3,20.2 10.9,19.9L11.4,17.9C13.1,18.1 14.9,17.5 16.2,16.2C18.5,13.9 18.5,10.1 16.2,7.7C15.1,6.6 13.5,6 12,6V10.6L7,5.6L12,0.6V4M6.3,17.6C3.7,15 3.3,11 5.1,7.9L6.6,9.4C5.5,11.6 5.9,14.4 7.8,16.2C8.3,16.7 8.9,17.1 9.6,17.4L9,19.4C8,19 7.1,18.4 6.3,17.6Z"/></svg>Maintenance</button>
       </div>
       <button data-tab="diagnostics"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19,8C19.56,8 20,8.43 20,9A1,1 0 0,1 19,10C18.43,10 18,9.55 18,9C18,8.43 18.43,8 19,8M2,2V11C2,13.96 4.19,16.5 7.14,16.91C7.76,19.92 10.42,22 13.5,22A6.5,6.5 0 0,0 20,15.5V11.81C21.16,11.39 22,10.29 22,9A3,3 0 0,0 19,6A3,3 0 0,0 16,9C16,10.29 16.84,11.4 18,11.81V15.41C18,17.91 16,19.91 13.5,19.91C11.5,19.91 9.82,18.7 9.22,16.9C12,16.3 14,13.8 14,11V2H10V5H12V11A4,4 0 0,1 8,15A4,4 0 0,1 4,11V5H6V2H2Z"/></svg>Diagnostics</button>
+      <button data-tab="help"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M11,18H13V16H11V18M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M12,20C7.59,20 4,16.41 4,12C4,7.59 7.59,4 12,4C16.41,4 20,7.59 20,12C20,16.41 16.41,20 12,20M12,6A4,4 0 0,0 8,10H10A2,2 0 0,1 12,8A2,2 0 0,1 14,10C14,12 11,11.75 11,15H13C13,12.75 16,12.5 16,10A4,4 0 0,0 12,6Z"/></svg>Help</button>
   </nav>
   <!-- how this page came (as the lock on top): over http with the way to https, over https encrypted -->
   <div class="sidesec" id="sideSec" hidden>
@@ -848,7 +853,7 @@ pre.box{margin:0;padding:.6rem .7rem;max-height:18rem;overflow:auto;background:v
       </div>
     </div>
     <div class="card">
-      <h2>Display</h2>
+      <h2 data-doc="docs/install.md#write-the-display-design">Display</h2>
       <p class="sub">What the display reports about itself.</p>
       <div class="stats">
         <div class="stat"><b id="sDModel">–</b><span>Model</span></div>
@@ -875,7 +880,7 @@ pre.box{margin:0;padding:.6rem .7rem;max-height:18rem;overflow:auto;background:v
       </div>
     </div>
     <div class="card">
-      <h2>openHAB</h2>
+      <h2 data-doc="docs/install.md#connect-openhab">openHAB</h2>
       <p class="sub">The connection to openHAB's event stream.</p>
       <div class="stats">
         <div class="stat"><b id="sOpenhab">–</b><span>State</span></div>
@@ -888,7 +893,7 @@ pre.box{margin:0;padding:.6rem .7rem;max-height:18rem;overflow:auto;background:v
   <!-- WLAN -->
   <section data-page="wifi" hidden>
     <div class="card">
-      <h2>WiFi</h2>
+      <h2 data-doc="docs/install.md#join-your-wifi">WiFi</h2>
       <p class="sub">The home network the panel joins.</p>
       <div id="wNow" hidden>
         <div class="stats">
@@ -939,7 +944,7 @@ pre.box{margin:0;padding:.6rem .7rem;max-height:18rem;overflow:auto;background:v
       </form>
     </div>
     <div class="card">
-      <h2>Setup hotspot</h2>
+      <h2 data-doc="docs/install.md#join-your-wifi">Setup hotspot</h2>
       <p class="sub">Opens when the panel cannot reach its network, or when the right button on the panel is held
         for 15 seconds (the panel then leaves its network for 10 minutes; a short press on either button closes it
         again, doing what it always does as well). It is an open network named like the panel; the display shows its name and a QR code to join, the
@@ -953,7 +958,7 @@ pre.box{margin:0;padding:.6rem .7rem;max-height:18rem;overflow:auto;background:v
   <!-- openHAB -->
   <section data-page="openhab" hidden>
     <div class="card">
-      <h2>openHAB</h2>
+      <h2 data-doc="docs/install.md#connect-openhab">openHAB</h2>
       <p class="sub">The panel reads item states from openHAB and sends commands to it through the REST API.</p>
       <div class="offer" id="hFound"></div>
       <form id="hForm">
@@ -1005,7 +1010,7 @@ pre.box{margin:0;padding:.6rem .7rem;max-height:18rem;overflow:auto;background:v
   <!-- Panel -->
   <section data-page="panel" hidden>
     <div class="card">
-      <h2>Preview</h2>
+      <h2 data-doc="docs/install.md#your-first-pages">Preview</h2>
       <p class="sub">Layout, fonts and pictures come from the display design; values are live from openHAB where
         the panel already receives them.</p>
       <div class="row" style="margin-bottom:.75rem">
@@ -1035,7 +1040,7 @@ pre.box{margin:0;padding:.6rem .7rem;max-height:18rem;overflow:auto;background:v
       </div>
     </div>
     <div class="card">
-      <h2>Display</h2>
+      <h2 data-doc="docs/panel-config.md#display">Display</h2>
       <p class="sub">How the panel's screen looks (time and date formats: the clock in the preview's edit mode).</p>
       <div class="screen wide">
         <label>Background<select id="vBg"></select></label>
@@ -1049,7 +1054,7 @@ pre.box{margin:0;padding:.6rem .7rem;max-height:18rem;overflow:auto;background:v
       <div class="themerow" id="vTheme"></div>
     </div>
     <div class="card">
-      <h2>Pages</h2>
+      <h2 data-doc="docs/panel-config.md#pages">Pages</h2>
       <p class="sub">Swiping goes through the swipe row in this order. Its first page (★) is the start page: the
         panel starts there and goes back to it; drag a page by its handle to order it. Lights, covers, media players
         and favourites open from a tile or a shortcut, every other page can go into the row too.</p>
@@ -1067,14 +1072,14 @@ pre.box{margin:0;padding:.6rem .7rem;max-height:18rem;overflow:auto;background:v
     </div>
     <div class="tiles">
       <div class="card">
-        <h2>Screen</h2>
+        <h2 data-doc="docs/panel-config.md#display">Screen</h2>
         <p class="sub">How bright it is in use and idle, and off at night: then a touch only wakes it. Each number
           can be kept in step with an openHAB item (a Dimmer or Number): a change there comes here, a change here
           goes there.</p>
         <div id="vScreen" class="screen"></div>
       </div>
       <div class="card">
-        <h2>Notifications</h2>
+        <h2 data-doc="docs/panel-config.md#display">Notifications</h2>
         <p class="sub">A String item: each new state shows as a card over the page, until it is touched.
           <code>level|title|text</code>, the level <code>info</code> (blue), <code>warning</code> (yellow) or
           <code>alert</code> (red); empty or NULL takes it away. A touch that closes it sets the item to NULL: a
@@ -1092,7 +1097,7 @@ pre.box{margin:0;padding:.6rem .7rem;max-height:18rem;overflow:auto;background:v
         </div>
       </div>
       <div class="card">
-        <h2>Sound</h2>
+        <h2 data-doc="docs/panel-config.md#display">Sound</h2>
         <p class="sub">The buzzer: a tone for each touch that does something and one for each level of
           notification (by default info rising, warning falling, alert alarm), an item that plays a tone or a
           melody, and melodies of your own. Each
@@ -1101,7 +1106,7 @@ pre.box{margin:0;padding:.6rem .7rem;max-height:18rem;overflow:auto;background:v
         <div id="vSound" class="screen"></div>
       </div>
       <div class="card">
-        <h2>Pages and openHAB</h2>
+        <h2 data-doc="docs/panel-config.md#display">Pages and openHAB</h2>
         <h3 class="screenh">Open a page</h3>
         <p class="sub">A String item: a page id set on it (or <code>home</code>, <code>info</code>,
           <code>settings</code>) opens that page and wakes the screen. The panel then sets the item to NULL, so a
@@ -1115,7 +1120,7 @@ pre.box{margin:0;padding:.6rem .7rem;max-height:18rem;overflow:auto;background:v
       </div>
     </div>
     <div class="card">
-      <h2>Advanced</h2>
+      <h2 data-doc="docs/panel-config.md">Advanced</h2>
       <p class="sub">The whole configuration of the display: the preview, the pages and the display settings edit it,
         Save (on top) stores it on the panel. The format is described in docs/panel-config.md; saving checks it and
         lists what is wrong.</p>
@@ -1226,7 +1231,7 @@ pre.box{margin:0;padding:.6rem .7rem;max-height:18rem;overflow:auto;background:v
       </form>
     </div>
     <div class="card">
-      <div class="tlshead"><h2>HTTPS</h2><span class="tlspill" id="tState"><span class="dot" aria-hidden="true"></span>&nbsp;</span></div>
+      <div class="tlshead"><h2 data-doc="docs/install.md#a-server-certificate-of-your-own">HTTPS</h2><span class="tlspill" id="tState"><span class="dot" aria-hidden="true"></span>&nbsp;</span></div>
       <p class="sub">Encrypted access with a certificate from the panel's certificate authority (CA). Install the CA once
         on each device and the browser opens the panel without a warning. The CA vouches for local names and private
         addresses only, nothing on the internet.</p>
@@ -1279,7 +1284,7 @@ pre.box{margin:0;padding:.6rem .7rem;max-height:18rem;overflow:auto;background:v
   </section>
   <section data-page="firmware" hidden>
     <div class="card">
-      <h2>Updates</h2>
+      <h2 data-doc="docs/install.md#updates">Updates</h2>
       <p class="sub">Looks for a newer OHpanel on GitHub. The browser fetches it and hands it to the panel: the
         browser needs the internet, the panel does not.</p>
       <label class="check" id="uTestBox"><input type="checkbox" role="switch" id="uTest"> Test builds too
@@ -1304,7 +1309,7 @@ pre.box{margin:0;padding:.6rem .7rem;max-height:18rem;overflow:auto;background:v
       <div class="msg" id="oMsg"></div>
     </div>
     <div class="card">
-      <h2>Display firmware</h2>
+      <h2 data-doc="docs/install.md#write-the-display-design">Display firmware</h2>
       <p class="sub">The design running on the screen itself (<span id="tName">ohpanel-nspanel-eu-display-&lt;version&gt;.tft</span>). Writing it takes
         under three minutes; the screen reboots afterwards.</p>
       <div class="msg err" id="tOutdated" hidden></div>
@@ -1354,7 +1359,7 @@ pre.box{margin:0;padding:.6rem .7rem;max-height:18rem;overflow:auto;background:v
   </section>
   <section data-page="diagnostics" hidden>
     <div class="card">
-      <h2>Diagnostics</h2>
+      <h2 data-doc="docs/install.md#when-something-goes-wrong">Diagnostics</h2>
       <p class="sub">The tasks with their share of a core (since the last look, every 2 seconds while this page
         is open) and their stack headroom; heap and a stored crash report, if any, in the raw data.</p>
       <div class="msg err" id="hCrash" hidden></div>
@@ -1392,6 +1397,38 @@ pre.box{margin:0;padding:.6rem .7rem;max-height:18rem;overflow:auto;background:v
       <label class="check" style="margin-top:.6rem"><input type="checkbox" role="switch" id="dCmdLog"> Log every command the firmware
         sends to the display (until the next reboot)</label>
       <div class="msg" id="dCmdMsg"></div>
+    </div>
+  </section>
+  <section data-page="help" hidden>
+    <div class="card">
+      <h2>Documentation</h2>
+      <p class="sub">On GitHub, as it is for the firmware running here (<span id="helpVer">–</span>). The cards in
+        the other pages link to their part too (Docs next to their title).</p>
+      <ul class="helplinks">
+        <li><a data-doc="README.md#quick-start">Getting started</a> <span class="sub">what it does, what you need, the first steps</span></li>
+        <li><a data-doc="docs/install.md">Installation</a> <span class="sub">flashing, WiFi, openHAB, the display design, updates</span></li>
+        <li><a data-doc="docs/panel-config.md">Panel configuration</a> <span class="sub">every page type, the home screen and the display settings, with examples</span></li>
+        <li><a data-doc="docs/openhab-items.md">openHAB items</a> <span class="sub">the items the examples use</span></li>
+        <li><a data-doc="docs/weather-codes.md">Weather codes</a> <span class="sub">which code shows which icon</span></li>
+        <li><a data-doc="docs/install.md#when-something-goes-wrong">When something goes wrong</a></li>
+      </ul>
+    </div>
+    <div class="card">
+      <h2>Questions and ideas</h2>
+      <p class="sub">The browser opens them; the panel itself needs no internet.</p>
+      <ul class="helplinks">
+        <li><a href="https://community.openhab.org/t/170724" target="_blank" rel="noopener">openHAB Community</a> <span class="sub">questions, ideas, what others built</span></li>
+        <li><a href="https://github.com/bruestel/ohpanel/issues" target="_blank" rel="noopener">GitHub issues</a> <span class="sub">a bug or a wish (the log under Diagnostics helps)</span></li>
+      </ul>
+    </div>
+    <div class="card">
+      <h2>About</h2>
+      <p class="sub">OHpanel <b id="helpVer2">–</b>, open-source firmware for the Sonoff NSPanel that talks to openHAB directly.</p>
+      <ul class="helplinks">
+        <li><a id="helpNotes" data-doc="docs/releases/">What is new in this version</a></li>
+        <li><a data-doc="">Source code</a></li>
+        <li><a data-doc="LICENSE">License</a> · <a data-doc="THIRD-PARTY-NOTICES.md">Third-party notices</a> <span class="sub">icons, fonts, libraries</span></li>
+      </ul>
     </div>
   </section>
 </main>
@@ -1510,7 +1547,7 @@ function loadLayout() {
 }
 const $ = id => document.getElementById(id);
 const TABS = ['status', 'panel', 'wifi', 'openhab', 'device', 'sensor', 'security', 'firmware', 'maintenance',
-              'diagnostics'];
+              'diagnostics', 'help'];
 
 function setMsg(el, text, kind) {
   el.textContent = text || '';
@@ -1813,6 +1850,35 @@ $('lockChip').addEventListener('click', ev => { ev.stopPropagation(); lockPop($(
 $('lockCa').addEventListener('click', () => lockPop(false));
 document.addEventListener('click', ev => { if (!$('secWrap').contains(ev.target)) lockPop(false); });
 document.addEventListener('keydown', ev => { if (ev.key === 'Escape') lockPop(false); });
+
+/* Help: links into the docs on GitHub, as they are for the running firmware (its tag; a build of no release: main).
+   A card's title with data-doc gets a "Docs" link beside it, a link with data-doc its address; the page editor
+   links its page type's part (pvDocLink). */
+const DOCS_REPO = 'https://github.com/bruestel/ohpanel';
+let DOCS_REF = 'main';
+function docUrl(path) {
+  return DOCS_REPO + (path ? '/blob/' + DOCS_REF + '/' + path : '');
+}
+function relinkDocs(version) {
+  if (version) DOCS_REF = /^\d+\.\d+\.\d+(-rc\d+)?$/.test(version) ? 'v' + version : 'main';
+  document.querySelectorAll('h2[data-doc]').forEach(h => {
+    let a = h.querySelector('.doclink');
+    if (!a) {
+      a = document.createElement('a');
+      a.className = 'doclink'; a.target = '_blank'; a.rel = 'noopener'; a.textContent = 'Docs';
+      h.append(a);
+    }
+    a.href = docUrl(h.dataset.doc);
+  });
+  document.querySelectorAll('a[data-doc]').forEach(a => {
+    a.href = docUrl(a.dataset.doc); a.target = '_blank'; a.rel = 'noopener';
+  });
+  if (version) {
+    $('helpVer').textContent = $('helpVer2').textContent = version;
+    if (DOCS_REF !== 'main') $('helpNotes').href = docUrl('docs/releases/' + version + '.md');
+  }
+}
+relinkDocs();
 
 function showTab(name) {
   if (TABS.indexOf(name) < 0) name = 'status';
@@ -2120,6 +2186,7 @@ async function refreshInfo() {
   $('hdrNet').textContent = n.provisioning ? 'hotspot ' + n.ssid : (STATE_TEXT[n.state] || n.state);
 
   $('sVersion').textContent = info.version;
+  relinkDocs(info.version);
   $('sPanel').textContent = {eu: 'NSPanel EU', us: 'NSPanel US', 'us-landscape': 'NSPanel US (landscape)'}[info.variant]
                             || 'NSPanel ' + (info.variant || 'eu').toUpperCase();
   $('sUptime').textContent = fmtUptime(info.uptime_s);
@@ -6877,6 +6944,15 @@ function colorField(value, onChange, dflt, dfltColor, custom = true, none = 'def
   return box;
 }
 
+/* The docs' part on the page in the editor (its type's; home: the home screen's), beside its heading. */
+const PAGE_DOCS = {buttons: 'buttons-up-to-8-buttons', entities: 'entities-a-list-of-states',
+                   media_favorites: 'media_favorites-stations-to-choose-from', settings: 'the-settings-page'};
+function pvDocLink(page) {
+  const a = document.createElement('a');
+  a.className = 'doclink'; a.target = '_blank'; a.rel = 'noopener'; a.textContent = 'Docs';
+  a.href = docUrl('docs/panel-config.md#' + (page ? PAGE_DOCS[page.type] || page.type : 'home-screen'));
+  return a;
+}
 function pvEditor() {
   const box = $('vEd'), page = pvPage(PV.page);
   const key = [PV.edit, PV.page, PV.target, PV.sheet].join('/');   // (a weather page's tabs follow its sheet)
@@ -6891,7 +6967,7 @@ function pvEditor() {
   const head = document.createElement('h3');
   const hint = document.createElement('p');
   hint.className = 'sub';
-  box.append(head, hint);
+  box.append(pvDocLink(page), head, hint);
   const kind = page && PAGE_KINDS[page.type];
   if (kind && kind.editor) {   // a page with a form of its own (a button page: its tiles, below)
     kind.editor(box, head, hint, page);
