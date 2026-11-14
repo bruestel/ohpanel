@@ -25,6 +25,8 @@ bool space(char c) { return c == ' ' || c == '\t' || c == '\n' || c == '\r'; }
 
 }  // namespace
 
+std::map<std::string, uint32_t> StateStream::counts_;
+
 std::string rest_state_path(const std::string &item, uint64_t version) {
   char v[17];
   std::snprintf(v, sizeof(v), "%016llx", static_cast<unsigned long long>(version));

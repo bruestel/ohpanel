@@ -637,11 +637,11 @@ int main(int argc, char **argv) {
     CHECK(pictures.size() == 1);
     if (!pictures.empty()) {
       const auto &[source, w, h, scale] = pictures.back();
-      CHECK(source == "http://cam/x.jpg#0" && scale == 3 && w == (450 - 20) / 3 && h == (320 - 40 - 32) / 3);
+      CHECK(source == "http://cam/x.jpg#ohpanel:img0" && scale == 3 && w == (450 - 20) / 3 && h == (320 - 40 - 32) / 3);
     }
     std::vector<uint8_t> px(16 * 9 * 3, 200);
     rec.out.clear();
-    e.on_cover("http://cam/x.jpg#0", std::make_shared<Cover>(picture_rects(px.data(), 16, 9, 3, 8)));
+    e.on_cover("http://cam/x.jpg#ohpanel:img0", std::make_shared<Cover>(picture_rects(px.data(), 16, 9, 3, 8)));
     int64_t t = 5000000;
     for (int i = 0; i < 40 && e.pending(); i++)
       e.idle(t += 50);
@@ -652,9 +652,9 @@ int main(int argc, char **argv) {
     // its time come: fetched again, drawn over the one shown (the page not loaded anew)
     pictures.clear();
     e.idle(t += 10001);
-    CHECK(pictures.size() == 1 && std::get<0>(pictures.back()) == "http://cam/x.jpg#1");
+    CHECK(pictures.size() == 1 && std::get<0>(pictures.back()) == "http://cam/x.jpg#ohpanel:img1");
     rec.out.clear();
-    e.on_cover("http://cam/x.jpg#1", std::make_shared<Cover>(picture_rects(px.data(), 16, 9, 3, 8)));
+    e.on_cover("http://cam/x.jpg#ohpanel:img1", std::make_shared<Cover>(picture_rects(px.data(), 16, 9, 3, 8)));
     for (int i = 0; i < 40 && e.pending(); i++)
       e.idle(t += 50);
     CHECK(rec.has_prefix("fill ") && !rec.has_prefix("page "));
@@ -663,7 +663,7 @@ int main(int argc, char **argv) {
     e.idle(t += 10001);
     rec.out.clear();
     std::vector<uint8_t> tall(9 * 16 * 3, 90);
-    e.on_cover("http://cam/x.jpg#2", std::make_shared<Cover>(picture_rects(tall.data(), 9, 16, 3, 8)));
+    e.on_cover("http://cam/x.jpg#ohpanel:img2", std::make_shared<Cover>(picture_rects(tall.data(), 9, 16, 3, 8)));
     for (int i = 0; i < 5 && !rec.has_prefix("page "); i++)
       e.idle(t += 50);
     CHECK(rec.has_prefix("page "));
@@ -680,7 +680,7 @@ int main(int argc, char **argv) {
     rec.out.clear();
     e.on_message(loaded("qr"));
     CHECK(rec.has("title.txt=\"Door\""));
-    CHECK(pictures.size() == 1 && std::get<0>(pictures.back()) == "/rest/items/CamPic/state?v=0000000000000001" &&
+    CHECK(pictures.size() == 1 && std::get<0>(pictures.back()) == "/rest/items/CamPic/state?v=0000000000000001#ohpanel:img" &&
           std::get<3>(pictures.back()) == 2);
     // a new picture while one is being drawn: the old one goes on until the new one has come, then the new one
     // over it (the same shape: the page not anew), the rest of the old one left out; one between them is never drawn
@@ -688,7 +688,7 @@ int main(int argc, char **argv) {
       std::vector<uint8_t> a(40 * 40 * 3), b(40 * 40 * 3, 30);
       for (size_t i = 0; i < a.size(); i++)
         a[i] = static_cast<uint8_t>(i * 37);   // a noisy one: many rectangles, many parts to draw
-      e.on_cover("/rest/items/CamPic/state?v=0000000000000001", std::make_shared<Cover>(picture_rects(a.data(), 40, 40, 2, 8)));
+      e.on_cover("/rest/items/CamPic/state?v=0000000000000001#ohpanel:img", std::make_shared<Cover>(picture_rects(a.data(), 40, 40, 2, 8)));
       e.idle(t += 50);
       e.idle(t += 50);
       CHECK(e.pending());   // still drawing
@@ -696,13 +696,13 @@ int main(int argc, char **argv) {
       e.on_state("CamPic");
       set_state("CamPic", "/rest/items/CamPic/state?v=00000000000000bb", "Raw");
       e.on_state("CamPic");
-      CHECK(std::get<0>(pictures.back()) == "/rest/items/CamPic/state?v=00000000000000bb");
+      CHECK(std::get<0>(pictures.back()) == "/rest/items/CamPic/state?v=00000000000000bb#ohpanel:img");
       rec.out.clear();
       e.idle(t += 50);
       CHECK(rec.has_prefix("fill "));   // the old one goes on meanwhile
-      e.on_cover("/rest/items/CamPic/state?v=00000000000000aa", std::make_shared<Cover>(picture_rects(b.data(), 40, 40, 2, 8)));
+      e.on_cover("/rest/items/CamPic/state?v=00000000000000aa#ohpanel:img", std::make_shared<Cover>(picture_rects(b.data(), 40, 40, 2, 8)));
       e.idle(t += 50);
-      e.on_cover("/rest/items/CamPic/state?v=00000000000000bb", std::make_shared<Cover>(picture_rects(b.data(), 40, 40, 2, 8)));
+      e.on_cover("/rest/items/CamPic/state?v=00000000000000bb#ohpanel:img", std::make_shared<Cover>(picture_rects(b.data(), 40, 40, 2, 8)));
       rec.out.clear();
       for (int i = 0; i < 400 && e.pending(); i++)
         e.idle(t += 50);
@@ -717,13 +717,13 @@ int main(int argc, char **argv) {
     pictures.clear();
     set_state("CamPic", "/rest/items/CamPic/state?v=0000000000000001", "Raw");
     e.on_state("CamPic");
-    CHECK(pictures.size() == 1 && std::get<0>(pictures.back()) == "/rest/items/CamPic/state?v=0000000000000001");
-    e.on_cover("/rest/items/CamPic/state?v=0000000000000001", nullptr);   // it could not be fetched
+    CHECK(pictures.size() == 1 && std::get<0>(pictures.back()) == "/rest/items/CamPic/state?v=0000000000000001#ohpanel:img");
+    e.on_cover("/rest/items/CamPic/state?v=0000000000000001#ohpanel:img", nullptr);   // it could not be fetched
     e.idle(t += 60000);
     CHECK(pictures.size() == 1);   // no refresh: not again by itself
     set_state("CamPic", "/rest/items/CamPic/state?v=0000000000000002", "Raw");
     e.on_state("CamPic");
-    CHECK(pictures.size() == 2 && std::get<0>(pictures.back()) == "/rest/items/CamPic/state?v=0000000000000002");
+    CHECK(pictures.size() == 2 && std::get<0>(pictures.back()) == "/rest/items/CamPic/state?v=0000000000000002#ohpanel:img");
     e.set_config(read("test/host/data/office.json"));
     e.on_message(loaded("home"));
   }

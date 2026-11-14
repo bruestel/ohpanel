@@ -145,11 +145,7 @@ time_t http_date(const char *text) {
   const char *at = std::strstr(kMonths, mon);
   if (!at || mon[0] == 0 || (at - kMonths) % 3)
     return 0;
-  const int m = static_cast<int>(at - kMonths) / 3 + 1;
-  // days from 1970-01-01 (Howard Hinnant's days_from_civil)
-  const int yy = y - (m <= 2), era = yy / 400, yoe = yy - era * 400;
-  const int doy = (153 * (m + (m > 2 ? -3 : 9)) + 2) / 5 + d - 1, doe = yoe * 365 + yoe / 4 - yoe / 100 + doy;
-  return static_cast<time_t>((era * 146097LL + doe - 719468) * 86400 + h * 3600 + mi * 60 + se);
+  return utc_seconds(y, static_cast<int>(at - kMonths) / 3 + 1, d, h, mi, se);
 }
 
 esp_err_t on_http_event(esp_http_client_event_t *e) {
@@ -556,6 +552,12 @@ void worker_task(void *) {
 }  // namespace
 
 void set_server_time_listener(std::function<void(time_t)> listener) { g_on_server_time = std::move(listener); }
+
+time_t utc_seconds(int year, int month, int day, int hour, int minute, int second) {
+  const int y = year - (month <= 2), era = (y >= 0 ? y : y - 399) / 400, yoe = y - era * 400;
+  const int doy = (153 * (month + (month > 2 ? -3 : 9)) + 2) / 5 + day - 1, doe = yoe * 365 + yoe / 4 - yoe / 100 + doy;
+  return static_cast<time_t>((era * 146097LL + doe - 719468) * 86400 + hour * 3600 + minute * 60 + second);
+}
 
 bool begin(StateCallback on_state) {
   g_on_state = std::move(on_state);

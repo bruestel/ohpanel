@@ -31,6 +31,7 @@ namespace {
 
 const char *const TAG = "cover";
 constexpr size_t kMaxBytes = 400 * 1024;   // a cover as streaming services serve them: 640 px, up to ~150 KB
+constexpr const char *kKeyMark = "#ohpanel:";   // a key's mark after the address (Engine draw_image)
 constexpr size_t kPool = 3100;             // the decoder's work area (TJpgDec: 3100 bytes at most)
 
 struct Request {
@@ -156,7 +157,9 @@ std::vector<uint8_t> resize(const uint8_t *pixels, int iw, int ih, int w, int h)
 }
 
 std::shared_ptr<Cover> load(Request r) {
-  // "#..." after the address is the engine's (a picture fetched again: another key), no server's business
+  // "#ohpanel:..." after the address is the engine's (whose picture it is, one fetched again), no server's business --
+  // a data: address's too (its base64 has no '#'); a "#" of the address's own is a fragment, never sent either
+  r.source.erase(std::min(r.source.find(kKeyMark), r.source.size()));
   if (r.source.rfind("data:", 0) != 0)
     r.source.erase(std::min(r.source.find('#'), r.source.size()));
   // the decoder's least size: the shorter side of the box the picture fits in (no more of it is needed)
@@ -175,15 +178,15 @@ std::shared_ptr<Cover> load(Request r) {
        the text never held. Its base64 is a third longer than the picture. */
     DataUriReader text;
     bool is_text = false, started = false;
-    const bool ok = appoh::fetch(r.source, kMaxBytes * 4 / 3 + 1024, [&](const char *data, size_t n) {
-      if (!started) {
-        started = true;
-        is_text = n >= 5 && std::memcmp(data, "data:", 5) == 0;
-        // its first bytes say what it is: anything but a JPEG or a PNG goes no further
-        if (!is_text && n >= 4 && !(what = not_jpeg(reinterpret_cast<const uint8_t *>(data), n)).empty() &&
-            what != "a PNG")
-          return false;
-      }
+    std::string head;   // its first bytes, however the answer comes in parts: what it is
+    const auto decide = [&]() {
+      started = true;
+      is_text = head.size() >= 5 && head.compare(0, 5, "data:") == 0;
+      // anything but a JPEG or a PNG goes no further
+      return is_text || (what = not_jpeg(reinterpret_cast<const uint8_t *>(head.data()), head.size())).empty() ||
+             what == "a PNG";
+    };
+    const auto take = [&](const char *data, size_t n) {
       if (is_text) {
         if (!text.feed(data, n, bytes)) {
           what = "a text that is no picture";
@@ -197,7 +200,17 @@ std::shared_ptr<Cover> load(Request r) {
         return false;
       }
       return true;
+    };
+    bool ok = appoh::fetch(r.source, kMaxBytes * 4 / 3 + 1024, [&](const char *data, size_t n) {
+      if (started)
+        return take(data, n);
+      head.append(data, n);
+      if (head.size() < 12)   // not enough yet to tell (a PNG's, a WebP's mark: up to 12 bytes)
+        return true;
+      return decide() && take(head.data(), head.size());
     }, &error);
+    if (ok && !started)   // an answer shorter than that
+      ok = decide() && take(head.data(), head.size());
     if (ok && is_text && !text.finish(bytes)) {
       ESP_LOGW(TAG, "%.80s: a text that is no picture", r.source.c_str());
       return nullptr;

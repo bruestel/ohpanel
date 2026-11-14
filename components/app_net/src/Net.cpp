@@ -83,16 +83,20 @@ esp_timer_handle_t g_ap_retry_timer = nullptr;
 esp_timer_handle_t g_sta_retry_timer = nullptr;
 esp_timer_handle_t g_unpin_timer = nullptr;
 
-bool g_time_synced = false;
+std::atomic<bool> g_time_synced{false};
+/* NTP's callback and set_time_fallback (on the openHAB client's tasks) one at a time: a fallback looked before NTP
+   came, and set after it, would put openHAB's whole seconds over NTP's time. */
+std::mutex g_time_mx;
 std::atomic<bool> g_time_ntp{false};   // set by NTP: a fallback (set_time_fallback) no more
 
 void on_time_sync(struct timeval *tv) {
+  std::lock_guard<std::mutex> lock(g_time_mx);
   char buf[32] = "";
   const time_t secs = tv ? tv->tv_sec : 0;
   struct tm utc;
   gmtime_r(&secs, &utc);
   strftime(buf, sizeof(buf), "%Y-%m-%d %H:%M:%S", &utc);
-  ESP_LOGI(TAG, "Clock %s from NTP: %s UTC", g_time_synced ? "corrected" : "set", buf);
+  ESP_LOGI(TAG, "Clock %s from NTP: %s UTC", g_time_synced.load() ? "corrected" : "set", buf);
   g_time_synced = true;
   g_time_ntp = true;
 }
@@ -918,9 +922,12 @@ bool scan(std::vector<Network> &out) {
 void set_time_fallback(time_t now, const char *source) {
   if (g_time_ntp.load() || now < 1735689600)   // NTP's word counts; a time before 2025 is none
     return;
+  std::lock_guard<std::mutex> lock(g_time_mx);
+  if (g_time_ntp.load())   // NTP came meanwhile
+    return;
   struct timeval tv = {};
   gettimeofday(&tv, nullptr);
-  if (g_time_synced && std::llabs(static_cast<long long>(now) - static_cast<long long>(tv.tv_sec)) <= 2)
+  if (g_time_synced.load() && std::llabs(static_cast<long long>(now) - static_cast<long long>(tv.tv_sec)) <= 2)
     return;   // close enough (the source's time is in whole seconds)
   const struct timeval set = {now, 0};
   settimeofday(&set, nullptr);
@@ -928,13 +935,13 @@ void set_time_fallback(time_t now, const char *source) {
   struct tm utc;
   gmtime_r(&now, &utc);
   strftime(buf, sizeof(buf), "%Y-%m-%d %H:%M:%S", &utc);
-  ESP_LOGI(TAG, "Clock %s from %s (no NTP): %s UTC", g_time_synced ? "corrected" : "set", source, buf);
+  ESP_LOGI(TAG, "Clock %s from %s (no NTP): %s UTC", g_time_synced.load() ? "corrected" : "set", source, buf);
   g_time_synced = true;
 }
 
 Time time_info() {
   Time t;
-  t.synced = g_time_synced;
+  t.synced = g_time_synced.load();
   if (!t.synced)
     return t;
 

@@ -274,6 +274,11 @@ int main(int argc, char **argv) {
       CHECK(large[1].rfind("Cam /rest/items/Cam/state?v=", 0) == 0);
       CHECK(large[3].rfind("Cam /rest/items/Cam/state?v=", 0) == 0 && large[3] != large[1]);
     }
+    // a stream anew (a reconnect): the next state another address still, not the first one's again
+    std::string after;
+    StateStream again(64 * 1024, 16 * 1024, [&](const std::string &, const ItemState &s) { after = s.state; }, {});
+    again.feed(raw.data(), raw.size());
+    CHECK(!after.empty() && "Cam " + after != large[1] && "Cam " + after != large[3]);
   }
 
   std::printf("%zu items decoded from %d state events (%d keepalives)\n", st.size(), reference.state_events,

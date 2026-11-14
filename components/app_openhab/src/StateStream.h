@@ -102,7 +102,9 @@ class StateStream {
   EventHandler on_event_;
   LargeHandler on_large_;
   int bad_events_ = 0;
-  std::map<std::string, uint32_t> counts_;   // per picture item: the states that came (its address's version)
+  /* per picture item: the states that came (its address's version) -- over every stream, a reconnect too: counted
+     from 1 again, a new picture after it got an address it had before, and the old picture stayed */
+  static std::map<std::string, uint32_t> counts_;
 };
 
 }  // namespace appoh

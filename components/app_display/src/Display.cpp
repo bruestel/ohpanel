@@ -247,6 +247,9 @@ void link_down(Engine &engine, Link next, int64_t wait_us = 0) {
 }
 
 /* A message from the display: true if the engine is to have it. */
+/* The last answer to "sendme" (the reader's task: not posted, Display::begin) -- the link's heard_us counts it. */
+std::atomic<int64_t> g_page_heard_us{0};
+
 bool link_message(Engine &engine, const nextion::Message &m) {
   g_link.heard_us = esp_timer_get_time();
   using Kind = nextion::Message::Kind;
@@ -328,7 +331,7 @@ void link_step(Engine &engine) {
       if (g_display.lost()) {
         ESP_LOGW(TAG, "the display stopped answering -- looking for it again");
         link_down(engine, Link::Search);
-      } else if (now - g_link.heard_us > kQuietUs) {
+      } else if (now - std::max(g_link.heard_us, g_page_heard_us.load()) > kQuietUs) {
         // quiet for a while: still there? (one that restarted unheard -- a brownout -- says nothing)
         g_link.heard_us = now;
         if (!g_display.ping() && !g_display.ping()) {
@@ -537,8 +540,10 @@ bool begin(const nextion::Config &uart, Hooks hooks) {
            a job. A cover drawn sends one every 512 bytes, hundreds, and the task takes a job per part it draws --
            they filled the queue ("queue full, dropping a display job" by the dozen). That the display is there
            the link tells by every other message, else by a ping of its own. */
-        if (m.kind == nextion::Message::Kind::Page)
+        if (m.kind == nextion::Message::Kind::Page) {
+          g_page_heard_us = esp_timer_get_time();   // still a sign it is there (link_step)
           return;
+        }
         post(new Job{Job::Kind::Message, m, {}, {}, 0, false, esp_timer_get_time() / 1000});
       }))
     return false;

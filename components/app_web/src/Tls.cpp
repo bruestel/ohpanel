@@ -2,6 +2,8 @@
 
 #include "Tls.h"
 
+#include "appoh/OpenHab.h"
+
 #include <lwip/sockets.h>
 #include <esp_log.h>
 #include <mbedtls/oid.h>
@@ -43,18 +45,24 @@ std::string x509_time(time_t t) {
   return out;
 }
 
-/* A certificate's time (UTC) in seconds since 1970 -- not mktime(): that one takes the panel's time zone. */
+/* A certificate's time (UTC) in seconds since 1970. */
 time_t x509_epoch(const mbedtls_x509_time &t) {
-  // days from 1970-01-01 to the date (the proleptic Gregorian calendar, Howard Hinnant's days_from_civil)
-  const int y = t.year - (t.mon <= 2), era = (y >= 0 ? y : y - 399) / 400, yoe = y - era * 400;
-  const int doy = (153 * (t.mon + (t.mon > 2 ? -3 : 9)) + 2) / 5 + t.day - 1, doe = yoe * 365 + yoe / 4 - yoe / 100 + doy;
-  const long long days = era * 146097LL + doe - 719468;
-  return static_cast<time_t>(days * 86400 + t.hour * 3600 + t.min * 60 + t.sec);
+  return appoh::utc_seconds(t.year, t.mon, t.day, t.hour, t.min, t.sec);
 }
 constexpr size_t kPemMax = 4096;
+/* The added names' share of a certificate (set_extra_hosts): a server certificate with its key, the panel's own
+   names and addresses comes to about 900 bytes of PEM, the CA's to about 700; what is left of kPemMax and the NVS
+   string's 4000, base64 a third larger, with room to spare. */
+constexpr size_t kMaxNamesBytes = 1000;   // measured: 1212 fit on a panel, 1414 not (the NVS's room varies)
 constexpr size_t kChainMax = 8192;   // an own server certificate with its chain (Let's Encrypt: 3 to 6 KB)
 
 std::mutex g_mx;
+
+/* A server certificate issued but not stored (ensure()): its names, key and certificate for this run. */
+struct Unstored {
+  std::string names, key, crt;
+};
+Unstored g_unstored;
 
 std::string nvs_get(const char *key) {
   nvs_handle_t h;
@@ -107,8 +115,14 @@ bool nvs_put(const std::vector<std::pair<const char *, std::string>> &values) {
   if (nvs_open(kNs, NVS_READWRITE, &h) != ESP_OK)
     return false;
   bool ok = true;
-  for (const auto &[key, value] : values)
-    ok = ok && nvs_set_str(h, key, value.c_str()) == ESP_OK;
+  for (const auto &[key, value] : values) {
+    const esp_err_t e = nvs_set_str(h, key, value.c_str());
+    if (e != ESP_OK) {
+      ESP_LOGW(TAG, "Storing %s (%u bytes): %s", key, static_cast<unsigned>(value.size()), esp_err_to_name(e));
+      ok = false;
+      break;
+    }
+  }
   ok = ok && nvs_commit(h) == ESP_OK;
   nvs_close(h);
   return ok;
@@ -421,8 +435,8 @@ bool ensure(const Names &given, std::string &chain_pem, std::string &key_pem, bo
       /* and the names right under it, as the CA may vouch for them (name_constraints): "kitchen.panel.home.example"
          under an added "panel.home.example" -- a wildcard covers one label, and none under a single label
          ("*.example": browsers refuse it) */
-      if (h.find('.') != std::string::npos)
-        names.dns.push_back("*." + h);
+      if (h.find('.') != std::string::npos && h.find_first_not_of("0123456789.") != std::string::npos)
+        names.dns.push_back("*." + h);   // (not for an address written as a name: "10.0.0.5")
     }
   std::string ca_key = nvs_get("ca_key"), ca_crt = nvs_get("ca_crt");
   const std::string name = device_name(names);
@@ -455,7 +469,12 @@ bool ensure(const Names &given, std::string &chain_pem, std::string &key_pem, bo
     }
     mbedtls_x509_crt_free(&crt);
   }
-  const bool named = names_covered(nvs_get("srv_names"), want);
+  // one issued that could not be stored (nvs_put): kept for this run, not issued anew every hour
+  if (!g_unstored.names.empty() && g_unstored.names == want && !due) {
+    srv_key = g_unstored.key;
+    srv_crt = g_unstored.crt;
+  }
+  const bool named = (srv_crt == g_unstored.crt && !srv_crt.empty()) || names_covered(nvs_get("srv_names"), want);
   if (srv_key.empty() || srv_crt.empty() || !named || due) {   // none, a name it goes by is new, or it runs out
     ESP_LOGI(TAG, "Issuing the server certificate for %s%s", want.c_str(),
              !clock ? " (the clock not set yet: anew once it is)" : due && named ? " (the old one runs out)" : "");
@@ -470,8 +489,17 @@ bool ensure(const Names &given, std::string &chain_pem, std::string &key_pem, bo
                     parse_key(ca_key, ca) && issue(false, key, ca, subject, issuer, &names, srv_crt, from.c_str(), to.c_str());
     mbedtls_pk_free(&key);
     mbedtls_pk_free(&ca);
-    if (!ok || !nvs_put({{"srv_key", srv_key}, {"srv_crt", srv_crt}, {"srv_names", want}}))
+    if (!ok)
       return false;
+    /* Not stored (the NVS full, a page without room for so long a string): https with it all the same, kept in
+       memory -- before, there was no https at all; the next start issues it again. */
+    if (!nvs_put({{"srv_key", srv_key}, {"srv_crt", srv_crt}, {"srv_names", want}})) {
+      ESP_LOGW(TAG, "The server certificate (%u bytes) could not be stored: used until the next start, issued anew "
+                    "then -- fewer or shorter added names make it smaller", static_cast<unsigned>(srv_crt.size()));
+      g_unstored = {want, srv_key, srv_crt};
+    } else {
+      g_unstored = {};
+    }
   }
   chain_pem = srv_crt + ca_crt;   // the server's, then the CA's: a browser that knows the CA needs nothing else
   key_pem = srv_key;
@@ -631,6 +659,7 @@ bool covered(const uint8_t *ip, size_t len) {
 
 bool set_extra_hosts(const std::vector<std::string> &hosts, std::string *error) {
   std::string list;
+  size_t names_bytes = 0;
   for (std::string h : hosts) {
     std::transform(h.begin(), h.end(), h.begin(), [](unsigned char c) { return std::tolower(c); });
     if (std::string am; h.find('/') != std::string::npos) {
@@ -651,6 +680,15 @@ bool set_extra_hosts(const std::vector<std::string> &hosts, std::string *error) 
       return false;
     }
     list += (list.empty() ? "" : ",") + h;
+    names_bytes += 2 * h.size() + 8;   // in the server certificate as itself and as *.name, in the CA's constraints
+  }
+  /* A certificate is written into kPemMax bytes and stored as an NVS string (under 4000): too many or too long names
+     and it could not be made -- no https at all, found only at the next start. Refused here instead. */
+  if (names_bytes > kMaxNamesBytes) {
+    if (error)
+      *error = "too many names for the certificate (" + std::to_string(names_bytes) + " of " +
+               std::to_string(kMaxNamesBytes) + " bytes): fewer or shorter ones";
+    return false;
   }
   std::lock_guard<std::mutex> lock(g_mx);
   if (nvs_get("hosts") == list)
@@ -682,7 +720,7 @@ Info info() {
   i.ca_own = nvs_get("ca_own") == "1";
   const std::string own = blob_get("own_crt");
   i.server_own = !own.empty();
-  describe(i.server_own ? own : nvs_get("srv_crt"), i.server_fingerprint, i.server_valid_to, nullptr, &i.server_names);
+  describe(i.server_own ? own : !g_unstored.crt.empty() ? g_unstored.crt : nvs_get("srv_crt"), i.server_fingerprint, i.server_valid_to, nullptr, &i.server_names);
   return i;
 }
 

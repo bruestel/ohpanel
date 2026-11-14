@@ -43,6 +43,10 @@ struct ItemState {
    snapshot after (re)subscribing included. Keep it short. */
 using StateCallback = std::function<void(const std::string &item, const ItemState &state)>;
 
+/* A UTC date and time as seconds since 1970 (the proleptic Gregorian calendar, Howard Hinnant's days_from_civil) --
+   not mktime(), which takes the panel's time zone: openHAB's Date header, a certificate's dates. */
+time_t utc_seconds(int year, int month, int day, int hour, int minute, int second);
+
 /* The time openHAB's answers carry (their Date header, seconds since 1970, UTC), handed on as they come: a clock
    for a panel without NTP. Set before begin(). */
 void set_server_time_listener(std::function<void(time_t)> listener);

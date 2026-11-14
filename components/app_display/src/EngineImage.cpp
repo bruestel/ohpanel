@@ -25,6 +25,7 @@ constexpr int kImageRadius = 8;     // its corners
 constexpr int kImagePixel = 3;      // display px per picture pixel: a few thousand rectangles, 2 to 3 s to draw
 constexpr int kImageFillsPerIdle = 60;
 constexpr int kUrlRefreshS = 10;    // a fixed address: a camera's snapshot, fetched again this often by default
+constexpr const char *kImageKey = "#ohpanel:img";   // after the address in a picture's key (cover_load strips it)
 
 }  // namespace
 
@@ -76,8 +77,9 @@ void Engine::draw_image(const cJSON *page) {
     return;
   }
   txt("caption1", "");
-  // a picture fetched again (refresh) has a key of its own: the same address, another count after "#"
-  const std::string key = image_refresh_s(page) > 0 ? source + "#" + std::to_string(image_gen_) : source;
+  /* Its key: the address and a mark of this page's (CoverLoad strips it) -- a picture fitted to this page, not the
+     media page's square of the same address (they share cover_); a picture fetched again (refresh) a count more. */
+  const std::string key = source + kImageKey + (image_refresh_s(page) > 0 ? std::to_string(image_gen_) : "");
   if (drawn == key)
     return;
   // as the display's settings say (cover_reveal), as the media page's cover -- a picture fetched again too

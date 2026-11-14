@@ -9229,7 +9229,7 @@ function pvImageEditor(box, head, hint, page) {
     fromItem
       ? two(field('Item', itemField(page.item, v => set('item', v), 'Image,String')),
             field('Load it again', refreshSelect(true)))
-      : two(field('Address', textInput(page.url, v => set('url', v),
+      : two(field('Address', textInput(page.url, v => pvEdit((c, p) => { p.url = v; }),   // kept when empty: the form stays
                                        {maxLength: 400, spellcheck: false, placeholder: 'e.g. http://frigate:5000/api/door/latest.jpg?h=320'})),
             field('Load it again', refreshSelect(false))),
     two(field('Detail', selectInput([['', 'normal (3 px a point)'], ['2', 'fine (2 px: slower)'], ['4', 'coarse (4 px: faster)'],
@@ -9891,7 +9891,7 @@ function pageMissing(p) {
     case 'weather': return p.feed ? (has(p.feed) ? '' : 'the item with the days')
                                   : (p.days || [p]).every(d => has(d && d.icon)) ? '' : 'the condition item';
     case 'qr': return p.text ? '' : 'the text';
-    case 'image': return p.item || p.url ? '' : 'the picture (an item or an address)';
+    case 'image': return p.item || p.url ? '' : p.url === '' ? 'the picture\'s address' : 'the picture (an item or an address)';
   }
   return '';
 }
