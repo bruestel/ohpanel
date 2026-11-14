@@ -396,6 +396,16 @@ int main(int argc, char **argv) {
     set_state("officeSpeakerState", "STOPPED", "String");
     e.on_state("officeSpeakerState");
     CHECK(!e.animating() && rec.has("short1_icon.txt=\"\""));
+    // its page opened: no frame after "page" -- the objects are the next page's then, the display answers 0x1A
+    set_state("officeSpeakerState", "PLAYING", "String");
+    e.on_state("officeSpeakerState");
+    CHECK(e.animating());
+    e.on_message(event("home", "short1", "release"));
+    CHECK(e.current() == "speaker");
+    rec.out.clear();
+    e.animate(5000);
+    e.animate(5400);
+    CHECK(!rec.has_prefix("short1_icon"));
     e.set_config(read("test/host/data/office.json"));
     e.on_message(loaded("home"));
   }

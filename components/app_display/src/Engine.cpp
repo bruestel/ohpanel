@@ -1155,6 +1155,7 @@ void Engine::show_physical(const std::string &wanted) {
   // what was still to be drawn belongs to the page going: on the next it would land wherever it lands
   logo_queue_.clear();
   cover_job_.reset();
+  anims_.clear();   // their frames too: until the display reports the next page they went to its objects (0x1A)
   // the start page (not home) has no close cross: the page hides it as it loads (ohpanel_hmi.py no_close_on_start)
   const cJSON *cfg = current_ == "home" ? nullptr : page_config(current_);
   const bool no_close = cfg && current_ == start_page() && name == template_of(cfg);
