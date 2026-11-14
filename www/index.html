@@ -9189,6 +9189,18 @@ function pvImageEditor(box, head, hint, page) {
   hint.textContent = 'A picture under the title, as large as fits, drawn by the panel: an Image item\'s, the address '
                    + 'an item holds, or a fixed address (a camera\'s snapshot). Changes show at once; Save stores them.';
   const fromItem = page.url === undefined;
+  // how often the picture is loaded again while the page shows ("refresh", seconds; Engine::image_tick)
+  const every = n => n < 60 ? 'every ' + n + ' seconds' : n === 60 ? 'every minute' : 'every ' + n / 60 + ' minutes';
+  const refreshSelect = item => {
+    const options = [['', item ? 'when the item changes (default)' : 'every 10 seconds (default)']];
+    if (!item) options.push(['0', 'only when the page opens']);
+    [2, 5, 10, 30, 60, 300].filter(n => item || n !== 10).forEach(n => options.push([String(n), every(n)]));
+    if (page.refresh !== undefined && !options.some(o => o[0] === String(page.refresh)))   // one of the JSON's own
+      options.push([String(page.refresh), page.refresh === 0 ? 'only when the page opens'
+                                         : page.refresh % 60 === 0 ? every(page.refresh) : 'every ' + page.refresh + ' seconds']);
+    return selectInput(options, page.refresh === undefined ? '' : String(page.refresh),
+                       v => set('refresh', v === '' ? undefined : parseInt(v, 10)));
+  };
   const set = (k, v) => pvEdit((c, p) => { if (v === '' || v === undefined || Number.isNaN(v)) delete p[k]; else p[k] = v; });
   box.append(
     two(field('Title', textInput(page.title, v => set('title', v), {maxLength: 30})),
@@ -9199,19 +9211,16 @@ function pvImageEditor(box, head, hint, page) {
                                          })))),
     fromItem
       ? two(field('Item', itemField(page.item, v => set('item', v), 'Image,String')),
-            field('Fetched again', textInput(page.refresh === undefined ? '' : String(page.refresh),
-                                             v => set('refresh', v === '' ? undefined : parseInt(v, 10)),
-                                             {inputMode: 'numeric', placeholder: 'when the item changes', maxLength: 5})))
+            field('Load it again', refreshSelect(true)))
       : two(field('Address', textInput(page.url, v => set('url', v),
                                        {maxLength: 400, spellcheck: false, placeholder: 'e.g. http://frigate:5000/api/door/latest.jpg?h=320'})),
-            field('Fetched again', textInput(page.refresh === undefined ? '' : String(page.refresh),
-                                             v => set('refresh', v === '' ? undefined : parseInt(v, 10)),
-                                             {inputMode: 'numeric', placeholder: 'every 10 s', maxLength: 5}))),
+            field('Load it again', refreshSelect(false))),
     two(field('Detail', selectInput([['', 'normal (3 px a point)'], ['2', 'fine (2 px: slower)'], ['4', 'coarse (4 px: faster)'],
                                      ['6', 'very coarse (6 px)']], page.pixel ? String(page.pixel) : '',
                                     v => set('pixel', v ? parseInt(v, 10) : undefined)))),
-    note('"Fetched again": seconds while the page shows (0: never by itself). The panel reads JPEG (baseline) and PNG, '
-         + 'up to 400 KB; a small one is fetched and drawn faster -- ask the camera for one (Frigate: ?h=320).'));
+    note('"Load it again": while the page is open, the panel fetches the picture anew this often -- for a camera\'s '
+         + 'snapshot. An Image item\'s picture comes anew anyway when the item changes. The panel reads JPEG (baseline) '
+         + 'and PNG, up to 400 KB; a small one loads and draws faster -- ask the camera for one (Frigate: ?h=320).'));
 }
 
 function pvQrEditor(box, head, hint, page) {
