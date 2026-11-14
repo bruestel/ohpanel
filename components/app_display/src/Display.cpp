@@ -368,7 +368,7 @@ void post(Job *job) {
     if (job->kind == Job::Kind::State)
       g_states_lost = true;
     else
-      ESP_LOGW(TAG, "queue full, dropping a display job");
+      ESP_LOGW(TAG, "queue full, dropping a display job (kind %d)", static_cast<int>(job->kind));
     delete job;
   }
 }
@@ -533,6 +533,12 @@ bool begin(const nextion::Config &uart, Hooks hooks) {
     return false;
   /* The UART first: the task talks to the display as soon as it runs. */
   if (!g_display.begin(uart, [](const nextion::Message &m) {
+        /* The answers to "sendme" are the driver's flow control (it waits for them itself, nextion::Display): not
+           a job. A cover drawn sends one every 512 bytes, hundreds, and the task takes a job per part it draws --
+           they filled the queue ("queue full, dropping a display job" by the dozen). That the display is there
+           the link tells by every other message, else by a ping of its own. */
+        if (m.kind == nextion::Message::Kind::Page)
+          return;
         post(new Job{Job::Kind::Message, m, {}, {}, 0, false, esp_timer_get_time() / 1000});
       }))
     return false;
