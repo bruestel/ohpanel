@@ -1036,11 +1036,14 @@ item with `"weather_feed": {"item": "Weather_Days", "codes": "bom"}`.
 A rule for the Bureau of Meteorology's forecast (JavaScript Scripting), by ubeaut: it fetches the daily
 forecast straight from BOM's API every two hours (poll it no more often) and writes `Weather_Days`. `geohash`
 is your place's: look it up with your coordinates, e.g.
-`https://api.weather.bom.gov.au/v1/locations?search=-27.4705,153.0260` (Brisbane) gives `"geohash": "r7hgdpn"`.
+`https://api.weather.bom.gov.au/v1/locations?search=-27.4705,153.0260` (Brisbane) gives `"geohash": "r7hgdpn"`;
+`zone` is its time zone. BOM gives each day as its local midnight in UTC (`2026-11-14T14:00:00Z` is 15 November
+in Brisbane): the date is read in that zone, else every day shows a day early.
 
 ```javascript
-const geohash = 'r7hgdpn';         // your place's (see above)
-const target = 'Weather_Days';     // the item the panel reads
+const geohash = 'r7hgdpn';                 // your place's (see above)
+const zone = 'Australia/Brisbane';         // its time zone
+const target = 'Weather_Days';             // the item the panel reads
 
 rules.JSRule({
   name: 'OHpanel weather from BOM',
@@ -1056,8 +1059,9 @@ rules.JSRule({
       return;
     }
     const days = (bom.data || []).slice(0, 7).map(d => {
-      // BOM's date is the local midnight in UTC: the day it is here
-      const day = {date: time.toZDT(d.date).toLocalDate().toString(), icon: d.icon_descriptor, condition: d.short_text};
+      // BOM's date is the local midnight in UTC: the day it is in the place's zone
+      const date = time.toZDT(d.date).withZoneSameInstant(time.ZoneId.of(zone)).toLocalDate().toString();
+      const day = {date, icon: d.icon_descriptor, condition: d.short_text};
       if (d.temp_max !== null) day.max = d.temp_max;
       if (d.temp_min !== null) day.min = d.temp_min;
       day.extras = [];
