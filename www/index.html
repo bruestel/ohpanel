@@ -852,6 +852,11 @@ pre.box{margin:0;padding:.6rem .7rem;max-height:18rem;overflow:auto;background:v
         <div class="stat"><b id="sTemp">–</b><span>Temperature</span></div>
       </div>
     </div>
+    <div class="card" id="sRelayCard" hidden>
+      <h2 data-doc="docs/panel-config.md#home-screen">Relays</h2>
+      <p class="sub">The panel's relays as they are switched.</p>
+      <div class="stats" id="sRelays"></div>
+    </div>
     <div class="card">
       <h2 data-doc="docs/install.md#write-the-display-design">Display</h2>
       <p class="sub">What the display reports about itself.</p>
@@ -2186,6 +2191,17 @@ async function refreshInfo() {
   $('hdrNet').textContent = n.provisioning ? 'hotspot ' + n.ssid : (STATE_TEXT[n.state] || n.state);
 
   $('sVersion').textContent = info.version;
+  // the relays as they are switched (as the NSPanel Pro's status page shows them)
+  const relayList = Array.isArray(info.relays) ? info.relays : [];
+  $('sRelayCard').hidden = !relayList.length;
+  $('sRelays').replaceChildren(...relayList.map((on, i) => {
+    const box = document.createElement('div'), b = document.createElement('b'), l = document.createElement('span');
+    box.className = 'stat';
+    withDot(b, on ? 'ok' : '', on ? 'on' : 'off');
+    l.textContent = 'Relay ' + (i + 1);
+    box.append(b, l);
+    return box;
+  }));
   relinkDocs(info.version);
   $('sPanel').textContent = {eu: 'NSPanel EU', us: 'NSPanel US', 'us-landscape': 'NSPanel US (landscape)'}[info.variant]
                             || 'NSPanel ' + (info.variant || 'eu').toUpperCase();
