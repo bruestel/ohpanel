@@ -207,10 +207,13 @@ int main(int argc, char **argv) {
       out = it->second;
     return it != metadata.end();
   };
-  // covers asked for (Callbacks::cover): source, size, scale, radius
-  static std::vector<std::tuple<std::string, int, int, int>> covers;
-  cb.cover = [](const std::string &source, int size, int scale, int radius, Reveal) {
-    covers.push_back({source, size, scale, radius});
+  // covers asked for (Callbacks::cover): source, size, scale, radius; pictures (fit_w > 0): source, fit_w, fit_h, scale
+  static std::vector<std::tuple<std::string, int, int, int>> covers, pictures;
+  cb.cover = [](const std::string &source, int size, int scale, int radius, Reveal, int fit_w, int fit_h) {
+    if (fit_w > 0)
+      pictures.push_back({source, fit_w, fit_h, scale});
+    else
+      covers.push_back({source, size, scale, radius});
   };
   cb.system = [] {
     SystemInfo i;
@@ -605,6 +608,87 @@ int main(int argc, char **argv) {
     e.idle(1149000 + 999000);
     CHECK(e.current() == "guest-wifi");
     e.on_message(event("qr", "close", "release"));
+    e.on_message(loaded("home"));
+  }
+
+  {  // the image page: a picture under the title as large as fits (its shape kept), on the QR page's design
+    cJSON *doc = cJSON_Parse(read("test/host/data/office.json").c_str());
+    cJSON *pages = cJSON_GetObjectItem(doc, "pages");
+    cJSON_AddItemToArray(pages, cJSON_Parse(R"({"id":"cam","type":"image","title":"Driveway","url":"http://cam/x.jpg"})"));
+    cJSON_AddItemToArray(pages, cJSON_Parse(R"({"id":"pic","type":"image","title":"Door","item":"CamPic","pixel":2})"));
+    cJSON_ReplaceItemInObject(doc, "swipe", cJSON_Parse(R"(["home", "cam", "pic"])"));
+    cJSON *display = cJSON_GetObjectItem(doc, "display");
+    if (!display)
+      display = cJSON_AddObjectToObject(doc, "display");
+    cJSON_DeleteItemFromObject(display, "home_after");
+    cJSON_AddNumberToObject(display, "home_after", 0);   // the test's clock jumps: no way back home meanwhile
+    char *text = cJSON_PrintUnformatted(doc);
+    e.set_config(text);
+    cJSON_free(text);
+    cJSON_Delete(doc);
+    e.on_message(loaded("home"));
+    e.on_message(event("home", "swipe", "left"));
+    CHECK(e.current() == "cam");
+    pictures.clear();
+    rec.out.clear();
+    e.on_message(loaded("qr"));
+    CHECK(rec.has("title.txt=\"Driveway\""));
+    // a fixed address: fetched again every 10 s (its key counts on); the area under the title, 3 px a pixel
+    CHECK(pictures.size() == 1);
+    if (!pictures.empty()) {
+      const auto &[source, w, h, scale] = pictures.back();
+      CHECK(source == "http://cam/x.jpg#0" && scale == 3 && w == (450 - 20) / 3 && h == (320 - 40 - 32) / 3);
+    }
+    std::vector<uint8_t> px(16 * 9 * 3, 200);
+    rec.out.clear();
+    e.on_cover("http://cam/x.jpg#0", std::make_shared<Cover>(picture_rects(px.data(), 16, 9, 3, 8)));
+    int64_t t = 5000000;
+    for (int i = 0; i < 40 && e.pending(); i++)
+      e.idle(t += 50);
+    CHECK(!e.pending());
+    // 48 x 27 px, centred in the area (10..440 x 40..288)
+    CHECK(rec.has_prefix("fill ") && !rec.has_prefix("page "));
+    CHECK(rec.with_prefix("fill ").rfind("fill 20", 0) == 0);   // x from 201 on
+    // its time come: fetched again, drawn over the one shown (the page not loaded anew)
+    pictures.clear();
+    e.idle(t += 10001);
+    CHECK(pictures.size() == 1 && std::get<0>(pictures.back()) == "http://cam/x.jpg#1");
+    rec.out.clear();
+    e.on_cover("http://cam/x.jpg#1", std::make_shared<Cover>(picture_rects(px.data(), 16, 9, 3, 8)));
+    for (int i = 0; i < 40 && e.pending(); i++)
+      e.idle(t += 50);
+    CHECK(rec.has_prefix("fill ") && !rec.has_prefix("page "));
+    // one of another shape: the page anew first (what the old one covered would stay)
+    pictures.clear();
+    e.idle(t += 10001);
+    rec.out.clear();
+    std::vector<uint8_t> tall(9 * 16 * 3, 90);
+    e.on_cover("http://cam/x.jpg#2", std::make_shared<Cover>(picture_rects(tall.data(), 9, 16, 3, 8)));
+    for (int i = 0; i < 5 && !rec.has_prefix("page "); i++)
+      e.idle(t += 50);
+    CHECK(rec.has_prefix("page "));
+    rec.out.clear();
+    e.on_message(loaded("qr"));
+    for (int i = 0; i < 40 && e.pending(); i++)
+      e.idle(t += 50);
+    CHECK(rec.has_prefix("fill "));
+    // an Image item: its address from the stream (appoh::rest_state_path), fetched only when it changes
+    set_state("CamPic", "/rest/items/CamPic/state?v=0000000000000001", "Raw");
+    e.on_message(event("qr", "swipe", "left"));
+    CHECK(e.current() == "pic");
+    pictures.clear();
+    rec.out.clear();
+    e.on_message(loaded("qr"));
+    CHECK(rec.has("title.txt=\"Door\""));
+    CHECK(pictures.size() == 1 && std::get<0>(pictures.back()) == "/rest/items/CamPic/state?v=0000000000000001" &&
+          std::get<3>(pictures.back()) == 2);
+    e.on_cover("/rest/items/CamPic/state?v=0000000000000001", nullptr);   // it could not be fetched
+    e.idle(t += 60000);
+    CHECK(pictures.size() == 1);   // no refresh: not again by itself
+    set_state("CamPic", "/rest/items/CamPic/state?v=0000000000000002", "Raw");
+    e.on_state("CamPic");
+    CHECK(pictures.size() == 2 && std::get<0>(pictures.back()) == "/rest/items/CamPic/state?v=0000000000000002");
+    e.set_config(read("test/host/data/office.json"));
     e.on_message(loaded("home"));
   }
 

@@ -4471,6 +4471,7 @@ function templateOf(page) {
   return !page ? 'home' : page.type === 'media_favorites' ? 'buttons'
        : page.type === 'entities' && LAYOUT.pages['entities_' + page.style] ? 'entities_' + page.style
        : page.type === 'cover' && page.group && LAYOUT.pages.covers ? 'covers'
+       : page.type === 'image' ? 'qr'   // its title and cross; the picture where the code goes (Engine::template_of)
        : LAYOUT.pages[page.type] ? page.type : 'home';
 }
 
@@ -8510,6 +8511,55 @@ function qrCanvas(q, w, h) {
   }
   return c;
 }
+/* The image page (Engine::draw_image): the picture under the title, as large as fits, its shape kept, each point
+   `pixel` px (3) large -- an address the browser can fetch (http(s), data:); one on the openHAB server ("/...", an
+   Image item's) the panel fetches itself: a box saying so then. The pictures loaded once, drawn when they came. */
+const PV_IMAGES = {};
+function pvImage(src) {
+  let im = PV_IMAGES[src];
+  if (!im) {
+    im = PV_IMAGES[src] = new Image();
+    im.onload = () => refreshPreview();
+    im.src = src;
+  }
+  return im.complete && im.naturalWidth ? im : null;
+}
+function imageArea() {
+  const q = ((LAYOUT.pages.qr || {}).objects || []).find(o => o.n === 'qr_area');
+  const top = q ? q.y : 40, [vw] = visibleSize(), [, sh] = screenSize();
+  return [10, top, vw - 20, sh - top - 32];
+}
+function fillImage(page) {
+  const st = page.item ? stateOf(page) : null;
+  const src = page.item ? (st && st.state && !/^(NULL|UNDEF)$/.test(st.state) ? String(st.state) : '') : (page.url || '');
+  const fetchable = /^(https?:\/\/|data:image\/)/.test(src);
+  const [x, y, w, h] = imageArea(), px = Math.min(6, Math.max(2, page.pixel || 3));
+  const im = fetchable ? pvImage(src) : null;
+  const f = {title: {text: page.title}, caption2: {text: ''},
+             caption1: {text: src ? '' : '–', color: THEME.text}};
+  f.qr_area = {draw: {box: [x, y, w, h], fn: ctx => {
+    const round = (bx, by, bw, bh) => { ctx.beginPath(); ctx.roundRect(bx, by, bw, bh, 8); };
+    if (im) {   // as the panel draws it: fitted, in points of px x px
+      const k = Math.min(w / px / im.naturalWidth, h / px / im.naturalHeight);
+      const pw = Math.max(1, Math.round(im.naturalWidth * k)), ph = Math.max(1, Math.round(im.naturalHeight * k));
+      const small = document.createElement('canvas');
+      small.width = pw; small.height = ph;
+      small.getContext('2d').drawImage(im, 0, 0, pw, ph);
+      const bx = x + Math.floor((w - pw * px) / 2), by = y + Math.floor((h - ph * px) / 2);
+      ctx.save(); round(bx, by, pw * px, ph * px); ctx.clip();
+      ctx.imageSmoothingEnabled = false;
+      ctx.drawImage(small, bx, by, pw * px, ph * px);
+      ctx.restore();
+    } else if (src) {   // the panel fetches it (from openHAB): only it can show it
+      ctx.fillStyle = 'rgba(128,128,128,.25)';
+      round(x, y, w, h); ctx.fill();
+      ctx.fillStyle = THEME.text; ctx.font = '16px sans-serif'; ctx.textAlign = 'center';
+      ctx.fillText(fetchable ? 'loading the picture…' : 'the panel fetches the picture from openHAB', x + w / 2, y + h / 2);
+    }
+  }}};
+  return f;
+}
+
 function fillQr(page) {
   const q = page.text ? qrMatrix(page.text, page.ecc) : null;
   const w = wifiOf(page.text) || {ssid: '', password: ''};
@@ -9112,6 +9162,38 @@ function edSection(title, where) {
     h.appendChild(w);
   }
   return h;
+}
+
+/* The image page's form: where the picture comes from (an item: an Image item, or an address in a String item;
+   or a fixed address), how often it is fetched again, how coarse it is drawn. */
+function pvImageEditor(box, head, hint, page) {
+  head.textContent = page.title || page.id;
+  hint.textContent = 'A picture under the title, as large as fits, drawn by the panel: an Image item\'s, the address '
+                   + 'an item holds, or a fixed address (a camera\'s snapshot). Changes show at once; Save stores them.';
+  const fromItem = page.url === undefined;
+  const set = (k, v) => pvEdit((c, p) => { if (v === '' || v === undefined || Number.isNaN(v)) delete p[k]; else p[k] = v; });
+  box.append(
+    two(field('Title', textInput(page.title, v => set('title', v), {maxLength: 30})),
+        field('The picture', selectInput([['item', 'from an item'], ['url', 'from an address']], fromItem ? 'item' : 'url',
+                                         v => pvEdit((c, p) => {
+                                           if (v === 'url') { p.url = ''; delete p.item; } else { p.item = ''; delete p.url; }
+                                           PV.edKey = null;
+                                         })))),
+    fromItem
+      ? two(field('Item', itemField(page.item, v => set('item', v), 'Image,String')),
+            field('Fetched again', textInput(page.refresh === undefined ? '' : String(page.refresh),
+                                             v => set('refresh', v === '' ? undefined : parseInt(v, 10)),
+                                             {inputMode: 'numeric', placeholder: 'when the item changes', maxLength: 5})))
+      : two(field('Address', textInput(page.url, v => set('url', v),
+                                       {maxLength: 400, spellcheck: false, placeholder: 'e.g. http://frigate:5000/api/door/latest.jpg?h=320'})),
+            field('Fetched again', textInput(page.refresh === undefined ? '' : String(page.refresh),
+                                             v => set('refresh', v === '' ? undefined : parseInt(v, 10)),
+                                             {inputMode: 'numeric', placeholder: 'every 10 s', maxLength: 5}))),
+    two(field('Detail', selectInput([['', 'normal (3 px a point)'], ['2', 'fine (2 px: slower)'], ['4', 'coarse (4 px: faster)'],
+                                     ['6', 'very coarse (6 px)']], page.pixel ? String(page.pixel) : '',
+                                    v => set('pixel', v ? parseInt(v, 10) : undefined)))),
+    note('"Fetched again": seconds while the page shows (0: never by itself). The panel reads JPEG (baseline) and PNG, '
+         + 'up to 400 KB; a small one is fetched and drawn faster -- ask the camera for one (Frigate: ?h=320).'));
 }
 
 function pvQrEditor(box, head, hint, page) {
@@ -9741,6 +9823,8 @@ const PAGE_KINDS = {
             make: p => { p.days = [{day: 0}]; },   // today; more days in the preview's editor
             fill: fillWeather, editor: pvWeatherEditor},
   qr: {label: 'QR code', about: 'The guest WiFi, a link', icon: 'qrcode', fill: fillQr, editor: pvQrEditor},
+  image: {label: 'Image', about: 'A camera\'s snapshot, a picture from openHAB', icon: 'image',
+          fill: fillImage, editor: pvImageEditor},
   system: {label: 'Panel info', fill: fillSystem},
   settings: {label: 'Settings', fill: fillSettings},
 };
@@ -9763,6 +9847,7 @@ function pageMissing(p) {
     case 'weather': return p.feed ? (has(p.feed) ? '' : 'the item with the days')
                                   : (p.days || [p]).every(d => has(d && d.icon)) ? '' : 'the condition item';
     case 'qr': return p.text ? '' : 'the text';
+    case 'image': return p.item || p.url ? '' : 'the picture (an item or an address)';
   }
   return '';
 }
@@ -9797,7 +9882,7 @@ function pageRefs(cfg, id) {
 
 /* The page types that may be in the swipe row besides home (Engine::swipe_row, the configuration's check): those
    without gestures of their own across the page -- a list's or the weather's sheets come before the next page. */
-const SWIPE_TYPES = ['buttons', 'entities', 'weather', 'qr', 'system', 'thermostat', 'keypad'];
+const SWIPE_TYPES = ['buttons', 'entities', 'weather', 'qr', 'system', 'thermostat', 'keypad', 'image'];
 function swipeable(p) { return !!p && (p.type === 'home' || SWIPE_TYPES.includes(p.type)); }
 /* Home in the page lists: a page like the others, in the swipe row or not. */
 const HOME_PAGE = {id: 'home', title: 'Home', type: 'home'};

@@ -42,7 +42,7 @@ written can be set as well, see [Formatting values](#formatting-values).
 | `version` | `1` | required; a document with another version is refused |
 | `display` | object | language and formats of the display texts, see below |
 | `home` | object | the home screen, see below |
-| `swipe` | array of page ids | the pages reached by swiping, in this order, round from the last to the first. The **first is the start page**: the panel starts there and goes back to it (close cross, `home_after`); it has no close cross unless it is home. Home is only in the row if named (`"home"`); without a row: home alone. Allowed: `buttons`, `entities`, `weather`, `qr`, `thermostat` and `keypad` pages and `info`; a list's or the weather's sheets come before the next page. On a thermostat a swipe on the ring sets the target instead; a thermostat and a keypad show no page dots. Other pages open from a tile or a shortcut |
+| `swipe` | array of page ids | the pages reached by swiping, in this order, round from the last to the first. The **first is the start page**: the panel starts there and goes back to it (close cross, `home_after`); it has no close cross unless it is home. Home is only in the row if named (`"home"`); without a row: home alone. Allowed: `buttons`, `entities`, `weather`, `qr`, `image`, `thermostat` and `keypad` pages and `info`; a list's or the weather's sheets come before the next page. On a thermostat a swipe on the ring sets the target instead; a thermostat and a keypad show no page dots. Other pages open from a tile or a shortcut |
 | `pages` | array of pages | every other page |
 
 ## Formatting values
@@ -1139,6 +1139,35 @@ A QR code on a white card, drawn by the panel itself, with a caption of up to tw
 {"id": "guests", "type": "qr", "title": "Guest Wi-Fi", "caption": ["Wi-Fi: {ssid}", "Password: {password}"],
  "text": "WIFI:T:WPA;S:guest;P:secret;;", "style": "dots"}
 ```
+
+### `image`
+
+One picture under the title, as large as the page has room for, its shape kept: a camera's snapshot, a picture
+openHAB holds. The panel fetches it and draws it itself, in points of 3 x 3 pixels (the display takes no picture at
+runtime: a photo is a few thousand rectangles, 2 to 3 seconds to draw, from the middle outwards as
+`display.cover_reveal` says; a picture fetched again is drawn over the last one from the top).
+
+| Key | Value | |
+|---|---|---|
+| `item` | item | an **Image** item (the panel fetches its picture from openHAB when the page shows it, and again when it changes), or a String item holding an address (`http(s)://...`, a path on the openHAB server `/static/...`, `data:image/...`) |
+| `url` | address | instead of `item`: a fixed address, `http(s)://...` or a path on the openHAB server (`/static/cam.jpg`) |
+| `refresh` | seconds, 0 ... 86400 | while the page shows, the picture is fetched again this long after the last one was drawn; default: 10 with `url`, 0 (only when the item changes) with `item` |
+| `pixel` | 2 ... 6 | how large a point is drawn (default 3): 2 is finer and takes about twice as long, 4 coarser and faster |
+| `icon` | icon | for the page list and shortcuts |
+
+The panel reads JPEG (baseline, not progressive) and PNG, up to 400 KB. Smaller is faster: the display shows at most
+about 140 x 80 points anyway, so ask the camera for a small picture. Frigate:
+`http://frigate:5000/api/<camera>/latest.jpg?h=320`. An address the panel cannot reach, or a picture it cannot
+read: the page stays empty, the log says why (Diagnostics).
+
+```json
+{"id": "driveway", "type": "image", "title": "Driveway", "url": "http://frigate:5000/api/driveway/latest.jpg?h=320",
+ "refresh": 5}
+```
+
+A picture a rule writes into an Image item (a doorbell's snapshot) shows when the item changes:
+`{"id": "door", "type": "image", "title": "Front door", "item": "Doorbell_Snapshot"}`. openHAB's event stream does
+not carry the picture itself, only that it changed: the panel fetches it from openHAB's REST API, with its token.
 
 ### `system`
 

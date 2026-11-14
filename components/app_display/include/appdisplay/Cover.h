@@ -16,7 +16,8 @@ struct Cover {
     uint16_t x, y, w, h;   // display pixels, from the box's top left corner
     uint16_t colour;       // RGB565
   };
-  int side = 0;   // the box: side x side display pixels
+  int side = 0;          // the box: side x side display pixels (a cover; a picture: its longer side)
+  int w = 0, h = 0;      // the box: w x h display pixels
   std::vector<Rect> rects;
 };
 
@@ -32,6 +33,8 @@ Reveal reveal_of(const std::string &name);   // unknown or empty: Dissolve
    display px (what lies outside is left out: the box's picture shows
    there). In the order `reveal` draws them. */
 Cover cover_rects(const uint8_t *rgb, int size, int scale, int radius, Reveal reveal = Reveal::Center);
+/* The same for a picture of w x h pixels (the image page's: as wide and high as it is, Engine::draw_image). */
+Cover picture_rects(const uint8_t *rgb, int w, int h, int scale, int radius, Reveal reveal = Reveal::Center);
 
 /* A cover's address in an item: an http(s) address, a path on the openHAB
    server ("/...") or the picture itself ("data:image/...;base64,..."). */

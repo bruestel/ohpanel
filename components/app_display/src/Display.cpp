@@ -407,8 +407,8 @@ void task(void *) {
   // an item's options have come (from their own task): pages listing them redraw
   appoh::set_options_listener([](const std::string &item) { post(new Job{Job::Kind::Options, {}, item, {}, 0, false}); });
   // a cover picture: loaded in a task of its own (CoverLoad.cpp), drawn by the engine once it has come
-  cb.cover = [](const std::string &source, int size, int scale, int radius, Reveal reveal) {
-    cover_load(source, size, scale, radius, reveal);
+  cb.cover = [](const std::string &source, int size, int scale, int radius, Reveal reveal, int fit_w, int fit_h) {
+    cover_load(source, size, scale, radius, reveal, fit_w, fit_h);
   };
   cover_begin([](const std::string &source, std::shared_ptr<Cover> cover) {
     Job *job = new Job{Job::Kind::Cover, {}, source, {}, 0, false};

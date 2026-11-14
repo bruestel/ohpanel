@@ -119,8 +119,10 @@ struct Callbacks {
   /* The state an item will most likely have soon (appoh::expect). */
   std::function<void(const std::string &item, const std::string &state)> expect;
   /* Loads a cover picture (cover_source) as size x size pixels, each scale
-     px large, corners rounded by radius px; on_cover tells when it came. */
-  std::function<void(const std::string &source, int size, int scale, int radius, Reveal reveal)> cover;
+     px large, corners rounded by radius px -- with fit_w and fit_h the whole picture as large as it fits in
+     that many pixels instead (the image page); on_cover tells when it came. */
+  std::function<void(const std::string &source, int size, int scale, int radius, Reveal reveal, int fit_w,
+                     int fit_h)> cover;
 };
 
 class Engine {
@@ -822,6 +824,16 @@ class Engine {
   void draw_weather(const cJSON *page);
   void draw_qr(const cJSON *page);
   void draw_qr_code(const cJSON *page);
+  // the image page (EngineImage.cpp): a picture under the title, on the QR page's design
+  Box image_area() const;
+  std::string image_source(const cJSON *page) const;
+  int image_refresh_s(const cJSON *page) const;
+  void draw_image(const cJSON *page);
+  void draw_image_step();
+  void image_tick();
+  Box image_box_{0, 0, 0, 0};    // where the picture shown is drawn
+  uint32_t image_gen_ = 0;       // counts the pictures fetched again ("refresh"): their keys
+  int64_t image_loaded_ms_ = 0;  // when the last picture came (on_cover)
   void draw_code(const std::string &field, const std::string &text, const std::string &ecc, bool dots, int colour,
                  int pad);
   void draw_system(const cJSON *page);

@@ -15,7 +15,7 @@ idf_component_register(
     SRCS "src/Format.cpp" "src/Icons.cpp" "src/Logo.cpp" "src/Cover.cpp" "src/CoverLoad.cpp" "src/Png.cpp"
          "src/Engine.cpp"
          "src/EngineHome.cpp" "src/EngineLists.cpp" "src/EngineFeed.cpp" "src/EngineLight.cpp" "src/EngineCover.cpp"
-         "src/EngineThermostat.cpp" "src/EngineKeypad.cpp" "src/EngineMedia.cpp" "src/EngineInfo.cpp"
+         "src/EngineThermostat.cpp" "src/EngineKeypad.cpp" "src/EngineMedia.cpp" "src/EngineInfo.cpp" "src/EngineImage.cpp"
          "src/Display.cpp" "src/display_assets.c"
     INCLUDE_DIRS "include"
     EMBED_FILES "src/icon_set.bin"

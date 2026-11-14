@@ -16,6 +16,7 @@
 #include <cctype>
 #include <cstdio>
 #include <cstring>
+#include <tuple>
 #include <map>
 #include <set>
 
@@ -47,7 +48,7 @@ const char *const kColors[] = {"white", "black", "red",  "green",      "blue",
 // the theme's colours, wherever a colour goes -- not in the theme itself
 const char *const kThemeColors[] = {"theme-accent", "theme-text", "theme-dim"};
 const char *const kPageTypes[] = {"buttons", "entities", "cover", "light", "media", "weather", "qr", "system",
-                                  "media_favorites", "thermostat", "keypad"};
+                                  "media_favorites", "thermostat", "keypad", "image"};
 /* The settings page is built in: always there, never configured; a page
    refers to it by this id like to any other. */
 const char *const kSettingsId = "settings";
@@ -59,7 +60,7 @@ const char *const kInfoId = "info";
    (a swipe there is none), the keypad's keys and buttons ignore a finger that moved (the display design). */
 bool swipe_type(const std::string &t) {
   return t == "buttons" || t == "entities" || t == "weather" || t == "qr" || t == "system" || t == "thermostat" ||
-         t == "keypad";
+         t == "keypad" || t == "image";
 }
 
 class Validator {
@@ -929,7 +930,7 @@ class Validator {
       fail(member(p, "id"), "must be 1-24 characters a-z 0-9 - (not starting or ending with -)");
     one_of(pg, "type", p,
            {kPageTypes[0], kPageTypes[1], kPageTypes[2], kPageTypes[3], kPageTypes[4], kPageTypes[5], kPageTypes[6],
-            kPageTypes[7], kPageTypes[8], kPageTypes[9], kPageTypes[10]},
+            kPageTypes[7], kPageTypes[8], kPageTypes[9], kPageTypes[10], kPageTypes[11]},
            true);
     const cJSON *type = cJSON_GetObjectItem(pg, "type");
     const std::string t = cJSON_IsString(type) ? type->valuestring : "";
@@ -1286,6 +1287,28 @@ class Validator {
       one_of(pg, "ecc", p, {"low", "medium", "quartile", "high"});
     } else if (t == "system") {
       allowed(pg, p, {"id", "type", "title"});
+    } else if (t == "image") {
+      // the picture: an item's (an Image item, or an address in a String) or a fixed address (Engine::draw_image)
+      allowed(pg, p, {"id", "type", "title", "icon", "item", "url", "refresh", "pixel"});
+      icon(pg, p);
+      const cJSON *item = cJSON_GetObjectItem(pg, "item"), *url = cJSON_GetObjectItem(pg, "url");
+      if (!item && !url)
+        fail(member(p, "item"), "is required (or \"url\")");
+      else if (item && url)
+        fail(member(p, "url"), "goes without \"item\"");
+      if (item)
+        item_name(item, member(p, "item"));
+      if (url) {
+        string(pg, "url", p, true, 400);
+        const std::string u = cJSON_IsString(url) ? url->valuestring : "";
+        if (cJSON_IsString(url) && u.rfind("http://", 0) != 0 && u.rfind("https://", 0) != 0 &&
+            !(u.size() > 1 && u[0] == '/' && u[1] != '/'))
+          fail(member(p, "url"), "must be an http(s) address or a path on the openHAB server (/...)");
+      }
+      for (const auto &[name, low, high] : {std::tuple{"refresh", 0, 86400}, std::tuple{"pixel", 2, 6}})
+        if (const cJSON *v = cJSON_GetObjectItem(pg, name);
+            v && (!cJSON_IsNumber(v) || v->valuedouble != v->valueint || v->valueint < low || v->valueint > high))
+          fail(member(p, name), "must be a whole number from " + std::to_string(low) + " to " + std::to_string(high));
     }
   }
 };

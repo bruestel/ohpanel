@@ -257,6 +257,16 @@ int main() {
   expect_issue("thermostat switch locked not a boolean",
                doc(R"("pages":[{"id":"t","type":"thermostat","title":"x","item":"S","switch":{"item":"P","locked":1}}])"),
                "pages[0].switch.locked");
+  expect_valid("image page from an item", doc(R"("pages":[{"id":"c","type":"image","title":"Cam","item":"CamPic","pixel":2}],"swipe":["home","c"])"));
+  expect_valid("image page from an address",
+               doc(R"("pages":[{"id":"c","type":"image","title":"Cam","url":"http://cam/latest.jpg?h=320","refresh":5}])"));
+  expect_issue("image page without a picture", doc(R"("pages":[{"id":"c","type":"image","title":"Cam"}])"), "pages[0].item");
+  expect_issue("image page with item and url",
+               doc(R"("pages":[{"id":"c","type":"image","title":"Cam","item":"A","url":"/static/a.jpg"}])"), "pages[0].url");
+  expect_issue("image page url not an address",
+               doc(R"("pages":[{"id":"c","type":"image","title":"Cam","url":"cam/latest.jpg"}])"), "pages[0].url");
+  expect_issue("image page pixel out of range",
+               doc(R"("pages":[{"id":"c","type":"image","title":"Cam","item":"A","pixel":1}])"), "pages[0].pixel");
   expect_issue("thermostat modes without mode",
                doc(R"("pages":[{"id":"t","type":"thermostat","title":"x","item":"S","modes":[{"value":"a"}]}])"),
                "pages[0].modes");

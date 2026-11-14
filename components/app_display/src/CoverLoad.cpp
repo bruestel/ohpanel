@@ -21,6 +21,7 @@
 #include <rom/tjpgd.h>
 
 #include <algorithm>
+#include <cmath>
 #include <cstring>
 #include <mutex>
 #include <string>
@@ -36,6 +37,7 @@ struct Request {
   std::string source;
   int size = 0, scale = 1, radius = 0;
   Reveal reveal = Reveal::Dissolve;
+  int fit_w = 0, fit_h = 0;   // > 0: the whole picture within fit_w x fit_h pixels (its shape kept), not a square
 };
 
 std::mutex g_mx;
@@ -130,7 +132,36 @@ std::vector<uint8_t> square(const uint8_t *pixels, int w, int h, int size) {
   return out;
 }
 
-std::shared_ptr<Cover> load(const Request &r) {
+/* The whole picture averaged down (or repeated up) to w x h. */
+std::vector<uint8_t> resize(const uint8_t *pixels, int iw, int ih, int w, int h) {
+  std::vector<uint8_t> out(static_cast<size_t>(w) * h * 3);
+  for (int y = 0; y < h; y++) {
+    const int y0 = y * ih / h, y1 = std::max(y0 + 1, (y + 1) * ih / h);
+    for (int x = 0; x < w; x++) {
+      const int x0 = x * iw / w, x1 = std::max(x0 + 1, (x + 1) * iw / w);
+      uint32_t sum[3] = {0, 0, 0}, n = 0;
+      for (int yy = y0; yy < y1; yy++)
+        for (int xx = x0; xx < x1; xx++) {
+          const uint8_t *p = pixels + (static_cast<size_t>(yy) * iw + xx) * 3;
+          sum[0] += p[0];
+          sum[1] += p[1];
+          sum[2] += p[2];
+          n++;
+        }
+      for (int c = 0; c < 3; c++)
+        out[(static_cast<size_t>(y) * w + x) * 3 + c] = static_cast<uint8_t>((sum[c] + n / 2) / n);
+    }
+  }
+  return out;
+}
+
+std::shared_ptr<Cover> load(Request r) {
+  // "#..." after the address is the engine's (a picture fetched again: another key), no server's business
+  if (r.source.rfind("data:", 0) != 0)
+    r.source.erase(std::min(r.source.find('#'), r.source.size()));
+  // the decoder's least size: the shorter side of the box the picture fits in (no more of it is needed)
+  if (r.fit_w > 0 && r.fit_h > 0)
+    r.size = std::min(r.fit_w, r.fit_h);
   Chunks bytes;
   std::string error, what;
   if (r.source.rfind("data:", 0) == 0) {
@@ -200,8 +231,17 @@ std::shared_ptr<Cover> load(const Request &r) {
   std::shared_ptr<Cover> cover;
   if (why.empty()) {
     const int w = kind.empty() ? j.w : png.w, h = kind.empty() ? j.h : png.h;
-    const std::vector<uint8_t> pixels = square(kind.empty() ? j.pixels : png.pixels.data(), w, h, r.size);
-    cover = std::make_shared<Cover>(cover_rects(pixels.data(), r.size, r.scale, r.radius, r.reveal));
+    const uint8_t *decoded = kind.empty() ? j.pixels : png.pixels.data();
+    if (r.fit_w > 0 && r.fit_h > 0) {   // the whole picture, as large as fits, its shape kept
+      const double f = std::min(static_cast<double>(r.fit_w) / w, static_cast<double>(r.fit_h) / h);
+      const int pw = std::clamp(static_cast<int>(std::lround(w * f)), 1, r.fit_w),
+                ph = std::clamp(static_cast<int>(std::lround(h * f)), 1, r.fit_h);
+      const std::vector<uint8_t> pixels = resize(decoded, w, h, pw, ph);
+      cover = std::make_shared<Cover>(picture_rects(pixels.data(), pw, ph, r.scale, r.radius, r.reveal));
+    } else {
+      const std::vector<uint8_t> pixels = square(decoded, w, h, r.size);
+      cover = std::make_shared<Cover>(cover_rects(pixels.data(), r.size, r.scale, r.radius, r.reveal));
+    }
     ESP_LOGI(TAG, "%dx%d px%s, %u rectangles, from %u bytes of %.48s", w, h, kind.empty() ? "" : " (PNG)",
              static_cast<unsigned>(cover->rects.size()), static_cast<unsigned>(fetched), r.source.c_str());
   } else {
@@ -242,12 +282,12 @@ void cover_begin(CoverDone done) {
     ESP_LOGE(TAG, "no cover task");
 }
 
-void cover_load(const std::string &source, int size, int scale, int radius, Reveal reveal) {
+void cover_load(const std::string &source, int size, int scale, int radius, Reveal reveal, int fit_w, int fit_h) {
   if (!g_wake)
     return;
   {
     std::lock_guard<std::mutex> lock(g_mx);
-    g_next = {source, size, scale, radius, reveal};
+    g_next = {source, size, scale, radius, reveal, fit_w, fit_h};
     g_waiting = true;
   }
   xSemaphoreGive(g_wake);

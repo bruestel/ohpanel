@@ -319,14 +319,17 @@ void Engine::draw_art(const cJSON *page) {
     return;
   cover_asked_ = source;
   cover_asked_reveal_ = reveal;
-  cb_.cover(source, pg->second.at("art_pic").w / kCoverScale, kCoverScale, kArtRadius, reveal_of(reveal));
+  cb_.cover(source, pg->second.at("art_pic").w / kCoverScale, kCoverScale, kArtRadius, reveal_of(reveal), 0, 0);
 }
 
 void Engine::on_cover(const std::string &source, std::shared_ptr<Cover> cover) {
   cover_ = LoadedCover{source, cover_asked_reveal_, std::move(cover)};
+  image_loaded_ms_ = now_ms_;
   const cJSON *page = current_ == "home" ? nullptr : page_config(current_);
   if (page && type_of(page) == PageType::Media)
     draw_art(page);
+  else if (page && type_of(page) == PageType::Image)
+    draw_image(page);
 }
 
 /* A part of the cover being drawn (draw_art), from idle(). */

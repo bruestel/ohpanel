@@ -792,6 +792,7 @@ const cJSON *Engine::page_config(const std::string &id) const {
 std::string Engine::template_of(const cJSON *page) const {
   const std::string type = str(page, "type");   // the design's page of the same name, but for these
   if (type_of(page) == PageType::MediaFavorites) return "buttons";   // tiles as on a button page
+  if (type_of(page) == PageType::Image) return "qr";   // its title and close cross; the picture where the code goes
   if (type_of(page) == PageType::Cover && member(page, "group") && pages_.count("covers")) return "covers";   // its rows
   if (type_of(page) == PageType::Entities) {
     const std::string style = str(page, "style");
@@ -1346,7 +1347,7 @@ void Engine::make_swipe_row() {
     const PageType type = type_of(page_config(e->valuestring));
     if (std::string(e->valuestring) == "home" || type == PageType::Buttons || type == PageType::Entities ||
         type == PageType::Weather || type == PageType::Qr || type == PageType::System ||
-        type == PageType::Thermostat || type == PageType::Keypad)
+        type == PageType::Thermostat || type == PageType::Keypad || type == PageType::Image)
       swipe_row_.push_back(e->valuestring);
   }
   if (swipe_row_.empty())
@@ -1501,6 +1502,12 @@ void Engine::render() {
       case PageType::Qr: draw_qr(page); break;
       case PageType::System: draw_system(page); break;
       case PageType::Settings: draw_settings(page); break;
+      case PageType::Image:
+        bind(page, [this] {   // its item: a new picture (or address)
+          if (const cJSON *p = current_ == "home" ? nullptr : page_config(current_); p && type_of(p) == PageType::Image)
+            draw_image(p);
+        });
+        break;
       case PageType::None: break;
     }
   }
@@ -2233,11 +2240,14 @@ void Engine::idle(int64_t now_ms) {
     draw_rest_until_ms_ = now_ms;   // the clock went back (the host tests'): no rest from the future
   } else if (!pending_ && now_ms >= draw_rest_until_ms_ && (!logo_queue_.empty() || cover_job_)) {
     draw_next_logo();   // not while a touch waits: it comes first
-    if (logo_queue_.empty())
+    if (logo_queue_.empty()) {
       draw_art_step();
+      draw_image_step();
+    }
     draw_rest_until_ms_ = now_ms + kDrawRestMs;   // then a rest: the display can report a touch
   }
   fade_tick();
+  image_tick();
   feed_tick();
   weather_feed_tick();
   if (wheel_pending_ && now_ms - wheel_sent_ms_ >= kSlideMs)

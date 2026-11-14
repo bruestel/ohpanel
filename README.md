@@ -24,7 +24,7 @@ web interface, which shows a live preview of the display: what you change there 
 - **Pages of your own**, configured as JSON or clicked together in the web interface: buttons, lists of
   values, lights (brightness, colour temperature, colour wheel), covers and awnings (alone or as a group, with
   presets), thermostats, a keypad (an alarm system's modes, a door code), a media player with its cover and a
-  station list, the weather forecast, QR codes
+  station list, the weather forecast, QR codes, a picture (a camera's snapshot)
 - **A home screen** with the weather, temperatures, status icons and shortcuts (animated, e.g. a turning
   washing machine), two info lines (the next bus, say) and the two hardware buttons with their relays,
   which openHAB can switch too

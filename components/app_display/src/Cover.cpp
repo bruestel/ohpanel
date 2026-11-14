@@ -26,29 +26,29 @@ Reveal reveal_of(const std::string &name) {
 
 namespace {
 
-/* The picture with every block of block x block pixels in its average colour. */
-std::vector<uint8_t> blocks(const uint8_t *rgb, int size, int block) {
-  std::vector<uint8_t> out(static_cast<size_t>(size) * size * 3);
-  for (int by = 0; by < size; by += block)
-    for (int bx = 0; bx < size; bx += block) {
-      const int ey = std::min(size, by + block), ex = std::min(size, bx + block);
+/* The picture (w x h) with every block of block x block pixels in its average colour. */
+std::vector<uint8_t> blocks(const uint8_t *rgb, int w, int h, int block) {
+  std::vector<uint8_t> out(static_cast<size_t>(w) * h * 3);
+  for (int by = 0; by < h; by += block)
+    for (int bx = 0; bx < w; bx += block) {
+      const int ey = std::min(h, by + block), ex = std::min(w, bx + block);
       uint32_t sum[3] = {0, 0, 0}, n = 0;
       for (int y = by; y < ey; y++)
         for (int x = bx; x < ex; x++, n++)
           for (int c = 0; c < 3; c++)
-            sum[c] += rgb[(static_cast<size_t>(y) * size + x) * 3 + c];
+            sum[c] += rgb[(static_cast<size_t>(y) * w + x) * 3 + c];
       for (int y = by; y < ey; y++)
         for (int x = bx; x < ex; x++)
           for (int c = 0; c < 3; c++)
-            out[(static_cast<size_t>(y) * size + x) * 3 + c] = static_cast<uint8_t>((sum[c] + n / 2) / n);
+            out[(static_cast<size_t>(y) * w + x) * 3 + c] = static_cast<uint8_t>((sum[c] + n / 2) / n);
     }
   return out;
 }
 
-/* The rectangles of one picture, from the middle outwards. */
-std::vector<Cover::Rect> rects_of(const uint8_t *rgb, int size, int scale, int radius) {
+/* The rectangles of one picture (w x h pixels), from the middle outwards. */
+std::vector<Cover::Rect> rects_of(const uint8_t *rgb, int w, int h, int scale, int radius) {
   Cover out;
-  const int side = size * scale;
+  const int width = w * scale, height = h * scale;
 
   // runs of a colour along each row, a run below one of the same place and colour joining it
   struct Run {
@@ -59,14 +59,14 @@ std::vector<Cover::Rect> rects_of(const uint8_t *rgb, int size, int scale, int r
      in internal RAM (only larger blocks go to PSRAM), and an 80 px cover's thousands of them took ~80 KB of it. */
   std::vector<Run> runs;
   std::vector<size_t> above, here;
-  for (int y = 0; y < size; y++) {
-    const uint8_t *row = rgb + static_cast<size_t>(y) * size * 3;
+  for (int y = 0; y < h; y++) {
+    const uint8_t *row = rgb + static_cast<size_t>(y) * w * 3;
     size_t a = 0;
     here.clear();
-    for (int x = 0; x < size;) {
+    for (int x = 0; x < w;) {
       const uint16_t c = quantize(row + x * 3);
       int end = x + 1;
-      while (end < size && quantize(row + end * 3) == c)
+      while (end < w && quantize(row + end * 3) == c)
         end++;
       while (a < above.size() && runs[above[a]].x < x)
         a++;
@@ -90,7 +90,7 @@ std::vector<Cover::Rect> rects_of(const uint8_t *rgb, int size, int scale, int r
   }
   const auto inset_of = [&](int y) {
     if (y < radius) return inset[y];
-    if (y >= side - radius) return inset[side - 1 - y];
+    if (y >= height - radius) return inset[height - 1 - y];
     return 0;
   };
   const auto add = [&out](int x, int y, int w, int h, uint16_t c) {
@@ -101,7 +101,7 @@ std::vector<Cover::Rect> rects_of(const uint8_t *rgb, int size, int scale, int r
   for (const Run &r : runs) {
     const int x0 = r.x * scale, x1 = (r.x + r.w) * scale, y0 = r.y * scale, y1 = (r.y + r.h) * scale;
     // clear of the corners' columns: whole
-    if (x0 >= radius && x1 <= side - radius) {
+    if (x0 >= radius && x1 <= width - radius) {
       add(x0, y0, x1 - x0, y1 - y0, r.colour);
       continue;
     }
@@ -111,15 +111,15 @@ std::vector<Cover::Rect> rects_of(const uint8_t *rgb, int size, int scale, int r
       int end = y + 1;
       while (end < y1 && inset_of(end) == in)
         end++;
-      const int a = std::max(x0, in), b = std::min(x1, side - in);
+      const int a = std::max(x0, in), b = std::min(x1, width - in);
       add(a, y, b - a, end - y, r.colour);
       y = end;
     }
   }
 
   // from the middle outwards: the picture grows from its centre instead of being wiped on from the top
-  const auto distance = [side](const Cover::Rect &r) {
-    const int dx = 2 * r.x + r.w - side, dy = 2 * r.y + r.h - side;   // twice the offset of its centre
+  const auto distance = [width, height](const Cover::Rect &r) {
+    const int dx = 2 * r.x + r.w - width, dy = 2 * r.y + r.h - height;   // twice the offset of its centre
     return dx * dx + dy * dy;
   };
   std::stable_sort(out.rects.begin(), out.rects.end(),
@@ -130,18 +130,24 @@ std::vector<Cover::Rect> rects_of(const uint8_t *rgb, int size, int scale, int r
 }  // namespace
 
 Cover cover_rects(const uint8_t *rgb, int size, int scale, int radius, Reveal reveal) {
+  return picture_rects(rgb, size, size, scale, radius, reveal);
+}
+
+Cover picture_rects(const uint8_t *rgb, int w, int h, int scale, int radius, Reveal reveal) {
   Cover out;
-  if (!rgb || size <= 0 || scale <= 0)
+  if (!rgb || w <= 0 || h <= 0 || scale <= 0)
     return out;
-  out.side = size * scale;
-  radius = std::clamp(radius, 0, out.side / 2);
+  out.w = w * scale;
+  out.h = h * scale;
+  out.side = std::max(out.w, out.h);
+  radius = std::clamp(radius, 0, std::min(out.w, out.h) / 2);
   if (reveal == Reveal::Sharpen)   // coarse blocks first, each pass over the one before
     for (const int block : {8, 4}) {
-      const std::vector<uint8_t> coarse = blocks(rgb, size, block);
-      const std::vector<Cover::Rect> pass = rects_of(coarse.data(), size, scale, radius);
+      const std::vector<uint8_t> coarse = blocks(rgb, w, h, block);
+      const std::vector<Cover::Rect> pass = rects_of(coarse.data(), w, h, scale, radius);
       out.rects.insert(out.rects.end(), pass.begin(), pass.end());
     }
-  std::vector<Cover::Rect> full = rects_of(rgb, size, scale, radius);
+  std::vector<Cover::Rect> full = rects_of(rgb, w, h, scale, radius);
   if (reveal == Reveal::Wipe) {   // row by row from the top, each row from the left
     std::stable_sort(full.begin(), full.end(), [](const Cover::Rect &a, const Cover::Rect &b) {
       return a.y != b.y ? a.y < b.y : a.x < b.x;
