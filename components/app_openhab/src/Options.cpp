@@ -158,7 +158,7 @@ void fetch_item(void *arg) {
       }
       const cJSON *list = cJSON_GetObjectItem(root, "members");
       for (const cJSON *m = cJSON_IsArray(list) ? list->child : nullptr; m; m = m->next) {
-        const std::string name = text_of(m, "name"), label = text_of(m, "label");
+        const std::string name = text_of(m, "name"), label = item_label(text_of(m, "label").c_str());
         if (name.empty())
           continue;
         const std::string type = text_of(m, "type");
@@ -167,7 +167,7 @@ void fetch_item(void *arg) {
         members.push_back(std::move(member));
       }
       own = metadata_of(cJSON_GetObjectItem(root, "metadata"));
-      own_label = text_of(root, "label");
+      own_label = item_label(text_of(root, "label").c_str());
       std::stable_sort(members.begin(), members.end(),
                        [](const Member &a, const Member &b) { return strcasecmp(a.label.c_str(), b.label.c_str()) < 0; });
       ok = root != nullptr;

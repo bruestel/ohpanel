@@ -47,4 +47,16 @@ bool parse_states(const std::string &data, const std::function<void(const std::s
   return true;
 }
 
+std::string item_label(const char *label) {
+  std::string s = label ? label : "";
+  size_t end = s.find_last_not_of(" \t");
+  if (end == std::string::npos || s[end] != ']')
+    return s;
+  const size_t open = s.rfind('[', end);
+  if (open == std::string::npos)
+    return s;
+  end = s.find_last_not_of(" \t", open == 0 ? std::string::npos : open - 1);
+  return open == 0 || end == std::string::npos ? std::string() : s.substr(0, end + 1);
+}
+
 }  // namespace appoh

@@ -79,8 +79,8 @@ bool fetch(std::string &error) {
     const cJSON *type = cJSON_GetObjectItem(it, "type");
     list += name->valuestring;
     list += kSep;
-    for (const char *c = cJSON_IsString(label) ? label->valuestring : ""; *c; c++)
-      list += (*c == '\n' || *c == kSep) ? ' ' : *c;
+    for (const char c : item_label(cJSON_GetStringValue(label)))
+      list += (c == '\n' || c == kSep) ? ' ' : c;
     list += kSep;
     list += cJSON_IsString(type) ? type->valuestring : "";
     list += '\n';

@@ -43,6 +43,11 @@ struct ItemState {
    snapshot after (re)subscribing included. Keep it short. */
 using StateCallback = std::function<void(const std::string &item, const ItemState &state)>;
 
+/* An item's label as openHAB's sitemaps show it: a state's format at its end in the old way of .items files
+   ("Front door [%s]"), which an item made in the UI keeps in its label word for word, left out -- the panel shows
+   the state itself. */
+std::string item_label(const char *label);
+
 /* A UTC date and time as seconds since 1970 (the proleptic Gregorian calendar, Howard Hinnant's days_from_civil) --
    not mktime(), which takes the panel's time zone: openHAB's Date header, a certificate's dates. */
 time_t utc_seconds(int year, int month, int day, int hour, int minute, int second);

@@ -281,6 +281,16 @@ int main(int argc, char **argv) {
     CHECK(!after.empty() && "Cam " + after != large[1] && "Cam " + after != large[3]);
   }
 
+  // a label with a sitemap format at its end: shown without it
+  CHECK(item_label("Porte entr\xc3\xa9" "e [%s]") == "Porte entr\xc3\xa9" "e");
+  CHECK(item_label("Temperature [%.1f \xc2\xb0" "C]  ") == "Temperature");
+  CHECK(item_label("Room [1] Light [MAP(on.map):%s]") == "Room [1] Light");
+  CHECK(item_label("[%s]").empty());
+  CHECK(item_label("Plain") == "Plain");
+  CHECK(item_label("A [b") == "A [b");
+  CHECK(item_label("only ]") == "only ]");
+  CHECK(item_label(nullptr).empty());
+
   std::printf("%zu items decoded from %d state events (%d keepalives)\n", st.size(), reference.state_events,
               reference.alive);
   for (const auto &[name, s] : st)
