@@ -179,8 +179,8 @@ Each panel is set up on its own. To start a second one like the first:
 - **HTTPS:** each panel makes a certificate authority (CA) of its own, to be trusted once per device. For
   several panels, make one CA (`tools/make_ca.sh "My home CA"`) and upload it to each under
   **Security → Use your own CA**: then your devices trust all panels at once. The server certificate the CA
-  issues is valid for 820 days (Apple's devices take none longer than 825) and is issued anew 30 days before it
-  runs out, by the same CA: a device that trusts the CA notices nothing. The dates come from the panel's clock:
+  issues is valid for 90 days and is issued anew 30 days before it runs out, by the same CA: a device that trusts
+  the CA notices nothing (a browser where the certificate was only accepted, not the CA trusted, asks again then). The dates come from the panel's clock:
   from NTP, else from openHAB's answers (a network without internet).
 - **A certificate of your own**, from Let's Encrypt for example: see below.
 

@@ -88,6 +88,7 @@ std::atomic<bool> g_time_synced{false};
    came, and set after it, would put openHAB's whole seconds over NTP's time. */
 std::mutex g_time_mx;
 std::atomic<bool> g_time_ntp{false};   // set by NTP: a fallback (set_time_fallback) no more
+std::function<void()> g_clock_cb;      // on_clock_set: the clock set the first time
 
 void on_time_sync(struct timeval *tv) {
   std::lock_guard<std::mutex> lock(g_time_mx);
@@ -97,8 +98,10 @@ void on_time_sync(struct timeval *tv) {
   gmtime_r(&secs, &utc);
   strftime(buf, sizeof(buf), "%Y-%m-%d %H:%M:%S", &utc);
   ESP_LOGI(TAG, "Clock %s from NTP: %s UTC", g_time_synced.load() ? "corrected" : "set", buf);
-  g_time_synced = true;
+  const bool first = !g_time_synced.exchange(true);
   g_time_ntp = true;
+  if (first && g_clock_cb)
+    g_clock_cb();
 }
 
 /* Started once the station has an address, never in AP mode -- there is no
@@ -936,8 +939,11 @@ void set_time_fallback(time_t now, const char *source) {
   gmtime_r(&now, &utc);
   strftime(buf, sizeof(buf), "%Y-%m-%d %H:%M:%S", &utc);
   ESP_LOGI(TAG, "Clock %s from %s (no NTP): %s UTC", g_time_synced.load() ? "corrected" : "set", source, buf);
-  g_time_synced = true;
+  if (!g_time_synced.exchange(true) && g_clock_cb)
+    g_clock_cb();
 }
+
+void on_clock_set(std::function<void()> cb) { g_clock_cb = std::move(cb); }
 
 Time time_info() {
   Time t;

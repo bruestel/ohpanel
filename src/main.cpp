@@ -364,7 +364,9 @@ extern "C" void app_main() {
   appoh::begin([](const std::string &item, const appoh::ItemState &) { appdisplay::state_changed(item); });
   apply_panel();
 
-  appnet::on_address([] { appweb::addresses_changed(); });   // a unique local (or a covered global) one: in the certificate
+  appnet::on_address([] { appweb::addresses_changed(); });
+  // the clock set: a stored server certificate that ran out while the panel was off issued anew at once
+  appnet::on_clock_set([] { appweb::addresses_changed(); });   // a unique local (or a covered global) one: in the certificate
   appnet::begin([](appnet::State s) {
     g_net = s;
     appoh::on_network(s == appnet::State::Connected);

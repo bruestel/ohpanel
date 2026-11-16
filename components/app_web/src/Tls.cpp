@@ -28,13 +28,14 @@ const char *const TAG = "tls";
 const char *const kNs = "tls";
 // the CA: valid whatever the panel's clock says (the browser checks the dates, against its own)
 const char *const kNotBefore = "20250101000000", *const kNotAfter = "20491231235959";
-/* The server certificate: 820 days from when it is issued -- Apple's devices take none valid longer than 825 days
-   (iOS 13, macOS 10.15), not even from a CA of one's own --, issued anew 30 days before it runs out, by the same CA
-   (a browser trusting the CA notices nothing). Issued while the clock is not set yet (the first start, before NTP)
-   it gets the CA's dates, and is issued anew once the clock is. */
-constexpr int kServerDays = 820;
+/* The server certificate: 90 days from when it is issued (Apple's devices take none valid longer than 825 days, not
+   even from a CA of one's own; a short one is cheap -- the same key, signed by the panel's CA), issued anew 30 days
+   before it runs out, by the same CA (a browser trusting the CA notices nothing; one where it was only accepted
+   warns again). Issued while the clock is not set yet (the first start, before NTP) it gets the CA's dates, and is
+   issued anew once the clock is (appnet::on_clock_set). One valid longer (0.26's 820 days) is issued anew too. */
+constexpr int kServerDays = 90;
 constexpr int kRenewDays = 30;
-constexpr int kMaxServerDays = 825;
+constexpr int kMaxServerDays = kServerDays + 2;   // its span: a day back from when it was issued, and some slack
 constexpr time_t kClockSet = 1735689600;   // 2025-01-01: a clock before it is not set
 
 std::string x509_time(time_t t) {
@@ -456,7 +457,7 @@ bool ensure(const Names &given, std::string &chain_pem, std::string &key_pem, bo
   std::string srv_key = nvs_get("srv_key"), srv_crt = nvs_get("srv_crt");
   const std::string want = names_key(names);
   // its dates: from the clock where it is set (kServerDays), else the CA's -- and the stored one due when it runs out
-  // within kRenewDays or is valid longer than Apple takes (issued before 0.26, or before the clock was set)
+  // within kRenewDays or is valid longer than kServerDays (issued by 0.26, or before the clock was set)
   const time_t now = time(nullptr);
   const bool clock = now >= kClockSet;
   bool due = false;

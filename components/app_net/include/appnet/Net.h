@@ -140,6 +140,10 @@ Time time_info();
    answers, wins; the source only corrects a clock more than 2 s off. */
 void set_time_fallback(time_t now, const char *source);
 
+/* Called once, when the clock is set the first time (NTP or set_time_fallback), on the task that set it: the https
+   certificate checked then (its dates), not up to an hour later. Set before begin(). Keep it short. */
+void on_clock_set(std::function<void()> cb);
+
 /* Takes the time server and timezone from the settings (appcfg::clock): sets
    TZ, and restarts SNTP if it runs with another server. Call at boot, before
    anything formats a time, and after changing them. */
