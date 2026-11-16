@@ -59,8 +59,9 @@ struct Texts {
   std::string thermostat_target, heating, cooling;
   /* The keypad page's messages: the code sent, not accepted (the state did not follow), a button wanting a code. */
   std::string keypad_sent, keypad_refused, keypad_enter;
-  /* An entity page's feed: while it is asked for, when no answer came, when the list is too long. */
-  std::string feed_loading, feed_no_answer, feed_too_long;
+  /* An entity page's feed: while it is asked for, when no answer came, when the list is too long, when it is no
+     list (broken JSON). */
+  std::string feed_loading, feed_no_answer, feed_too_long, feed_invalid;
 };
 
 /* display.screen: how bright the screen is, when it dims, when it is off.

@@ -6,12 +6,13 @@
    meanwhile. openHAB's autoupdate sets the item to "refresh" with the command, so the list that follows is always
    a change and reaches every panel -- one that is the same as the list drawn draws nothing anew. A rule may also
    set a list whenever it likes (without being asked). No list within "timeout" seconds: "No answer from openHAB"
-   above the list the panel had.
+   alone -- the list the panel had is gone with its title (departures that look current would mislead).
 
    The item holds a list of rows, or {"rows": [...], "note": "...", "title": "..."} (the title in place of the
-   page's, "Departures 14:02" say; it stays while the list is asked for anew); anything else is a text the page shows (an
-   error of the rule, say). A row is {"label", "value", "icon", "color", "value_color", "wide", "scroll"} or null
-   for an empty line.
+   page's, "Departures 14:02" say; it stays while the list is asked for anew). JSON that is broken, or no such list
+   (a text starting with "[" or "{"), says "Invalid list (JSON)", where it broke in the log; any other text is shown
+   as it is (an error of the rule, say). A row is {"label", "value", "icon", "color", "value_color", "wide",
+   "scroll"} or null for an empty line.
 
    Only the page shown has a feed (feed_): the item's text, at most kMaxFeedBytes, and its rows, made anew from it
    when needed -- not one per page.
@@ -21,6 +22,12 @@
 #include "EngineDetail.h"
 
 #include <cJSON.h>
+
+#ifdef ESP_PLATFORM
+#include <esp_log.h>
+#else
+#define ESP_LOGW(tag, fmt, ...) std::fprintf(stderr, "W %s: " fmt "\n", tag, ##__VA_ARGS__)
+#endif
 
 #include <algorithm>
 #include <cmath>
@@ -132,6 +139,7 @@ const cJSON *Engine::feed_rows(const cJSON *page) {
     if (auto raw = feed_state_of(page)) {
       feed_.raw = std::move(*raw);
       feed_.have = true;
+      feed_.reported = false;
     }
   }
   if (!feed_.view)
@@ -146,10 +154,11 @@ void Engine::feed_build(const cJSON *page) {
     cJSON_AddItemToArray(rows, note_row(settings_.texts.feed_loading, "timer-sand", nullptr));
     return;
   }
-  if (feed_.failed)
+  if (feed_.failed) {   // the note alone: the list before it is no longer current
+    feed_.title.clear();
     cJSON_AddItemToArray(rows, note_row(settings_.texts.feed_no_answer, "alert-circle-outline", "yellow"));
-  if (!feed_.have)
     return;
+  }
   if (feed_.raw.size() > kMaxFeedBytes) {
     feed_.title.clear();
     cJSON_AddItemToArray(rows, note_row(settings_.texts.feed_too_long, "alert-circle-outline", "yellow"));
@@ -157,12 +166,29 @@ void Engine::feed_build(const cJSON *page) {
   }
   // a list, or {"rows", "note"}; any other text is shown as it is
   const size_t start = feed_.raw.find_first_not_of(" \t\r\n");
-  cJSON *doc = start != std::string::npos && (feed_.raw[start] == '[' || feed_.raw[start] == '{')
-                   ? cJSON_ParseWithLength(feed_.raw.data(), feed_.raw.size())
-                   : nullptr;
+  const bool json = start != std::string::npos && (feed_.raw[start] == '[' || feed_.raw[start] == '{');
+  const char *end = nullptr;
+  cJSON *doc = json ? cJSON_ParseWithLengthOpts(feed_.raw.data(), feed_.raw.size(), &end, false) : nullptr;
   const cJSON *list = cJSON_IsArray(doc) ? doc : cJSON_GetObjectItem(doc, "rows");
-  // the list's own title ({"title", "rows"}), read here from the one parse; while the list is asked for anew or no
-  // answer came (the returns above) the title stays with the list
+  if (json && !cJSON_IsArray(list)) {   // meant as a list: said so, where it broke in the log (once per state)
+    if (!feed_.reported) {
+      feed_.reported = true;
+      const std::string item = str(member(page, "feed"), "item");
+      const size_t at = !doc && end ? static_cast<size_t>(end - feed_.raw.data()) : feed_.raw.size();
+      if (doc)
+        ESP_LOGW("feed", "%s: JSON without a list of rows ([...] or {\"rows\": [...]})", item.c_str());
+      else
+        ESP_LOGW("feed", "%s: invalid JSON at byte %u of %u: ...%s", item.c_str(),
+                 static_cast<unsigned>(at), static_cast<unsigned>(feed_.raw.size()),
+                 feed_.raw.substr(at > 40 ? at - 40 : 0, 60).c_str());
+    }
+    feed_.title.clear();
+    cJSON_AddItemToArray(rows, note_row(settings_.texts.feed_invalid, "alert-circle-outline", "yellow"));
+    cJSON_Delete(doc);
+    return;
+  }
+  // the list's own title ({"title", "rows"}), read here from the one parse; while the list is asked for anew (the
+  // return above) the title stays with the list, without one (no answer, too long, invalid) the page's shows
   const char *title =
       cJSON_IsObject(doc) && cJSON_IsArray(list) ? cJSON_GetStringValue(cJSON_GetObjectItem(doc, "title")) : nullptr;
   feed_.title = title ? title : "";
@@ -223,6 +249,8 @@ void Engine::feed_state(const std::string &item) {
   const int refresh = static_cast<int>(num_of(member(page, "feed"), "refresh", 0));
   feed_.next_ms = now_ms_ + refresh * 1000LL;   // another panel's answer counts as this one's
   const bool same = feed_.have && *raw == feed_.raw && feed_.wait != Feed::Wait::Shown && !feed_.failed;
+  if (*raw != feed_.raw)
+    feed_.reported = false;
   feed_.raw = std::move(*raw);
   feed_.have = true;
   feed_.wait = Feed::Wait::None;

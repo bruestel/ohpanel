@@ -28,6 +28,7 @@
       "cover_all": "All", "thermostat_target": "Target", "heating": "heating", "cooling": "cooling",
       "keypad_sent": "Sent", "keypad_refused": "Not accepted", "keypad_enter": "Enter the code",
       "feed_loading": "Loading...", "feed_no_answer": "No answer from openHAB", "feed_too_long": "List too long",
+      "feed_invalid": "Invalid list (JSON)",
       "qr_wifi": "Wi-Fi", "qr_password": "Password"
     },
     {
@@ -57,6 +58,7 @@
       "cover_all": "Alle", "thermostat_target": "Ziel", "heating": "heizt", "cooling": "kühlt",
       "keypad_sent": "Gesendet", "keypad_refused": "Nicht angenommen", "keypad_enter": "Code eingeben",
       "feed_loading": "Wird geladen...", "feed_no_answer": "Keine Antwort von openHAB", "feed_too_long": "Liste zu lang",
+      "feed_invalid": "Ungültige Liste (JSON)",
       "qr_wifi": "WLAN", "qr_password": "Passwort"
     },
     {
@@ -86,6 +88,7 @@
       "cover_all": "Tous", "thermostat_target": "Cible", "heating": "chauffe", "cooling": "refroidit",
       "keypad_sent": "Envoyé", "keypad_refused": "Refusé", "keypad_enter": "Saisir le code",
       "feed_loading": "Chargement...", "feed_no_answer": "Pas de réponse d'openHAB", "feed_too_long": "Liste trop longue",
+      "feed_invalid": "Liste invalide (JSON)",
       "qr_wifi": "WiFi", "qr_password": "Mot de passe"
     },
     {
@@ -115,6 +118,7 @@
       "cover_all": "Todas", "thermostat_target": "Objetivo", "heating": "calentando", "cooling": "enfriando",
       "keypad_sent": "Enviado", "keypad_refused": "No aceptado", "keypad_enter": "Introduzca el código",
       "feed_loading": "Cargando...", "feed_no_answer": "Sin respuesta de openHAB", "feed_too_long": "Lista demasiado larga",
+      "feed_invalid": "Lista no válida (JSON)",
       "qr_wifi": "WiFi", "qr_password": "Contraseña"
     },
     {
@@ -144,6 +148,7 @@
       "cover_all": "Tutte", "thermostat_target": "Obiettivo", "heating": "riscalda", "cooling": "raffredda",
       "keypad_sent": "Inviato", "keypad_refused": "Non accettato", "keypad_enter": "Inserire il codice",
       "feed_loading": "Caricamento...", "feed_no_answer": "Nessuna risposta da openHAB", "feed_too_long": "Elenco troppo lungo",
+      "feed_invalid": "Elenco non valido (JSON)",
       "qr_wifi": "WiFi", "qr_password": "Password"
     },
     {
@@ -173,6 +178,7 @@
       "cover_all": "Alle", "thermostat_target": "Doel", "heating": "verwarmt", "cooling": "koelt",
       "keypad_sent": "Verzonden", "keypad_refused": "Niet geaccepteerd", "keypad_enter": "Voer de code in",
       "feed_loading": "Laden...", "feed_no_answer": "Geen antwoord van openHAB", "feed_too_long": "Lijst te lang",
+      "feed_invalid": "Ongeldige lijst (JSON)",
       "qr_wifi": "WiFi", "qr_password": "Wachtwoord"
     },
     {
@@ -202,6 +208,7 @@
       "cover_all": "Todas", "thermostat_target": "Alvo", "heating": "a aquecer", "cooling": "a arrefecer",
       "keypad_sent": "Enviado", "keypad_refused": "Não aceite", "keypad_enter": "Introduza o código",
       "feed_loading": "A carregar...", "feed_no_answer": "Sem resposta do openHAB", "feed_too_long": "Lista demasiado longa",
+      "feed_invalid": "Lista inválida (JSON)",
       "qr_wifi": "WiFi", "qr_password": "Palavra-passe"
     },
     {
@@ -231,6 +238,7 @@
       "cover_all": "Alle", "thermostat_target": "Mål", "heating": "varmer", "cooling": "køler",
       "keypad_sent": "Sendt", "keypad_refused": "Ikke accepteret", "keypad_enter": "Indtast koden",
       "feed_loading": "Indlæser...", "feed_no_answer": "Intet svar fra openHAB", "feed_too_long": "Listen er for lang",
+      "feed_invalid": "Ugyldig liste (JSON)",
       "qr_wifi": "WiFi", "qr_password": "Adgangskode"
     },
     {
@@ -260,6 +268,7 @@
       "cover_all": "Alla", "thermostat_target": "Mål", "heating": "värmer", "cooling": "kyler",
       "keypad_sent": "Skickat", "keypad_refused": "Inte godkänt", "keypad_enter": "Ange koden",
       "feed_loading": "Laddar...", "feed_no_answer": "Inget svar från openHAB", "feed_too_long": "Listan är för lång",
+      "feed_invalid": "Ogiltig lista (JSON)",
       "qr_wifi": "WiFi", "qr_password": "Lösenord"
     },
     {
@@ -289,6 +298,7 @@
       "cover_all": "Alle", "thermostat_target": "Mål", "heating": "varmer", "cooling": "kjøler",
       "keypad_sent": "Sendt", "keypad_refused": "Ikke godtatt", "keypad_enter": "Tast inn koden",
       "feed_loading": "Laster...", "feed_no_answer": "Ikke svar fra openHAB", "feed_too_long": "Listen er for lang",
+      "feed_invalid": "Ugyldig liste (JSON)",
       "qr_wifi": "WiFi", "qr_password": "Passord"
     },
     {
@@ -318,6 +328,7 @@
       "cover_all": "Kaikki", "thermostat_target": "Tavoite", "heating": "lämmittää", "cooling": "jäähdyttää",
       "keypad_sent": "Lähetetty", "keypad_refused": "Ei hyväksytty", "keypad_enter": "Syötä koodi",
       "feed_loading": "Ladataan...", "feed_no_answer": "Ei vastausta openHABilta", "feed_too_long": "Luettelo on liian pitkä",
+      "feed_invalid": "Virheellinen luettelo (JSON)",
       "qr_wifi": "WiFi", "qr_password": "Salasana"
     },
     {
@@ -344,6 +355,7 @@
       "cover_all": "Всички", "thermostat_target": "Цел", "heating": "отоплява", "cooling": "охлажда",
       "keypad_sent": "Изпратено", "keypad_refused": "Не е приет", "keypad_enter": "Въведете кода",
       "feed_loading": "Зареждане...", "feed_no_answer": "Няма отговор от openHAB", "feed_too_long": "Списъкът е твърде дълъг",
+      "feed_invalid": "Невалиден списък (JSON)",
       "qr_wifi": "WiFi", "qr_password": "Парола"
     },
     {
@@ -370,6 +382,7 @@
       "cover_all": "Vše", "thermostat_target": "Cíl", "heating": "topí", "cooling": "chladí", "qr_wifi": "WiFi",
       "keypad_sent": "Odesláno", "keypad_refused": "Nepřijato", "keypad_enter": "Zadejte kód",
       "feed_loading": "Načítání...", "feed_no_answer": "Žádná odpověď z openHAB", "feed_too_long": "Seznam je příliš dlouhý",
+      "feed_invalid": "Neplatný seznam (JSON)",
       "qr_password": "Heslo"
     },
     {
@@ -396,6 +409,7 @@
       "cover_all": "Όλα", "thermostat_target": "Στόχος", "heating": "θερμαίνει", "cooling": "ψύχει",
       "keypad_sent": "Στάλθηκε", "keypad_refused": "Δεν έγινε δεκτό", "keypad_enter": "Εισαγάγετε τον κωδικό",
       "feed_loading": "Φόρτωση...", "feed_no_answer": "Καμία απάντηση από το openHAB", "feed_too_long": "Η λίστα είναι πολύ μεγάλη",
+      "feed_invalid": "Μη έγκυρη λίστα (JSON)",
       "qr_wifi": "WiFi", "qr_password": "Κωδικός"
     },
     {
@@ -422,6 +436,7 @@
       "cover_all": "Kõik", "thermostat_target": "Siht", "heating": "kütab", "cooling": "jahutab",
       "keypad_sent": "Saadetud", "keypad_refused": "Ei aktsepteeritud", "keypad_enter": "Sisestage kood",
       "feed_loading": "Laadimine...", "feed_no_answer": "openHAB ei vasta", "feed_too_long": "Loend on liiga pikk",
+      "feed_invalid": "Vigane loend (JSON)",
       "qr_wifi": "WiFi", "qr_password": "Parool"
     },
     {
@@ -448,6 +463,7 @@
       "cover_all": "Gach", "thermostat_target": "Sprioc", "heating": "ag téamh", "cooling": "ag fuarú",
       "keypad_sent": "Seolta", "keypad_refused": "Níor glacadh leis", "keypad_enter": "Cuir isteach an cód",
       "feed_loading": "Á lódáil...", "feed_no_answer": "Gan freagra ó openHAB", "feed_too_long": "Liosta rófhada",
+      "feed_invalid": "Liosta neamhbhailí (JSON)",
       "qr_wifi": "WiFi", "qr_password": "Pasfhocal"
     },
     {
@@ -474,6 +490,7 @@
       "cover_all": "Sve", "thermostat_target": "Cilj", "heating": "grije", "cooling": "hladi", "qr_wifi": "WiFi",
       "keypad_sent": "Poslano", "keypad_refused": "Nije prihvaćeno", "keypad_enter": "Unesite kod",
       "feed_loading": "Učitavanje...", "feed_no_answer": "Nema odgovora od openHAB-a", "feed_too_long": "Popis je predug",
+      "feed_invalid": "Neispravan popis (JSON)",
       "qr_password": "Lozinka"
     },
     {
@@ -500,6 +517,7 @@
       "cover_all": "Mind", "thermostat_target": "Cél", "heating": "fűt", "cooling": "hűt", "qr_wifi": "WiFi",
       "keypad_sent": "Elküldve", "keypad_refused": "Nincs elfogadva", "keypad_enter": "Adja meg a kódot",
       "feed_loading": "Betöltés...", "feed_no_answer": "Nincs válasz az openHAB-tól", "feed_too_long": "Túl hosszú lista",
+      "feed_invalid": "Érvénytelen lista (JSON)",
       "qr_password": "Jelszó"
     },
     {
@@ -526,6 +544,7 @@
       "cover_all": "Visi", "thermostat_target": "Tikslas", "heating": "šildo", "cooling": "vėsina",
       "keypad_sent": "Išsiųsta", "keypad_refused": "Nepriimta", "keypad_enter": "Įveskite kodą",
       "feed_loading": "Įkeliama...", "feed_no_answer": "openHAB neatsako", "feed_too_long": "Sąrašas per ilgas",
+      "feed_invalid": "Netinkamas sąrašas (JSON)",
       "qr_wifi": "WiFi", "qr_password": "Slaptažodis"
     },
     {
@@ -552,6 +571,7 @@
       "cover_all": "Visi", "thermostat_target": "Mērķis", "heating": "silda", "cooling": "dzesē",
       "keypad_sent": "Nosūtīts", "keypad_refused": "Nav pieņemts", "keypad_enter": "Ievadiet kodu",
       "feed_loading": "Ielādē...", "feed_no_answer": "Nav atbildes no openHAB", "feed_too_long": "Saraksts ir pārāk garš",
+      "feed_invalid": "Nederīgs saraksts (JSON)",
       "qr_wifi": "WiFi", "qr_password": "Parole"
     },
     {
@@ -578,6 +598,7 @@
       "cover_all": "Kollha", "thermostat_target": "Mira", "heating": "qed isaħħan", "cooling": "qed ibierd",
       "keypad_sent": "Mibgħut", "keypad_refused": "Mhux aċċettat", "keypad_enter": "Daħħal il-kodiċi",
       "feed_loading": "Qed jillowdja...", "feed_no_answer": "L-ebda tweġiba minn openHAB", "feed_too_long": "Il-lista twila wisq",
+      "feed_invalid": "Lista invalida (JSON)",
       "qr_wifi": "WiFi", "qr_password": "Password"
     },
     {
@@ -604,6 +625,7 @@
       "cover_all": "Wszystkie", "thermostat_target": "Cel", "heating": "grzeje", "cooling": "chłodzi",
       "keypad_sent": "Wysłano", "keypad_refused": "Nie przyjęto", "keypad_enter": "Wprowadź kod",
       "feed_loading": "Wczytywanie...", "feed_no_answer": "Brak odpowiedzi z openHAB", "feed_too_long": "Lista jest za długa",
+      "feed_invalid": "Nieprawidłowa lista (JSON)",
       "qr_wifi": "WiFi", "qr_password": "Hasło"
     },
     {
@@ -630,6 +652,7 @@
       "cover_all": "Toate", "thermostat_target": "Țintă", "heating": "încălzește", "cooling": "răcește",
       "keypad_sent": "Trimis", "keypad_refused": "Neacceptat", "keypad_enter": "Introduceți codul",
       "feed_loading": "Se încarcă...", "feed_no_answer": "Niciun răspuns de la openHAB", "feed_too_long": "Lista este prea lungă",
+      "feed_invalid": "Listă nevalidă (JSON)",
       "qr_wifi": "WiFi", "qr_password": "Parolă"
     },
     {
@@ -656,6 +679,7 @@
       "cover_all": "Všetky", "thermostat_target": "Cieľ", "heating": "kúri", "cooling": "chladí",
       "keypad_sent": "Odoslané", "keypad_refused": "Neprijaté", "keypad_enter": "Zadajte kód",
       "feed_loading": "Načítava sa...", "feed_no_answer": "Žiadna odpoveď z openHAB", "feed_too_long": "Zoznam je príliš dlhý",
+      "feed_invalid": "Neplatný zoznam (JSON)",
       "qr_wifi": "WiFi", "qr_password": "Heslo"
     },
     {
@@ -682,6 +706,7 @@
       "cover_all": "Vse", "thermostat_target": "Cilj", "heating": "greje", "cooling": "hladi", "qr_wifi": "WiFi",
       "keypad_sent": "Poslano", "keypad_refused": "Ni sprejeto", "keypad_enter": "Vnesite kodo",
       "feed_loading": "Nalaganje...", "feed_no_answer": "Ni odgovora iz openHAB", "feed_too_long": "Seznam je predolg",
+      "feed_invalid": "Neveljaven seznam (JSON)",
       "qr_password": "Geslo"
     }
   ]

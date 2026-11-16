@@ -591,8 +591,9 @@ comes. openHAB sets the item to `refresh` with the command (autoupdate, on by
 default: leave it on), so the list that follows is always a change and reaches
 every panel, even when it is the same as before. A list the same as the one
 shown draws nothing anew; one that differs changes only the rows that differ.
-Without an answer within `timeout` the page says "No answer from openHAB"
-above the list it had. With `refresh` the panel asks again while the page
+Without an answer within `timeout` the page says "No answer from openHAB",
+and only that: the list it had is gone, since departures that look current
+would mislead. With `refresh` the panel asks again while the page
 shows, and the list stays meanwhile; a list that comes from another panel's
 asking counts, so three panels on the same item ask about once per `refresh`,
 not three times. A rule may also write a list whenever it likes: the panels
@@ -615,17 +616,19 @@ title in place of the page's:
 ```
 
 The title (the page's `title` without one) stays while the panel asks for the
-list anew or waits in vain, as the list does; one too wide for the title
-field ends in "…".
+list anew, as the list does, and goes with it (no answer, an invalid list);
+one too wide for the title field ends in "…".
 
 A row has `label`, `value` (the text shown, as it is: no format), and may
 have `icon`, `badge`, `color` (the icon's and the badge's), `value_color`, `wide` and `scroll`
 as a fixed row; `null` is an empty line.
 A list of departures, say, with the line's number in the icon's place:
-`{"label": "Main station", "badge": "S12", "value": "3 min"}`. Any state that is no such list (a text
-like "No connection to the transit API", or broken JSON) shows as it is, so
-the rule can say what went wrong. The panel takes at most 4096 bytes ("List
-too long" beyond) and 40 rows.
+`{"label": "Main station", "badge": "S12", "value": "3 min"}`. A state that
+starts with `[` or `{` but is no such list (broken JSON, or an object without
+`rows`) shows "Invalid list (JSON)"; the log (*Diagnostics*, tag
+`feed`) says where the JSON broke. Any other text (like "No connection to the
+transit API") shows as it is, so the rule can say what went wrong. The panel
+takes at most 4096 bytes ("List too long" beyond) and 40 rows.
 
 **The rule** answers every `refresh`, also when it fetches nothing new: the
 panels that asked wait for it. It keeps the list it fetched last and fetches

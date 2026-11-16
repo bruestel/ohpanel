@@ -3653,19 +3653,19 @@ int main(int argc, char **argv) {
     f.idle(t += 1500);
     CHECK(sent.size() == 1 && sent.back().second == "refresh");
     CHECK(!r.has("row1_wide.txt=\"Loading...\""));
-    // no answer within 15 s: said above the list
+    // no answer within 15 s: said alone, the list before it gone (departures that look current would mislead)
     r.out.clear();
     f.idle(t += 14000);
     CHECK(r.out.empty());
     f.idle(t += 1500);
-    CHECK(r.has("row1_wide.txt=\"No answer from openHAB\"") && r.has("row2_longtext.txt=\"12 Main station\""));
+    CHECK(r.has("row1_wide.txt=\"No answer from openHAB\"") && !r.has("row2_longtext.txt=\"12 Main station\"") &&
+          r.has("vis row2_icon,0"));
     // the answer after all: the note goes
     set_state("Bus_Departures", R"({"rows": [{"label": "12 Main station", "value": "1 min"}], "note": "Line 34 cancelled"})",
               "String");
     r.out.clear();
     f.on_state("Bus_Departures");
-    CHECK(r.has("row1_wide.txt=\"Line 34 cancelled\"") && r.has("row2_shortval.txt=\"1 min\"") &&
-          r.has("vis row3_icon,0"));
+    CHECK(r.has("row1_wide.txt=\"Line 34 cancelled\"") && r.has("row2_shortval.txt=\"1 min\""));
     CHECK(!r.has_prefix("title."));   // no title of its own: the page's stays
     // a title of its own: in place of the page's, kept while the list is asked for anew, the page's again without
     set_state("Bus_Departures",
@@ -3679,23 +3679,31 @@ int main(int argc, char **argv) {
     set_state("Bus_Departures", "refresh", "String");
     r.out.clear();
     f.on_state("Bus_Departures");
-    f.idle(t += 16000);   // no answer: said above the list, the title stays
-    CHECK(r.has("row1_wide.txt=\"No answer from openHAB\"") && !r.has_prefix("title."));
+    CHECK(!r.has_prefix("title."));   // asked anew: the title stays with the list
+    f.idle(t += 16000);   // no answer: said alone, the page's title (the list's went with it)
+    CHECK(r.has("row1_wide.txt=\"No answer from openHAB\"") && r.has("title.txt=\"Departures\""));
     set_state("Bus_Departures", R"({"rows": [{"label": "12 Main station", "value": "1 min"}], "note": "Line 34 cancelled"})",
               "String");
     r.out.clear();
     f.on_state("Bus_Departures");
-    CHECK(r.has("title.txt=\"Departures\""));
+    CHECK(r.has("row1_wide.txt=\"Line 34 cancelled\""));
     // a text instead of a list: shown as it is
     set_state("Bus_Departures", "No connection to the transit API", "String");
     r.out.clear();
     f.on_state("Bus_Departures");
     CHECK(r.has("row1_wide.txt=\"No connection to the transit API\"") && r.has("vis row2_icon,0"));
-    // broken JSON: shown as text too, and too long a list is refused
-    set_state("Bus_Departures", R"([{"label": "12", )", "String");
+    // broken JSON, or JSON that is no list of rows: said so (where it broke in the log), not shown as text; too
+    // long a list is refused
+    set_state("Bus_Departures", "[\n  {\"label\": \"12\", }\n]", "String");
     r.out.clear();
     f.on_state("Bus_Departures");
-    CHECK(r.has("row1_wide.txt=\"[{\\\"label\\\": \\\"12\\\", \"") || r.has_prefix("row1_wide.txt=\"[{"));
+    CHECK(r.has("row1_wide.txt=\"Invalid list (JSON)\"") && !r.has_prefix("row1_wide.txt=\"["));
+    set_state("Bus_Departures", R"({"title": "Departures 14:02", "rows": [{"label": "12", "value": "1 min"}]})", "String");
+    f.on_state("Bus_Departures");
+    set_state("Bus_Departures", R"({"title": "Departures 14:02", "row": []})", "String");
+    r.out.clear();
+    f.on_state("Bus_Departures");
+    CHECK(r.has("title.txt=\"Departures\"") && r.has("vis row1_wide,1") && r.has("vis row1_longtext,0"));
     std::string big = "[";
     for (int k = 0; k < 200; k++)
       big += std::string(k ? "," : "") + R"({"label": "Line )" + std::to_string(k) + R"(", "value": "in some minutes"})";

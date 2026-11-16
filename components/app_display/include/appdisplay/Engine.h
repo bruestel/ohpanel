@@ -541,6 +541,7 @@ class Engine {
     bool have = false;       // raw holds one (else nothing came yet, or only "refresh")
     bool asked = false;      // asked since the page opened (or the screen woke)
     bool failed = false;     // asked, and no answer came in time
+    bool reported = false;   // raw's broken JSON said in the log
     Wait wait = Wait::None;
     int64_t since_ms = 0;    // asked then
     int64_t next_ms = 0;     // asked again then ("refresh")
