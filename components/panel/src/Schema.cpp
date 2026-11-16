@@ -90,6 +90,10 @@ class Validator {
       const cJSON *id = cJSON_GetObjectItem(p, "id");
       if (cJSON_IsString(id) && std::strcmp(id->valuestring, kSettingsId) == 0)
         fail(at("pages", index) + ".id", "\"settings\" is the panel's settings page, which is built in");
+      else if (cJSON_IsString(id) && (std::strcmp(id->valuestring, "next") == 0 ||
+                                      std::strcmp(id->valuestring, "previous") == 0))
+        fail(at("pages", index) + ".id", "\"" + std::string(id->valuestring) +
+                                             "\" is what a hardware button's \"open\" steps through the swipe row with");
       else if (cJSON_IsString(id) && std::strcmp(id->valuestring, kInfoId) == 0 &&
                !(cJSON_IsString(cJSON_GetObjectItem(p, "type")) &&
                  std::strcmp(cJSON_GetObjectItem(p, "type")->valuestring, "system") == 0))
@@ -786,8 +790,11 @@ class Validator {
       string(e, "label", p, false, 24);
       optional_item(e, p);
       boolean(e, "hidden", p);
-      // a button that opens a page: nothing else -- its relay is left alone or follows an item of its own
-      open(e, p);
+      // a button that opens a page (or the next or previous one in the swipe row): nothing else -- its relay is left
+      // alone or follows an item of its own
+      if (const cJSON *v = cJSON_GetObjectItem(e, "open");
+          !(cJSON_IsString(v) && (std::strcmp(v->valuestring, "next") == 0 || std::strcmp(v->valuestring, "previous") == 0)))
+        open(e, p);
       if (cJSON_GetObjectItem(e, "open")) {
         if (cJSON_GetObjectItem(e, "item"))
           fail(member(p, "item"), "goes without \"open\": the button opens a page (an item for the relay: \"relay\": {\"item\"})");

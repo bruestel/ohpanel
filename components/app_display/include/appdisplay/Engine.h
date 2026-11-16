@@ -338,6 +338,7 @@ class Engine {
   const std::vector<std::string> &swipe_row() const { return swipe_row_; }
   std::string start_page() const { return swipe_row_.front(); }   // the row's first: where "back" ends
   int sheets_of(const cJSON *page);   // a list's, the weather's, a cover group's sheets (else 1)
+  void step_row(bool forward);
   bool in_swipe_row() const;   // the page shown is in the swipe row (of more than one): its dots are the row's
   std::string sheet_dots(int sheets, int at) const;   // a dot a sheet, `at` full
   void make_swipe_row();   // swipe_row_ from the configuration (set_config)

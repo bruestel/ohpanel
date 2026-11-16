@@ -2963,8 +2963,10 @@ function canonical(text) {
 function panelDirty() {
   return panelSaved !== null && canonical($('pJson').value) !== panelSaved;
 }
+/* A page id typed and fit to take but not taken yet (pageIdField takes it on leaving the field: Save does): unsaved. */
+let idPending = false;
 function updateSaveBar(error) {
-  const dirty = panelDirty();
+  const dirty = panelDirty() || idPending;
   $('saveBar').hidden = !dirty && !error;
   document.querySelector('.navbar').classList.toggle('dirty', dirty || !!error);
   $('saveBar').classList.toggle('err', !!error);
@@ -7262,8 +7264,9 @@ function pvEditor() {
     const labelRow = pvRow(field('Label (optional)', fitHint(textInput(e.label, v => set('label', v), {maxLength: 24}), () => ['home', 'relay1_text', (layoutBox('home', 'relay1_label') || [])[3]])));
     const buttonField = field('', itemField(buttonItem, v => { buttonItem = v; write(); }, 'Switch'));
     const relayField = field('Item of the relay (optional)', itemField(relayItem, v => { relayItem = v; write(); }, 'Switch'));
-    const openField = field('Page it opens', selectInput(pvPageOptions(), openPage,
-                                                        v => { openPage = v; write(); }));
+    // or steps through the swipe row (Engine::step_row): "next", "previous" -- no page's id (pageIdField)
+    const openField = field('Page it opens', selectInput(pvPageOptions().concat([{group: 'Through the swipe row', options: [
+      ['next', 'The next page'], ['previous', 'The page before']]}]), openPage, v => { openPage = v; write(); }));
     const bar = note('');
     const fields = document.createElement('div');
     fields.className = 'pickfields';
@@ -7273,7 +7276,7 @@ function pvEditor() {
       ['item', 'Switches an item only', 'The relay is left alone.', 'item'],
       ['both', 'Switches an item, the relay has its own', 'Button and relay are independent of each other.', "button's item"],
       ['none', 'Does nothing, the relay follows an item', 'For a load that must not be switched at the wall.', 'relay'],
-      ['open', 'Opens a page, the relay follows an item', 'A press wakes the screen and shows the page, such as the departures.', 'relay'],
+      ['open', 'Opens a page, the relay follows an item', 'A press wakes the screen and shows the page, such as the departures, or steps through the swipe row: the next page, or the one before.', 'relay'],
       ['hidden', 'Does nothing and does not show, the relay follows an item', 'Neither label nor bar on the panel: a relay only openHAB sees.', ''],
     ];
     const picks = document.createElement('div');
@@ -10039,21 +10042,38 @@ function renamePage(old, id) {
   });
 }
 
+/* Ids no page may have: a hardware button's "open" steps through the swipe row with them (Schema.cpp). */
+const RESERVED_IDS = ['next', 'previous'];
 /* The page's id, what buttons, shortcuts and openHAB (display.open_page) name it by: taken once typed (on leaving
    the field or Enter), as the configuration's check wants it and not one taken already. */
 function pageIdField(page) {
+  idPending = false;   // (a field gone without being left: its typing with it)
   const i = textInput(page.id, () => {}, {maxLength: 24, spellcheck: false, autocapitalize: 'off'});
   const msg = document.createElement('p');
   msg.className = 'sub warn';
   const problem = v => !/^[a-z0-9]([a-z0-9-]*[a-z0-9])?$/.test(v) ? 'Only a-z, 0-9 and -, not at the start or the end'
+    : RESERVED_IDS.includes(v) ? 'Taken: a hardware button steps through the swipe row with "' + v + '"'
     : v !== page.id && (v === 'home' || v === SETTINGS_PAGE.id || v === INFO_PAGE.id || pagesOf(PV.cfg).some(p => p.id === v))
       ? 'Another page has this id' : '';
   const show = () => { msg.textContent = problem(i.value.trim()); msg.hidden = !msg.textContent; };
-  i.addEventListener('input', show);
+  const pending = () => {
+    const v = i.value.trim();
+    idPending = v !== page.id && !problem(v);
+    updateSaveBar();
+  };
+  i.addEventListener('input', () => { show(); pending(); });
   i.addEventListener('keydown', ev => { if (ev.key === 'Enter') i.blur(); });
   i.addEventListener('change', () => {
     const v = i.value.trim();
-    if (v !== page.id && !problem(v)) renamePage(page.id, v);
+    const why = problem(v);
+    idPending = false;
+    if (v === page.id) { updateSaveBar(); return; }
+    if (!why) { renamePage(page.id, v); updateSaveBar(); return; }
+    // not taken: the field back to the id it has, the reason kept in view
+    i.value = page.id;
+    msg.textContent = why + ' \u2013 the id stays \u201c' + page.id + '\u201d.';
+    msg.hidden = false;
+    updateSaveBar();
   });
   show();
   const box = document.createElement('div');
@@ -10260,7 +10280,7 @@ function addPage(type, row) {
   let id = '';
   pvEdit(c => {
     const pages = c.pages || [];
-    const ids = new Set(pages.map(p => p.id).concat(['home', SETTINGS_PAGE.id, INFO_PAGE.id]));
+    const ids = new Set(pages.map(p => p.id).concat(['home', SETTINGS_PAGE.id, INFO_PAGE.id], RESERVED_IDS));
     const titles = new Set(pages.map(p => p.title));
     let title = kind.label;
     for (let n = 2; titles.has(title); n++) title = kind.label + ' ' + n;

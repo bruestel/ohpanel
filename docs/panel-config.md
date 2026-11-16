@@ -32,7 +32,8 @@ written can be set as well, see [Formatting values](#formatting-values).
   colours (`theme-accent`, `theme-text`, `theme-dim`, which follow the theme
   and the background; not in `display.theme` itself) or `#rrggbb`.
 - Page `id`s are 1-24 characters `a-z 0-9 -`; they are what `open` and
-  `swipe` refer to.
+  `swipe` refer to. `next` and `previous` are taken: a hardware button steps
+  through the swipe row with them.
 - Strings shown on the display are cut to what the display field holds.
 
 ## Top level
@@ -342,6 +343,13 @@ else. No press switches the relay then: it is left alone, or follows an item of 
 own with `"relay": {"item": "..."}`; `"item"` does not go with it. For a page one
 wants at hand, such as the departures:
 `{"label": "Bus", "open": "departures", "relay": {"item": "Hall_Light"}}`.
+
+`"open": "next"` and `"open": "previous"` step through the swipe row instead: the
+next page, or the one before, as a swipe brings it (on its first sheet), around
+past either end; from a page not in the row, its first page (its last). A screen
+that is off is only woken, on the start page as by a touch. Two buttons
+`{"label": "Back", "open": "previous"}, {"label": "Next", "open": "next"}` page the
+panel by hand.
 
 `"hidden": true` shows nothing of it on home, neither the label nor the bar; the
 button and the relay work as configured, unseen:

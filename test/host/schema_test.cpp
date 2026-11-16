@@ -62,6 +62,14 @@ int main() {
   expect_valid("button opens a page, relay on its item", relay_page(R"({"label":"Bus","open":"bus","relay":{"item":"R"}})"));
   expect_valid("button opens the settings", relay_page(R"({"label":"Set","open":"settings","relay":false})"));
   expect_issue("button opens no page", relay_page(R"({"label":"Bus","open":"nowhere"})"), "home.relays[0].open");
+  // ... or steps through the swipe row: "next", "previous" -- no page's id, and nothing a tile or the clock opens
+  expect_valid("button opens the next page", relay_page(R"({"label":"Next","open":"next"},{"label":"Back","open":"previous"})"));
+  expect_issue("next as a page id", doc(R"("pages":[{"id":"next","type":"entities","title":"x","rows":[{"item":"A"}]}])"),
+               "pages[0].id");
+  expect_issue("previous as a page id",
+               doc(R"("pages":[{"id":"previous","type":"entities","title":"x","rows":[{"item":"A"}]}])"), "pages[0].id");
+  expect_issue("shortcut opens next", doc(R"("home":{"shortcuts":[{"icon":"cog","open":"next"}]})"),
+               "home.shortcuts[0].open");
   // the weather from one item a rule writes as JSON: the page's days, home's weather block
   expect_valid("weather feed", doc(R"("pages":[{"id":"w","type":"weather","title":"x","feed":{"item":"Wx","codes":"bom"}}])"));
   expect_issue("weather feed and days", doc(R"("pages":[{"id":"w","type":"weather","title":"x","feed":{"item":"Wx"},"days":[]}])"),

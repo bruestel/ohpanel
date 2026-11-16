@@ -3970,6 +3970,73 @@ int main(int argc, char **argv) {
     if (g_failures) r.dump();
   }
 
+  {  // hardware buttons with "open": "next" / "previous": the swipe row a page on or back, around its ends; from a page
+     // not in the row its first (last) page; a screen that is off only woken, on the start page
+    Callbacks cb5 = cb;
+    std::vector<std::pair<int, bool>> switched;
+    cb5.relay = [&](int i, bool on) { switched.push_back({i, on}); };
+    Recorder r;
+    Engine h(r, cb5);
+    h.release_wait(0);
+    set_state("Step_Page", "NULL", "UnDef");
+    CHECK(h.load_design(read("boards/nspanel/nextion/display-manifest-eu.json").c_str(),
+                        read("boards/nspanel/nextion/weather-icons.json").c_str()));
+    h.set_config(R"({"version": 1, "swipe": ["home", "a", "b"],
+      "display": {"screen": {"idle_brightness": 0, "idle_after": 30}, "open_page": {"item": "Step_Page"}},
+      "home": {"relays": [{"label": "Back", "open": "previous"}, {"label": "Next", "open": "next"}]},
+      "pages": [{"id": "a", "type": "entities", "title": "A", "rows": [{"item": "A1"}]},
+                {"id": "b", "type": "entities", "title": "B", "rows": [{"item": "B1"}]},
+                {"id": "c", "type": "entities", "title": "C", "rows": [{"item": "C1"}]}]})");
+    int64_t t = 1000;
+    h.idle(t);
+    h.start();
+    h.idle(t += 5000);
+    h.on_message(loaded("home"));
+    CHECK(h.current() == "home");
+    h.hardware_button(1);
+    CHECK(h.current() == "a");
+    h.on_message(loaded("entities"));
+    h.hardware_button(1);
+    CHECK(h.current() == "b");
+    h.on_message(loaded("entities"));
+    h.hardware_button(1);   // past the end: around to the first
+    CHECK(h.current() == "home");
+    h.on_message(loaded("home"));
+    h.hardware_button(0);   // back past the start: the last
+    CHECK(h.current() == "b");
+    h.on_message(loaded("entities"));
+    h.hardware_button(0);
+    CHECK(h.current() == "a" && switched.empty());
+    h.on_message(loaded("entities"));
+    h.on_state("Step_Page");   // its state known (NULL): a page id after it opens that page
+    set_state("Step_Page", "c", "String");   // not in the row: next brings its first page, previous its last
+    h.on_state("Step_Page");
+    CHECK(h.current() == "c");
+    h.on_message(loaded("entities"));
+    h.hardware_button(1);
+    CHECK(h.current() == "home");
+    h.on_message(loaded("home"));
+    set_state("Step_Page", "NULL", "UnDef");
+    h.on_state("Step_Page");
+    set_state("Step_Page", "c", "String");
+    h.on_state("Step_Page");
+    CHECK(h.current() == "c");
+    h.on_message(loaded("entities"));
+    h.hardware_button(0);
+    CHECK(h.current() == "b");
+    h.on_message(loaded("entities"));
+    // asleep: the press only wakes it, on the start page
+    h.on_message(event("entities", "swipe", "none"));
+    h.idle(t += 100);
+    h.idle(t += 31000);
+    CHECK(h.asleep());
+    h.on_message(loaded("blank"));
+    h.hardware_button(1);
+    h.idle(t += 100);
+    CHECK(!h.asleep() && h.current() == "home" && switched.empty());
+    if (g_failures) r.dump();
+  }
+
   {  // a panel started before openHAB answers: home drawn without the weather item's state, which comes later (and
      // the time later still, or before it) -- the weather shows once the state comes
     for (int clock_first = 0; clock_first < 2; clock_first++) {

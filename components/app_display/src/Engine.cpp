@@ -1260,6 +1260,27 @@ void Engine::swipe(const std::string &direction) {
   fade_to(row[(at + (direction == "left" ? 1 : n - 1)) % n], direction == "right");
 }
 
+/* A hardware button's "open": "next" / "previous": the next page in the swipe row, or the one before, as a swipe
+   brings it (on its first sheet: a page's sheets are the finger's); from a page not in the row its first page (the
+   last). A screen that is off is only woken, on the start page as by a touch: one presses it to look. */
+void Engine::step_row(bool forward) {
+  touched_ms_ = now_ms_;
+  if (asleep_)
+    return;   // screen_tick wakes it
+  const std::vector<std::string> &row = swipe_row();
+  const int n = static_cast<int>(row.size());
+  if (n < 2)
+    return;
+  const std::string &from = fade_.phase == 1 ? fade_.target : current_;   // a fade under way: on from where it lands
+  const auto it = std::find(row.begin(), row.end(), from);
+  const std::string &to = it == row.end() ? row[forward ? 0 : n - 1]
+                                          : row[(static_cast<int>(it - row.begin()) + (forward ? 1 : n - 1)) % n];
+  if (fade_.phase == 1)
+    fade_.target = to;
+  else if (to != current_)
+    fade_to(to, false);
+}
+
 bool Engine::in_swipe_row() const {
   return swipe_row_.size() > 1 && std::find(swipe_row_.begin(), swipe_row_.end(), current_) != swipe_row_.end();
 }
@@ -1863,7 +1884,10 @@ void Engine::hardware_button(int index) {
   const cJSON *r = slot(member(config_, "home"), "relays", index);
   // a button that opens a page ("open"): that page, the screen woken for it -- also at night, unlike a switch: one
   // presses it to look --; no relay switched by it (one with an item of its own follows that)
-  if (const std::string id = str(r, "open"); !id.empty()) {
+  if (const std::string id = str(r, "open"); id == "next" || id == "previous") {
+    step_row(id == "next");
+    return;
+  } else if (!id.empty()) {
     if (id != "home" && !page_config(id))
       return;
     touched_ms_ = now_ms_;
