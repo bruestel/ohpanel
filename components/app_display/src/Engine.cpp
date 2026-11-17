@@ -405,6 +405,7 @@ void Engine::send_theme() {
 }
 
 void Engine::set_config(const std::string &json) {
+  drop_confirm();   // the tile it asks for may be gone
   forget_group_rows();
   feed_reset();   // its rows hold the page's icon and colours: made anew, and the list asked for again
   bindings_.clear();   // they point into the configuration going now: drawn again once the page is built anew
@@ -1166,6 +1167,11 @@ void Engine::show_physical(const std::string &wanted) {
   }
   if (note_drawn_ && link_)
     sink_.send("sendxy=0");   // the card goes with the page: touches report as the next page's again (the black page too)
+  if (confirm_ && confirm_->drawn) {   // the question likewise: drawn again (sendxy with it) if it is wanted still
+    confirm_->drawn = false;
+    if (link_ && !note_drawn_)
+      sink_.send("sendxy=0");
+  }
   send("page " + std::to_string(it->second.id));
   note_drawn_ = false;
   report_page(name);
@@ -1190,6 +1196,7 @@ void Engine::open(const std::string &id, bool remember, bool last_sheet) {
   const cJSON *page = id == "home" ? nullptr : page_config(id);
   if (id != "home" && !page)
     return;
+  drop_confirm();   // another page: the question goes unanswered
   if (remember && id != current_)
     history_.push_back(current_);
   if (id == start_page())
@@ -1491,6 +1498,10 @@ void Engine::link_up() {
 }
 
 void Engine::render() {
+  if (confirm_ && shown_ == "qr") {   // a tile's question over its page
+    draw_confirm();
+    return;
+  }
   if (shown_ == "volpage") {   // the media page's volume, a page of its own
     draw_volume_page();
     return;
@@ -1680,6 +1691,16 @@ void Engine::on_message(const nextion::Message &m) {
   // not close the card (a touch on it does); any later touch down starts a touch of its own
   if ((m.kind == Kind::Touch || m.kind == Kind::Point) && m.press)
     wake_touch_ = asleep_;
+  if (confirm_ && confirm_->drawn && !note_drawn_ && (m.kind == Kind::Point || m.kind == Kind::Touch)) {
+    // a tile's question: a finger lifted on its buttons answers it (the one that woke the screen does nothing)
+    if (m.kind == Kind::Point && !m.press) {
+      if (wake_touch_)
+        wake_touch_ = false;
+      else
+        confirm_touch(m.x, m.y);
+    }
+    return;
+  }
   if (m.kind == Kind::Value && shown_ == "volpage" && (m.name == "vols" || m.name == "volu")) {
     volume_slider(m.name == "volu", static_cast<int>(m.value));
     return;
@@ -1863,9 +1884,12 @@ void Engine::act_button(const cJSON *page, int index) {
   if (action == "open") {
     open(str(b, "open"));
   } else if (action == "toggle" && cb_.command && !item.empty()) {
-    cb_.command(item, toggle_command(b));
+    const std::string command = toggle_command(b);
+    if (!ask_confirm(page, b, item, command))
+      cb_.command(item, command);
   } else if (action == "command" && cb_.command && !item.empty()) {
-    cb_.command(item, str(b, "command"));
+    if (!ask_confirm(page, b, item, str(b, "command")))
+      cb_.command(item, str(b, "command"));
   }
 }
 
@@ -2271,6 +2295,7 @@ void Engine::idle(int64_t now_ms) {
     draw_rest_until_ms_ = now_ms + kDrawRestMs;   // then a rest: the display can report a touch
   }
   fade_tick();
+  confirm_tick();
   image_tick();
   feed_tick();
   weather_feed_tick();
@@ -2326,6 +2351,8 @@ bool Engine::stays(const cJSON *page) const {
 void Engine::show_current() {
   if (asleep_)
     show_physical("blank");
+  else if (confirm_)   // a tile's question over its page
+    show_physical("qr");
   else
     show_physical(current_ == "home" ? "home" : template_of(page_config(current_)));
 }
@@ -2381,6 +2408,7 @@ void Engine::screen_tick() {
   }
   if (off) {
     if (!asleep_) {
+      drop_confirm();   // unanswered: the tile's page under the black one
       asleep_ = true;
       set_level(0);
       show_physical("blank");

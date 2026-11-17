@@ -330,6 +330,19 @@ int main() {
   expect_issue("keypad stay not bool", doc("\"pages\":[{\"id\":\"k\",\"type\":\"keypad\",\"title\":\"K\",\"item\":\"I\","
                                            "\"stay\":1,\"buttons\":[{\"label\":\"Off\"}]}]"), "pages[0].stay");
   expect_valid("open page", doc("\"display\":{\"open_page\":{\"item\":\"Panel_Page\"}}"));
+  // a tile's confirmation: true, false, or its own texts
+  const auto confirm_doc = [](const std::string &tile) {
+    return doc(R"("pages":[{"id":"t","type":"buttons","title":"x","buttons":[{"label":"A","icon":"lamp","item":"A")" + tile +
+               "}]}]");
+  };
+  expect_valid("tile asks", confirm_doc(R"(,"confirm":true)"));
+  expect_valid("tile asks its own", confirm_doc(R"(,"confirm":{"text":"Open {label}?","icon":"garage","yes":{"label":"Open","color":"red"},"no":{"label":"No"},"timeout":20})"));
+  expect_issue("tile asks a page id", confirm_doc(R"(,"confirm":"ask")"), "pages[0].buttons[0].confirm");
+  expect_issue("confirmation timeout", confirm_doc(R"(,"confirm":{"timeout":3})"), "pages[0].buttons[0].confirm.timeout");
+  expect_issue("confirmation no button colour", confirm_doc(R"(,"confirm":{"no":{"color":"red"}})"),
+               "pages[0].buttons[0].confirm.no.color");
+  expect_issue("confirmation unknown key", confirm_doc(R"(,"confirm":{"txt":"x"})"), "pages[0].buttons[0].confirm.txt");
+  expect_issue("no confirm page type", doc(R"("pages":[{"id":"ask","type":"confirm","title":"x"}])"), "pages[0].type");
   expect_valid("media page with a stop item", doc(R"("pages":[{"id":"m","type":"media","title":"x","control":{"item":"P"},"stop":{"item":"S"}}])"));
   expect_issue("media stop no item", doc(R"("pages":[{"id":"m","type":"media","title":"x","control":{"item":"P"},"stop":"S"}])"), "pages[0].stop");
   expect_valid("screen woken by an item", doc(R"("display":{"screen":{"wake":{"item":"Hall_Motion"}}})"));

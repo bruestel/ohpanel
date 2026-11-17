@@ -829,6 +829,21 @@ class Engine {
   void draw_qr_code(const cJSON *page);
   // the image page (EngineImage.cpp): a picture under the title, on the QR page's design
   Box image_area() const;
+  /* A tile's confirmation (EngineConfirm.cpp): the question over the tile's page, its answer sends the command. */
+  struct Confirm {
+    std::shared_ptr<cJSON> own;  // its own texts ("confirm": {...}), none: the standard question
+    std::string item, command, label;
+    int64_t since_ms = 0;
+    bool drawn = false;          // on the display: touches come as points
+    Box yes{0, 0, 0, 0}, no{0, 0, 0, 0};
+  };
+  std::optional<Confirm> confirm_;
+  bool ask_confirm(const cJSON *page, const cJSON *button, const std::string &item, const std::string &command);
+  void draw_confirm();
+  void confirm_touch(int x, int y);
+  void close_confirm(bool yes);
+  void drop_confirm();
+  void confirm_tick();
   std::string image_source(const cJSON *page) const;
   int image_refresh_s(const cJSON *page) const;
   void draw_image(const cJSON *page);

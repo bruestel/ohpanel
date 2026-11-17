@@ -445,6 +445,7 @@ others keep their place.
 | `always_active` | bool | draw the button active regardless of the item's state |
 | `value_style` | rules (see below) | by the item's state: `"active": true / false` draws the button active or not (else its state decides: `on`, else ON / OPEN / above 0), `"layout": "corner" / "center"` places its icon (else its own `layout`), `color` the icon's colour, `blink`, `icon` another icon, e.g. `[{"above": 65, "active": true, "color": "red"}]`; `always_active` still wins |
 | `layout` | string | `corner` (default): the icon top left, the name on the bottom line, the state (`value`) above it and, for a value in %, a bar below; `center`: the icon in the middle of the tile, large (48 px), the name centred under it, no state |
+| `confirm` | `true` or an object | asks before the button switches (`toggle`, `command`): `true` the standard question (the label as the title, "Switch on?" / "Switch off?" / "Carry this out?", *Yes* and *Cancel* in the display language), or a question of one's own; see *Asking before a button switches* below |
 
 Instead of `buttons`, a page may take the members of an openHAB group as its
 tiles, say to see which lights are on and switch them off:
@@ -455,10 +456,34 @@ tiles, say to see which lights are on and switch them off:
 | `metadata`, `label` | | name, sort, hide the members and give each an icon of its own as on an entities page (the metadata's value as the name, `order`, `hidden=true`, `icon`), see there |
 | `icon`, `color`, `value_style` | | apply to every tile |
 | `only_on` | bool | only the members that are on as the page opens (and those whose state is not known yet). A tile switched off stays, grey, until the page opens again, so the tiles do not move under a finger; a light that comes on meanwhile shows then too |
+| `confirm` | `true` or an object | every tile asks before it switches, as a button's `confirm` (also on a page with `buttons`: a button's own `confirm`, `false` too, wins) |
 
 ```json
 {"id": "lights-on", "type": "buttons", "title": "Lights on", "group": "gLights",
  "icon": "lightbulb", "only_on": true}
+```
+
+**Asking before a button switches** (`confirm`), for what should not go by a touch in passing: the garage door,
+the alarm. The panel draws the question over the page, on the QR page's design: the title, an icon, the question,
+two buttons. *Yes* switches; *Cancel*, the close cross or no answer within `timeout` go back without switching.
+`"confirm": true` asks the standard question; an object asks one's own, each key optional:
+
+| Key | Value | |
+|---|---|---|
+| `title` | text | default: the button's label |
+| `text` | text | the question; default "Switch on?" / "Switch off?" / "Carry this out?" in the display language |
+| `icon`, `icon_color` | icon, colour | a large icon above the question |
+| `yes` | `{"label", "color"}` | the button that switches: default "Yes" in the theme's accent |
+| `no` | `{"label"}` | the one that does not: default "Cancel" |
+| `timeout` | seconds, 5 ... 120 | back without switching (default 30) |
+
+In `title` and `text`, `{label}` is the button's label and `{to}` what it switches to ("On" / "Off" in the display
+language, or its `command`), so one question on a group's page serves all of its tiles:
+
+```json
+{"label": "Garage", "icon": "garage", "item": "Garage_Door",
+ "confirm": {"text": "Switch {label} {to}?", "icon": "garage-open", "icon_color": "yellow",
+             "yes": {"label": "Do it", "color": "red"}}}
 ```
 
 ### `entities`: a list of states

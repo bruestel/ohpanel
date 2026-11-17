@@ -4005,6 +4005,107 @@ int main(int argc, char **argv) {
     if (g_failures) r.dump();
   }
 
+  {  // a tile's confirmation: the question over its page (the QR page's design), "Yes" switches, "Cancel", the close
+     // cross and the timeout do not; a question of its own ("confirm": {...}), {label} and {to} in its texts
+    Callbacks cb7 = cb;
+    std::vector<std::pair<std::string, std::string>> sent;
+    cb7.command = [&](const std::string &item, const std::string &cmd) { sent.push_back({item, cmd}); };
+    Recorder r;
+    Engine c(r, cb7);
+    c.release_wait(0);
+    CHECK(c.load_design(read("boards/nspanel/nextion/display-manifest-eu.json").c_str(),
+                        read("boards/nspanel/nextion/weather-icons.json").c_str()));
+    set_state("Garage_Door", "OFF", "OnOff");
+    set_state("Hall_Lamp", "OFF", "OnOff");
+    c.set_config(R"({"version": 1, "swipe": ["tiles"], "pages": [
+      {"id": "tiles", "type": "buttons", "title": "Tiles", "buttons": [
+        {"label": "Hall", "icon": "lightbulb", "item": "Hall_Lamp", "confirm": true},
+        {"label": "Garage", "icon": "garage", "item": "Garage_Door", "confirm": {"title": "{label}",
+         "text": "Switch the garage {to}?", "icon": "garage-open", "yes": {"label": "Do it", "color": "red"},
+         "timeout": 10}},
+        {"label": "Plain", "icon": "lightbulb", "item": "Plain_Lamp"}]}]})");
+    PanelStatus up;
+    up.openhab = true;
+    c.set_status(up);
+    int64_t t = 1000;
+    c.idle(t);
+    c.start();
+    c.idle(t += 5000);
+    c.on_message(loaded("buttons"));
+    CHECK(c.current() == "tiles");
+    const auto point = [&](int x, int y) {
+      nextion::Message m;
+      m.kind = nextion::Message::Kind::Point;
+      m.x = x;
+      m.y = y;
+      m.press = true;
+      c.on_message(m);
+      m.press = false;
+      c.on_message(m);
+    };
+    // without "confirm": at once
+    c.on_message(event("buttons", "tile3", "release"));
+    c.idle(t += 10);
+    CHECK(sent.size() == 1 && sent.back().first == "Plain_Lamp");
+    // the standard question: the tile's label, "Switch on?", Yes / Cancel
+    sent.clear();
+    r.out.clear();
+    c.on_message(event("buttons", "tile1", "release"));
+    c.idle(t += 10);
+    CHECK(sent.empty() && r.has(page_cmd("qr")) && c.current() == "tiles");
+    r.out.clear();
+    c.on_message(loaded("qr"));
+    CHECK(r.has("title.txt=\"Hall\"") && r.has_prefix("xstr ") && r.has("sendxy=1") && r.has("tsw 255,0"));
+    bool asked = false, yes = false, no = false;
+    for (const std::string &l : r.out) {
+      asked = asked || l.find("\"Switch on?\"") != std::string::npos;
+      yes = yes || l.find("\"Yes\"") != std::string::npos;
+      no = no || l.find("\"Cancel\"") != std::string::npos;
+    }
+    CHECK(asked && yes && no);
+    point(10, 10);   // beside the buttons: nothing
+    CHECK(sent.empty() && !r.has("sendxy=0"));
+    // Cancel (left of the middle, at the bottom): nothing sent, the tiles again
+    r.out.clear();
+    point(450 / 2 - 60, 320 - 16 - 26);
+    CHECK(sent.empty() && r.has("sendxy=0") && r.has(page_cmd("buttons")));
+    c.on_message(loaded("buttons"));
+    // asked again, Yes (right of the middle): sent
+    c.on_message(event("buttons", "tile1", "release"));
+    c.idle(t += 10);
+    c.on_message(loaded("qr"));
+    point(450 / 2 + 60, 320 - 16 - 26);
+    CHECK(sent.size() == 1 && sent.back() == std::make_pair(std::string("Hall_Lamp"), std::string("ON")));
+    c.on_message(loaded("buttons"));
+    // a question of its own: its texts with {label} and {to}, its button's label
+    sent.clear();
+    r.out.clear();
+    c.on_message(event("buttons", "tile2", "release"));
+    c.idle(t += 10);
+    c.on_message(loaded("qr"));
+    bool own_text = false, own_yes = false;
+    for (const std::string &l : r.out) {
+      own_text = own_text || l.find("\"Switch the garage On?\"") != std::string::npos;
+      own_yes = own_yes || l.find("\"Do it\"") != std::string::npos;
+    }
+    CHECK(r.has("title.txt=\"Garage\"") && own_text && own_yes);
+    // no answer within its 10 s: let go
+    c.idle(t += 9000);
+    CHECK(sent.empty() && c.current() == "tiles");
+    r.out.clear();
+    c.idle(t += 1500);
+    CHECK(sent.empty() && r.has(page_cmd("buttons")));
+    c.on_message(loaded("buttons"));
+    // the close cross (top right)
+    c.on_message(event("buttons", "tile2", "release"));
+    c.idle(t += 10);
+    c.on_message(loaded("qr"));
+    r.out.clear();
+    point(440, 10);
+    CHECK(sent.empty() && r.has(page_cmd("buttons")));
+    if (g_failures) r.dump();
+  }
+
   {  // the media page's stop item: while something plays the play button stops (ON to the item) instead of pausing,
      // drawn as a square; not playing, it plays as before
     Callbacks cb6 = cb;

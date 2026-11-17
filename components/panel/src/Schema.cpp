@@ -628,6 +628,36 @@ class Validator {
       fail(path, "no page with id \"" + std::string(v->valuestring) + "\"");
   }
 
+  /* A tile's "confirm" (or its button page's, for all its tiles): true (the standard question), false (none, where
+     the page asks), or the question's own texts (Engine::draw_confirm; {label} and {to} in them). */
+  void confirm_ref(const cJSON *obj, const std::string &path) {
+    const cJSON *v = cJSON_GetObjectItem(obj, "confirm");
+    if (!v || cJSON_IsBool(v))
+      return;
+    const std::string p = member(path, "confirm");
+    if (!cJSON_IsObject(v)) {
+      fail(p, "must be true, false or an object (\"title\", \"text\", \"icon\", \"yes\", \"no\" ...)");
+      return;
+    }
+    allowed(v, p, {"title", "text", "icon", "icon_color", "yes", "no", "timeout"});
+    string(v, "title", p, false, 64);
+    string(v, "text", p, false, 200);
+    icon(v, p);
+    color(v, p, "icon_color");
+    for (const char *k : {"yes", "no"})
+      if (const cJSON *b = cJSON_GetObjectItem(v, k); b && object(b, member(p, k))) {
+        if (std::strcmp(k, "yes") == 0)
+          allowed(b, member(p, k), {"label", "color"});
+        else
+          allowed(b, member(p, k), {"label"});
+        string(b, "label", member(p, k), false, 32);
+        color(b, member(p, k));
+      }
+    if (const cJSON *t = cJSON_GetObjectItem(v, "timeout");
+        t && (!cJSON_IsNumber(t) || t->valuedouble != t->valueint || t->valueint < 5 || t->valueint > 120))
+      fail(member(p, "timeout"), "must be a whole number from 5 to 120 (seconds)");
+  }
+
   void open(const cJSON *obj, const std::string &path) {
     if (const cJSON *v = cJSON_GetObjectItem(obj, "open"))
       page_ref(v, member(path, "open"));
@@ -847,7 +877,8 @@ class Validator {
 
   void button(const cJSON *b, const std::string &p) {
     allowed(b, p, {"label", "icon", "color", "item", "action", "command", "open", "value", "always_active", "layout",
-                   "value_style"});
+                   "value_style", "confirm"});
+    confirm_ref(b, p);   // asked before it switches
     rules(b, p, true);   // active (or not), a colour, blinking, another icon -- by the item's state
     if (cJSON_GetObjectItem(b, "value_style") && !cJSON_GetObjectItem(b, "item"))
       fail(member(p, "value_style"), "needs an \"item\" (it follows the item's state)");
@@ -952,7 +983,8 @@ class Validator {
 
     if (t == "buttons") {
       allowed(pg, p, {"id", "type", "title", "buttons", "group", "metadata", "label", "icon", "color", "value_style",
-                       "only_on"});
+                       "only_on", "confirm"});
+      confirm_ref(pg, p);   // every tile asked before it switches (a tile's own "confirm" wins)
       slots(pg, "buttons", p, kMaxButtons, [&](const cJSON *b, const std::string &bp) { button(b, bp); });
       // a group's members as the tiles, as an entity page's rows
       if (const cJSON *group = cJSON_GetObjectItem(pg, "group")) {

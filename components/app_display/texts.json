@@ -29,6 +29,7 @@
       "keypad_sent": "Sent", "keypad_refused": "Not accepted", "keypad_enter": "Enter the code",
       "feed_loading": "Loading...", "feed_no_answer": "No answer from openHAB", "feed_too_long": "List too long",
       "feed_invalid": "Invalid list (JSON)",
+      "confirm_on": "Switch on?", "confirm_off": "Switch off?", "confirm_do": "Carry this out?", "confirm_yes": "Yes", "confirm_no": "Cancel",
       "qr_wifi": "Wi-Fi", "qr_password": "Password"
     },
     {
@@ -59,6 +60,7 @@
       "keypad_sent": "Gesendet", "keypad_refused": "Nicht angenommen", "keypad_enter": "Code eingeben",
       "feed_loading": "Wird geladen...", "feed_no_answer": "Keine Antwort von openHAB", "feed_too_long": "Liste zu lang",
       "feed_invalid": "Ungültige Liste (JSON)",
+      "confirm_on": "Einschalten?", "confirm_off": "Ausschalten?", "confirm_do": "Ausführen?", "confirm_yes": "Ja", "confirm_no": "Abbrechen",
       "qr_wifi": "WLAN", "qr_password": "Passwort"
     },
     {
@@ -89,6 +91,7 @@
       "keypad_sent": "Envoyé", "keypad_refused": "Refusé", "keypad_enter": "Saisir le code",
       "feed_loading": "Chargement...", "feed_no_answer": "Pas de réponse d'openHAB", "feed_too_long": "Liste trop longue",
       "feed_invalid": "Liste invalide (JSON)",
+      "confirm_on": "Allumer ?", "confirm_off": "Éteindre ?", "confirm_do": "Exécuter ?", "confirm_yes": "Oui", "confirm_no": "Annuler",
       "qr_wifi": "WiFi", "qr_password": "Mot de passe"
     },
     {
@@ -119,6 +122,7 @@
       "keypad_sent": "Enviado", "keypad_refused": "No aceptado", "keypad_enter": "Introduzca el código",
       "feed_loading": "Cargando...", "feed_no_answer": "Sin respuesta de openHAB", "feed_too_long": "Lista demasiado larga",
       "feed_invalid": "Lista no válida (JSON)",
+      "confirm_on": "¿Encender?", "confirm_off": "¿Apagar?", "confirm_do": "¿Ejecutar?", "confirm_yes": "Sí", "confirm_no": "Cancelar",
       "qr_wifi": "WiFi", "qr_password": "Contraseña"
     },
     {
@@ -149,6 +153,7 @@
       "keypad_sent": "Inviato", "keypad_refused": "Non accettato", "keypad_enter": "Inserire il codice",
       "feed_loading": "Caricamento...", "feed_no_answer": "Nessuna risposta da openHAB", "feed_too_long": "Elenco troppo lungo",
       "feed_invalid": "Elenco non valido (JSON)",
+      "confirm_on": "Accendere?", "confirm_off": "Spegnere?", "confirm_do": "Eseguire?", "confirm_yes": "Sì", "confirm_no": "Annulla",
       "qr_wifi": "WiFi", "qr_password": "Password"
     },
     {
@@ -179,6 +184,7 @@
       "keypad_sent": "Verzonden", "keypad_refused": "Niet geaccepteerd", "keypad_enter": "Voer de code in",
       "feed_loading": "Laden...", "feed_no_answer": "Geen antwoord van openHAB", "feed_too_long": "Lijst te lang",
       "feed_invalid": "Ongeldige lijst (JSON)",
+      "confirm_on": "Inschakelen?", "confirm_off": "Uitschakelen?", "confirm_do": "Uitvoeren?", "confirm_yes": "Ja", "confirm_no": "Annuleren",
       "qr_wifi": "WiFi", "qr_password": "Wachtwoord"
     },
     {
@@ -209,6 +215,7 @@
       "keypad_sent": "Enviado", "keypad_refused": "Não aceite", "keypad_enter": "Introduza o código",
       "feed_loading": "A carregar...", "feed_no_answer": "Sem resposta do openHAB", "feed_too_long": "Lista demasiado longa",
       "feed_invalid": "Lista inválida (JSON)",
+      "confirm_on": "Ligar?", "confirm_off": "Desligar?", "confirm_do": "Executar?", "confirm_yes": "Sim", "confirm_no": "Cancelar",
       "qr_wifi": "WiFi", "qr_password": "Palavra-passe"
     },
     {
@@ -239,6 +246,7 @@
       "keypad_sent": "Sendt", "keypad_refused": "Ikke accepteret", "keypad_enter": "Indtast koden",
       "feed_loading": "Indlæser...", "feed_no_answer": "Intet svar fra openHAB", "feed_too_long": "Listen er for lang",
       "feed_invalid": "Ugyldig liste (JSON)",
+      "confirm_on": "Tænd?", "confirm_off": "Sluk?", "confirm_do": "Udfør?", "confirm_yes": "Ja", "confirm_no": "Annuller",
       "qr_wifi": "WiFi", "qr_password": "Adgangskode"
     },
     {
@@ -269,6 +277,7 @@
       "keypad_sent": "Skickat", "keypad_refused": "Inte godkänt", "keypad_enter": "Ange koden",
       "feed_loading": "Laddar...", "feed_no_answer": "Inget svar från openHAB", "feed_too_long": "Listan är för lång",
       "feed_invalid": "Ogiltig lista (JSON)",
+      "confirm_on": "Slå på?", "confirm_off": "Stäng av?", "confirm_do": "Utför?", "confirm_yes": "Ja", "confirm_no": "Avbryt",
       "qr_wifi": "WiFi", "qr_password": "Lösenord"
     },
     {
@@ -299,6 +308,7 @@
       "keypad_sent": "Sendt", "keypad_refused": "Ikke godtatt", "keypad_enter": "Tast inn koden",
       "feed_loading": "Laster...", "feed_no_answer": "Ikke svar fra openHAB", "feed_too_long": "Listen er for lang",
       "feed_invalid": "Ugyldig liste (JSON)",
+      "confirm_on": "Slå på?", "confirm_off": "Slå av?", "confirm_do": "Utfør?", "confirm_yes": "Ja", "confirm_no": "Avbryt",
       "qr_wifi": "WiFi", "qr_password": "Passord"
     },
     {
@@ -329,6 +339,7 @@
       "keypad_sent": "Lähetetty", "keypad_refused": "Ei hyväksytty", "keypad_enter": "Syötä koodi",
       "feed_loading": "Ladataan...", "feed_no_answer": "Ei vastausta openHABilta", "feed_too_long": "Luettelo on liian pitkä",
       "feed_invalid": "Virheellinen luettelo (JSON)",
+      "confirm_on": "Kytke päälle?", "confirm_off": "Kytke pois?", "confirm_do": "Suoritetaanko?", "confirm_yes": "Kyllä", "confirm_no": "Peruuta",
       "qr_wifi": "WiFi", "qr_password": "Salasana"
     },
     {
@@ -356,6 +367,7 @@
       "keypad_sent": "Изпратено", "keypad_refused": "Не е приет", "keypad_enter": "Въведете кода",
       "feed_loading": "Зареждане...", "feed_no_answer": "Няма отговор от openHAB", "feed_too_long": "Списъкът е твърде дълъг",
       "feed_invalid": "Невалиден списък (JSON)",
+      "confirm_on": "Да се включи ли?", "confirm_off": "Да се изключи ли?", "confirm_do": "Да се изпълни ли?", "confirm_yes": "Да", "confirm_no": "Отказ",
       "qr_wifi": "WiFi", "qr_password": "Парола"
     },
     {
@@ -383,6 +395,7 @@
       "keypad_sent": "Odesláno", "keypad_refused": "Nepřijato", "keypad_enter": "Zadejte kód",
       "feed_loading": "Načítání...", "feed_no_answer": "Žádná odpověď z openHAB", "feed_too_long": "Seznam je příliš dlouhý",
       "feed_invalid": "Neplatný seznam (JSON)",
+      "confirm_on": "Zapnout?", "confirm_off": "Vypnout?", "confirm_do": "Provést?", "confirm_yes": "Ano", "confirm_no": "Zrušit",
       "qr_password": "Heslo"
     },
     {
@@ -410,6 +423,7 @@
       "keypad_sent": "Στάλθηκε", "keypad_refused": "Δεν έγινε δεκτό", "keypad_enter": "Εισαγάγετε τον κωδικό",
       "feed_loading": "Φόρτωση...", "feed_no_answer": "Καμία απάντηση από το openHAB", "feed_too_long": "Η λίστα είναι πολύ μεγάλη",
       "feed_invalid": "Μη έγκυρη λίστα (JSON)",
+      "confirm_on": "Ενεργοποίηση;", "confirm_off": "Απενεργοποίηση;", "confirm_do": "Εκτέλεση;", "confirm_yes": "Ναι", "confirm_no": "Άκυρο",
       "qr_wifi": "WiFi", "qr_password": "Κωδικός"
     },
     {
@@ -437,6 +451,7 @@
       "keypad_sent": "Saadetud", "keypad_refused": "Ei aktsepteeritud", "keypad_enter": "Sisestage kood",
       "feed_loading": "Laadimine...", "feed_no_answer": "openHAB ei vasta", "feed_too_long": "Loend on liiga pikk",
       "feed_invalid": "Vigane loend (JSON)",
+      "confirm_on": "Lülitan sisse?", "confirm_off": "Lülitan välja?", "confirm_do": "Täidan?", "confirm_yes": "Jah", "confirm_no": "Loobu",
       "qr_wifi": "WiFi", "qr_password": "Parool"
     },
     {
@@ -464,6 +479,7 @@
       "keypad_sent": "Seolta", "keypad_refused": "Níor glacadh leis", "keypad_enter": "Cuir isteach an cód",
       "feed_loading": "Á lódáil...", "feed_no_answer": "Gan freagra ó openHAB", "feed_too_long": "Liosta rófhada",
       "feed_invalid": "Liosta neamhbhailí (JSON)",
+      "confirm_on": "Cas air?", "confirm_off": "Cas as?", "confirm_do": "Déan é seo?", "confirm_yes": "Tá", "confirm_no": "Cealaigh",
       "qr_wifi": "WiFi", "qr_password": "Pasfhocal"
     },
     {
@@ -491,6 +507,7 @@
       "keypad_sent": "Poslano", "keypad_refused": "Nije prihvaćeno", "keypad_enter": "Unesite kod",
       "feed_loading": "Učitavanje...", "feed_no_answer": "Nema odgovora od openHAB-a", "feed_too_long": "Popis je predug",
       "feed_invalid": "Neispravan popis (JSON)",
+      "confirm_on": "Uključiti?", "confirm_off": "Isključiti?", "confirm_do": "Izvršiti?", "confirm_yes": "Da", "confirm_no": "Odustani",
       "qr_password": "Lozinka"
     },
     {
@@ -518,6 +535,7 @@
       "keypad_sent": "Elküldve", "keypad_refused": "Nincs elfogadva", "keypad_enter": "Adja meg a kódot",
       "feed_loading": "Betöltés...", "feed_no_answer": "Nincs válasz az openHAB-tól", "feed_too_long": "Túl hosszú lista",
       "feed_invalid": "Érvénytelen lista (JSON)",
+      "confirm_on": "Bekapcsolja?", "confirm_off": "Kikapcsolja?", "confirm_do": "Végrehajtja?", "confirm_yes": "Igen", "confirm_no": "Mégse",
       "qr_password": "Jelszó"
     },
     {
@@ -545,6 +563,7 @@
       "keypad_sent": "Išsiųsta", "keypad_refused": "Nepriimta", "keypad_enter": "Įveskite kodą",
       "feed_loading": "Įkeliama...", "feed_no_answer": "openHAB neatsako", "feed_too_long": "Sąrašas per ilgas",
       "feed_invalid": "Netinkamas sąrašas (JSON)",
+      "confirm_on": "Įjungti?", "confirm_off": "Išjungti?", "confirm_do": "Vykdyti?", "confirm_yes": "Taip", "confirm_no": "Atšaukti",
       "qr_wifi": "WiFi", "qr_password": "Slaptažodis"
     },
     {
@@ -572,6 +591,7 @@
       "keypad_sent": "Nosūtīts", "keypad_refused": "Nav pieņemts", "keypad_enter": "Ievadiet kodu",
       "feed_loading": "Ielādē...", "feed_no_answer": "Nav atbildes no openHAB", "feed_too_long": "Saraksts ir pārāk garš",
       "feed_invalid": "Nederīgs saraksts (JSON)",
+      "confirm_on": "Ieslēgt?", "confirm_off": "Izslēgt?", "confirm_do": "Izpildīt?", "confirm_yes": "Jā", "confirm_no": "Atcelt",
       "qr_wifi": "WiFi", "qr_password": "Parole"
     },
     {
@@ -599,6 +619,7 @@
       "keypad_sent": "Mibgħut", "keypad_refused": "Mhux aċċettat", "keypad_enter": "Daħħal il-kodiċi",
       "feed_loading": "Qed jillowdja...", "feed_no_answer": "L-ebda tweġiba minn openHAB", "feed_too_long": "Il-lista twila wisq",
       "feed_invalid": "Lista invalida (JSON)",
+      "confirm_on": "Ixgħel?", "confirm_off": "Itfi?", "confirm_do": "Wettaq dan?", "confirm_yes": "Iva", "confirm_no": "Ikkanċella",
       "qr_wifi": "WiFi", "qr_password": "Password"
     },
     {
@@ -626,6 +647,7 @@
       "keypad_sent": "Wysłano", "keypad_refused": "Nie przyjęto", "keypad_enter": "Wprowadź kod",
       "feed_loading": "Wczytywanie...", "feed_no_answer": "Brak odpowiedzi z openHAB", "feed_too_long": "Lista jest za długa",
       "feed_invalid": "Nieprawidłowa lista (JSON)",
+      "confirm_on": "Włączyć?", "confirm_off": "Wyłączyć?", "confirm_do": "Wykonać?", "confirm_yes": "Tak", "confirm_no": "Anuluj",
       "qr_wifi": "WiFi", "qr_password": "Hasło"
     },
     {
@@ -653,6 +675,7 @@
       "keypad_sent": "Trimis", "keypad_refused": "Neacceptat", "keypad_enter": "Introduceți codul",
       "feed_loading": "Se încarcă...", "feed_no_answer": "Niciun răspuns de la openHAB", "feed_too_long": "Lista este prea lungă",
       "feed_invalid": "Listă nevalidă (JSON)",
+      "confirm_on": "Pornești?", "confirm_off": "Oprești?", "confirm_do": "Execuți?", "confirm_yes": "Da", "confirm_no": "Anulează",
       "qr_wifi": "WiFi", "qr_password": "Parolă"
     },
     {
@@ -680,6 +703,7 @@
       "keypad_sent": "Odoslané", "keypad_refused": "Neprijaté", "keypad_enter": "Zadajte kód",
       "feed_loading": "Načítava sa...", "feed_no_answer": "Žiadna odpoveď z openHAB", "feed_too_long": "Zoznam je príliš dlhý",
       "feed_invalid": "Neplatný zoznam (JSON)",
+      "confirm_on": "Zapnúť?", "confirm_off": "Vypnúť?", "confirm_do": "Vykonať?", "confirm_yes": "Áno", "confirm_no": "Zrušiť",
       "qr_wifi": "WiFi", "qr_password": "Heslo"
     },
     {
@@ -707,6 +731,7 @@
       "keypad_sent": "Poslano", "keypad_refused": "Ni sprejeto", "keypad_enter": "Vnesite kodo",
       "feed_loading": "Nalaganje...", "feed_no_answer": "Ni odgovora iz openHAB", "feed_too_long": "Seznam je predolg",
       "feed_invalid": "Neveljaven seznam (JSON)",
+      "confirm_on": "Vklopim?", "confirm_off": "Izklopim?", "confirm_do": "Izvedem?", "confirm_yes": "Da", "confirm_no": "Prekliči",
       "qr_password": "Geslo"
     }
   ]

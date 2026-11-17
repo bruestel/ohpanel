@@ -62,6 +62,9 @@ struct Texts {
   /* An entity page's feed: while it is asked for, when no answer came, when the list is too long, when it is no
      list (broken JSON). */
   std::string feed_loading, feed_no_answer, feed_too_long, feed_invalid;
+  /* The standard confirmation of a tile ("confirm": true): its question as it switches on, off, sends a command;
+     the two buttons. */
+  std::string confirm_on, confirm_off, confirm_do, confirm_yes, confirm_no;
 };
 
 /* display.screen: how bright the screen is, when it dims, when it is off.
