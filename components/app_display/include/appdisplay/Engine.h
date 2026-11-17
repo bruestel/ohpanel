@@ -364,6 +364,7 @@ class Engine {
   ScreenSettings screen_;                  // display.screen, with what its items say
   bool screen_known_ = false;              // a configuration was read (set_config) before
   bool asleep_ = false;                    // the black page of the night is shown
+  bool woken_ = false;                     // display.screen.wake's item holds the screen on
   int level_ = -1;                         // the brightness sent (dim=), -1: unknown
   std::map<std::string, int> remember_;    // screen numbers from items or the settings page, kept once they settle
   std::map<std::string, int> command_;     // ... and those of the settings page sent to their items then

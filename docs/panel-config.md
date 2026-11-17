@@ -110,6 +110,7 @@ with a `format` it shows the whole text instead.
 | `idle_brightness` | number or `{"value", "item"}` | % once nothing touched the panel for `idle_after` seconds, 0 to 100 (default 60); 0: off |
 | `idle_after` | number or `{"value", "item"}` | seconds, 0 to 3600 (default 60); 0: never idle |
 | `night` | `{"from", "to"}` or `{"item"}` | off at night, once idle: by the clock (`"23:00"` .. `"06:00"`, across midnight too) or while a Switch item is ON |
+| `wake` | `{"item"}` | while this item is ON (a Switch: a motion sensor, a doorbell; a Contact: OPEN), the screen is on as if touched all the while, at night too; `idle_after` counts from when it goes off |
 
 Off (at night, or idle at 0 %), the display shows a black page; a touch on
 it only wakes the screen (it presses nothing) and opens home. The two front
@@ -117,6 +118,12 @@ buttons switch as always but leave it off. A number with an
 `item` (a Dimmer or Number) is kept in step with it: what openHAB says wins,
 also after a restart, and is kept in the configuration; a change made here
 (the web interface) is sent to the item.
+
+With `wake` a motion sensor lights the screen as someone comes near:
+`"wake": {"item": "Hall_Motion"}`. A screen it wakes opens home, as a touch
+does (a keypad page with `stay` stays). An item that only gets a command
+(a rule's `sendCommand(Panel_Wake, ON)`) works too, with `expire` to switch it
+back: `Switch Panel_Wake { expire="2m,command=OFF" }`.
 
 `display.sound` sets what the buzzer plays: by default a tone for each notification, none for a touch.
 

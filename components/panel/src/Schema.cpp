@@ -266,10 +266,15 @@ class Validator {
   void screen_settings(const cJSON *s, const std::string &path) {
     if (!object(s, path))
       return;
-    allowed(s, path, {"brightness", "idle_brightness", "idle_after", "night"});
+    allowed(s, path, {"brightness", "idle_brightness", "idle_after", "night", "wake"});
     screen_number(s, "brightness", path, 1, 100, "1 to 100 (%)");
     screen_number(s, "idle_brightness", path, 0, 100, "0 (off) to 100 (%)");
     screen_number(s, "idle_after", path, 0, 3600, "0 (never) to 3600 (seconds)");
+    // an item whose ON (OPEN) holds the screen on: a motion sensor's
+    if (const cJSON *w = cJSON_GetObjectItem(s, "wake"); w && object(w, member(path, "wake"))) {
+      allowed(w, member(path, "wake"), {"item"});
+      item_name(cJSON_GetObjectItem(w, "item"), member(member(path, "wake"), "item"));
+    }
     const cJSON *n = cJSON_GetObjectItem(s, "night");
     if (!n)
       return;

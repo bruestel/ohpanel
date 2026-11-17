@@ -330,6 +330,9 @@ int main() {
   expect_issue("keypad stay not bool", doc("\"pages\":[{\"id\":\"k\",\"type\":\"keypad\",\"title\":\"K\",\"item\":\"I\","
                                            "\"stay\":1,\"buttons\":[{\"label\":\"Off\"}]}]"), "pages[0].stay");
   expect_valid("open page", doc("\"display\":{\"open_page\":{\"item\":\"Panel_Page\"}}"));
+  expect_valid("screen woken by an item", doc(R"("display":{"screen":{"wake":{"item":"Hall_Motion"}}})"));
+  expect_issue("screen woken by no item", doc(R"("display":{"screen":{"wake":{}}})"), "display.screen.wake.item");
+  expect_issue("screen woken by a name", doc(R"("display":{"screen":{"wake":"Hall_Motion"}})"), "display.screen.wake");
   expect_issue("open page without item", doc("\"display\":{\"open_page\":{}}"), "display.open_page.item");
   expect_issue("open page bad item", doc("\"display\":{\"open_page\":{\"item\":\"a b\"}}"), "display.open_page.item");
   expect_valid("current page", doc("\"display\":{\"current_page\":{\"item\":\"Panel_Shown\"}}"));

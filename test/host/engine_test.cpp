@@ -2411,6 +2411,41 @@ int main(int argc, char **argv) {
     e.idle(t += 30000);
     CHECK(!e.asleep() && e.brightness() == 60);
 
+    // display.screen.wake: the item ON (a motion sensor) wakes the screen and holds it on, at night too, as bright as
+    // in use; idle_after counts from when it goes OFF
+    set_state("Hall_Motion", "OFF", "OnOff");
+    set_state("Panel_Night", "ON", "OnOff");
+    e.set_config(with_screen(R"({"idle_after": 30, "night": {"item": "Panel_Night"}, "wake": {"item": "Hall_Motion"}})"));
+    e.on_message(event("home", "swipe", "none"));
+    e.idle(t += 100);
+    e.idle(t += 30000);
+    CHECK(e.asleep());
+    e.on_message(loaded("blank"));
+    rec.out.clear();
+    set_state("Hall_Motion", "ON", "OnOff");
+    e.on_state("Hall_Motion");
+    e.idle(t += 100);
+    CHECK(!e.asleep() && e.brightness() == 85 && rec.has(page_cmd("home")));
+    e.on_message(loaded("home"));
+    e.idle(t += 600000);
+    CHECK(!e.asleep() && e.brightness() == 85);        // ten minutes of motion: on all the while
+    set_state("Hall_Motion", "OFF", "OnOff");
+    e.on_state("Hall_Motion");
+    e.idle(t += 100);
+    e.idle(t += 29000);
+    CHECK(!e.asleep());                                // counted from the OFF
+    e.idle(t += 1500);
+    CHECK(e.asleep());
+    e.on_message(loaded("blank"));
+    set_state("Panel_Night", "OFF", "OnOff");
+    set_state("Hall_Motion", "OPEN", "OpenClosed");    // a contact's OPEN wakes it as well
+    e.idle(t += 100);
+    CHECK(!e.asleep());
+    e.on_message(loaded("home"));
+    set_state("Hall_Motion", "CLOSED", "OpenClosed");
+    e.idle(t += 100);
+    e.set_config(with_screen(R"({"idle_after": 30})"));
+
     // display.notifications.wake_and_keep_on: a warning wakes nothing, an alert wakes the screen and keeps it on
     // until its card is closed
     {

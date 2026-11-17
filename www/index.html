@@ -1093,7 +1093,8 @@ pre.box{margin:0;padding:.6rem .7rem;max-height:18rem;overflow:auto;background:v
         <h2 data-doc="docs/panel-config.md#display">Screen</h2>
         <p class="sub">How bright it is in use and idle, and off at night: then a touch only wakes it. Each number
           can be kept in step with an openHAB item (a Dimmer or Number): a change there comes here, a change here
-          goes there.</p>
+          goes there. An item that is ON (a motion sensor, OPEN for a contact) keeps the screen on, at night too, as
+          if touched; it dims after the inactivity time from when the item goes OFF.</p>
         <div id="vScreen" class="screen"></div>
       </div>
       <div class="card">
@@ -4795,7 +4796,7 @@ function showThemeInputs(cfg) {
   }
 }
 /* display.screen (Engine::screen_tick): the numbers, each a number or
-   {"value", "item"}, and the night, {"from", "to"} or {"item"}. */
+   {"value", "item"}, the night, {"from", "to"} or {"item"}, and what wakes it, {"item"}. */
 const SCREEN = {
   brightness: {label: 'Brightness in use', low: 1, high: 100, dflt: 85, unit: '%'},
   idle_brightness: {label: 'Dimmed brightness', low: 0, high: 100, dflt: 60, unit: '%', zero: 'off'},
@@ -4894,6 +4895,16 @@ function showScreenInputs(cfg) {
   row.append(field('Night', how));
   if (mode) row.append(when);
   box.appendChild(row);
+
+  // woken by an item: ON (OPEN) holds the screen on, at night too -- a motion sensor's (Engine::screen_tick)
+  const wakeRow = document.createElement('div');
+  wakeRow.className = 'scrow';
+  const wake = itemField((sc.wake && sc.wake.item) || '', v => editScreen(x => {
+    if (v.trim()) x.wake = {item: v.trim()}; else delete x.wake;
+  }), 'Switch,Contact');
+  wake.querySelector('input').placeholder = 'openHAB item (optional), e.g. Hall_Motion';
+  wakeRow.append(field('On while an item is ON', wake));
+  box.appendChild(wakeRow);
 }
 
 /* display.sound (Engine::sound): the tones of a touch and of the notifications' levels (Sound.cpp), their two

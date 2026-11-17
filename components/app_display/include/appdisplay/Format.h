@@ -79,6 +79,9 @@ struct ScreenSettings {
   // of the day (-1: no window), or while the Switch item is ON
   int night_from = -1, night_to = -1;
   std::string night_item;
+  // display.screen.wake: while this item is ON (or OPEN) the screen is on, at night too, as if just touched --
+  // a motion sensor, a doorbell; idle_after counts from when it goes off
+  std::string wake_item;
 };
 
 /* display.screen and display.sound's volumes, resolved; a missing object yields the defaults. */

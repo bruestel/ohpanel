@@ -2359,8 +2359,17 @@ void Engine::screen_tick() {
   if (!started_ || shown_.empty())
     return;
   const ScreenSettings &s = screen_;
+  // display.screen.wake's item ON (a motion sensor): as if touched all the while, at night too; idle_after counts
+  // from when it goes off. A screen it wakes comes on as a touch wakes it (on the start page).
+  appoh::ItemState w;
+  const bool woken = !s.wake_item.empty() && cb_.state && cb_.state(s.wake_item, w) &&
+                     (w.state == "ON" || w.state == "OPEN");
+  if (woken != woken_) {
+    woken_ = woken;
+    touched_ms_ = now_ms_;
+  }
   // a card that keeps the screen on (wake_and_keep_on): as if just touched until it is closed
-  const int64_t quiet = note_ && note_->keep ? 0 : now_ms_ - touched_ms_;
+  const int64_t quiet = (note_ && note_->keep) || woken ? 0 : now_ms_ - touched_ms_;
   const bool idle = s.idle_after > 0 && quiet >= s.idle_after * 1000LL;
   bool off = false;
   int level = s.brightness;

@@ -561,6 +561,7 @@ ScreenSettings screen_settings(const cJSON *screen, const cJSON *sound) {
   screen_number(screen, "brightness", s.brightness, s.brightness_item);
   screen_number(screen, "idle_brightness", s.idle_brightness, s.idle_brightness_item);
   screen_number(screen, "idle_after", s.idle_after, s.idle_after_item);
+  s.wake_item = str(cJSON_GetObjectItem(screen, "wake"), "item", "");
   if (const cJSON *n = cJSON_GetObjectItem(screen, "night"); cJSON_IsObject(n)) {
     s.night_item = str(n, "item", "");
     if (s.night_item.empty()) {
