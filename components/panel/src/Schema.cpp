@@ -819,7 +819,9 @@ class Validator {
     allowed(h, path,
             {"relays", "values", "indoor_temperature", "outdoor_temperature", "outdoor_high", "outdoor_low",
              "weather_icon", "weather_page", "clock_page", "weather_feed",
-             "status_icons", "shortcuts", "info"});
+             "status_icons", "shortcuts", "info", "style"});
+    // its look: the clock top right (default), or large across the width with the shortcuts in a row
+    one_of(h, "style", path, {"normal", "clock"});
     slots(h, "relays", path, kMaxRelays, [&](const cJSON *e, const std::string &p) {
       allowed(e, p, {"label", "item", "relay", "hidden", "open"});
       string(e, "label", p, false, 24);

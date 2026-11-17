@@ -345,6 +345,8 @@ int main() {
   expect_issue("no confirm page type", doc(R"("pages":[{"id":"ask","type":"confirm","title":"x"}])"), "pages[0].type");
   expect_valid("media page with a stop item", doc(R"("pages":[{"id":"m","type":"media","title":"x","control":{"item":"P"},"stop":{"item":"S"}}])"));
   expect_issue("media stop no item", doc(R"("pages":[{"id":"m","type":"media","title":"x","control":{"item":"P"},"stop":"S"}])"), "pages[0].stop");
+  expect_valid("home in the clock style", doc(R"("home":{"style":"clock"})"));
+  expect_issue("home in no such style", doc(R"("home":{"style":"big"})"), "home.style");
   expect_valid("screen woken by an item", doc(R"("display":{"screen":{"wake":{"item":"Hall_Motion"}}})"));
   expect_issue("screen woken by no item", doc(R"("display":{"screen":{"wake":{}}})"), "display.screen.wake.item");
   expect_issue("screen woken by a name", doc(R"("display":{"screen":{"wake":"Hall_Motion"}})"), "display.screen.wake");

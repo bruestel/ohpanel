@@ -4005,6 +4005,56 @@ int main(int argc, char **argv) {
     if (g_failures) r.dump();
   }
 
+  {  // home in its clock style (home.style "clock"): the design's page home_clock -- the clock in its own field and font,
+     // the weather as an icon with the temperature in one field, the shortcuts in a row, centred; its events as home's
+    Recorder r;
+    Engine c(r, cb);
+    c.release_wait(0);
+    CHECK(c.load_design(read("boards/nspanel/nextion/display-manifest-eu.json").c_str(),
+                        read("boards/nspanel/nextion/weather-icons.json").c_str()));
+    set_state("Clk_Outdoor", "8.4 °C", "Number:Temperature");
+    set_state("Clk_Weather", "03d", "String");
+    c.set_config(R"({"version": 1, "display": {"time_format": "%I:%M %p"},
+      "home": {"style": "clock", "outdoor_temperature": {"item": "Clk_Outdoor"},
+               "weather_icon": {"item": "Clk_Weather", "codes": "openweathermap"},
+               "values": [{"item": "Clk_Outdoor", "icon": "thermometer"}],
+               "shortcuts": [{"icon": "lightbulb", "open": "a"}, null, {"icon": "bus", "open": "b"},
+                             {"icon": "music", "open": "a"}]},
+      "pages": [{"id": "a", "type": "entities", "title": "A", "rows": [{"item": "A1"}]},
+                {"id": "b", "type": "entities", "title": "B", "rows": [{"item": "B1"}]}]})");
+    int64_t t = 1000;
+    c.idle(t);
+    c.tick(1794830000);
+    c.start();
+    c.idle(t += 5000);
+    CHECK(r.has(page_cmd("home_clock")));
+    r.out.clear();
+    c.on_message(loaded("home_clock"));
+    CHECK(c.current() == "home");
+    CHECK(r.has_prefix("clock.txt=\"") && r.has("vis ampm,1") && r.has_prefix("ampm.txt=\""));
+    CHECK(r.has("outdoor.txt=\"8°\"") || r.has("outdoor.txt=\"8,4°\"") || r.has_prefix("outdoor.txt=\"8"));
+    CHECK(r.has(std::string("weather_icon.txt=\"") + icon_glyph("weather-cloudy") + "\""));
+    CHECK(!r.has_prefix("row1") && !r.has_prefix("info1") && !r.has_prefix("short"));   // not on this page
+    // three shortcuts at every second of the 13 places, centred: 5, 7, 9; the others hidden with their touch areas
+    CHECK(r.has(std::string("slot5_icon.txt=\"") + icon_glyph("lightbulb") + "\""));
+    CHECK(r.has(std::string("slot7_icon.txt=\"") + icon_glyph("bus") + "\""));
+    CHECK(r.has(std::string("slot9_icon.txt=\"") + icon_glyph("music") + "\""));
+    CHECK(r.has("vis slot6_hs,0") && r.has("vis slot4_icon,0") && r.has("vis slot7_hs,1"));
+    c.on_message(event("home_clock", "slot7", "release"));
+    c.idle(t += 10);
+    CHECK(c.current() == "b");
+    c.on_message(loaded("entities"));
+    c.on_message(event("entities", "close", "release"));
+    c.idle(t += 10);
+    CHECK(r.has(page_cmd("home_clock")));
+    // back to the normal style: home's page again
+    r.out.clear();
+    c.set_config(R"({"version": 1, "home": {}})");
+    c.idle(t += 10);
+    CHECK(r.has(page_cmd("home")));
+    if (g_failures) r.dump();
+  }
+
   {  // a tile's confirmation: the question over its page (the QR page's design), "Yes" switches, "Cancel", the close
      // cross and the timeout do not; a question of its own ("confirm": {...}), {label} and {to} in its texts
     Callbacks cb7 = cb;

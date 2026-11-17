@@ -435,3 +435,18 @@ COVERS_STACKED, COVERS_LINE_H = False, 0     # a row in one line: the name, the 
 # presets, its members then three a sheet from the second row on)
 COVERS_PRESET_W = (VISIBLE_W - 2 * MARGIN - 2 * 8) // 3
 COVERS_PRESETS = [(MARGIN + k * (COVERS_PRESET_W + 8), COVERS_ROWS_Y, COVERS_PRESET_W, COVERS_ROWS_H) for k in range(3)]
+
+
+# Home's clock style (home.style "clock", ohpanel_hmi.py home_clock_page; layout_eu.py says more): as the EU's, in
+# home's width left of the relays' strip -- lower, with no relays' labels at the bottom.
+CLOCK_BIG_FONT = 11
+CLOCK_MID = (MARGIN + HOME_RIGHT) // 2                                     # 225
+CLOCK_BIG = (MARGIN, 38, HOME_RIGHT - MARGIN, 110)
+CLOCK_BIG_MERIDIEM = (HOME_RIGHT - 32, 54, 32, 22)
+CLOCK_BIG_DATE = (MARGIN, 162, CLOCK_MID - 8 - MARGIN, 30)
+CLOCK_BIG_DATE_XCEN = 2
+CLOCK_BIG_WEATHER = (CLOCK_MID + 4, 159, 35, 35)
+CLOCK_BIG_OUTDOOR = (CLOCK_MID + 44, 162, HOME_RIGHT - CLOCK_MID - 44, 30)
+CLOCK_SLOT_STEP, CLOCK_SLOTS = 28, 13
+CLOCK_SLOT_Y = 236
+CLOCK_SLOT_X = [CLOCK_MID - SHORTCUT // 2 + (k - CLOCK_SLOTS // 2) * CLOCK_SLOT_STEP for k in range(CLOCK_SLOTS)]

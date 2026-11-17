@@ -63,8 +63,12 @@ void Engine::draw_boot() {
   }
 }
 
+std::string Engine::home_page() const {
+  return str(member(config_, "home"), "style") == "clock" && pages_.count("home_clock") ? "home_clock" : "home";
+}
+
 void Engine::draw_clock() {
-  if (shown_ != "home" || now_ == 0)
+  if (!home_shown() || now_ == 0)
     return;
   struct tm t;
   localtime_r(&now_, &t);
@@ -103,7 +107,7 @@ void Engine::draw_clock() {
 void Engine::draw_relays() {
   const cJSON *home = member(config_, "home");
   // upright labels (the NSPanel US on its side: the design marks where, the manifest's "boxes")
-  const auto pg = boxes_.find("home");
+  const auto pg = boxes_.find(shown_);   // home's, or the clock style's
   const bool upright = pg != boxes_.end() && pg->second.count("relay1_label");
   for (int i = 0; i < 2; i++) {
     const cJSON *r = slot(home, "relays", i);
@@ -158,6 +162,7 @@ void Engine::relay_label(const Box &b, const std::string &side, const std::strin
 
 void Engine::draw_home() {
   const cJSON *h = member(config_, "home");
+  const bool clock = shown_ == "home_clock";   // the clock style: no value rows, no info lines, a row of shortcuts
   send("vis 255,1");  // the page hides everything while it loads
   hide_busy();  // all but that
   draw_clock();
@@ -166,7 +171,7 @@ void Engine::draw_home() {
   // without an item in the configuration, the temperatures and the weather icon do not show
   // the value rows: an icon and a value each; the first may come as
   // indoor_temperature, its older name, with the house as its icon
-  for (int i = 0; i < 2; i++) {
+  for (int i = 0; i < 2 && !clock; i++) {
     const cJSON *v = slot(h, "values", i);
     const bool legacy = !v && i == 0 && member(h, "indoor_temperature");
     if (legacy)
@@ -225,8 +230,10 @@ void Engine::draw_home() {
     });
   }
 
-  // shortcuts: short1_icon .. short12_icon, three rows of four numbered as read
-  for (int i = 0; i < 12; i++) {
+  // shortcuts: short1_icon .. short12_icon, three rows of four numbered as read; the clock style's row
+  if (clock)
+    draw_home_shortcuts(h);
+  for (int i = 0; i < 12 && !clock; i++) {
     const cJSON *s = slot(h, "shortcuts", i);
     const std::string obj = "short" + std::to_string(i + 1) + "_icon";
     if (!s) {
@@ -244,7 +251,7 @@ void Engine::draw_home() {
   }
 
   // info lines: infoN_tag (left), infoN_text (main), infoN_right (right)
-  for (int line = 0; line < 2; line++) {
+  for (int line = 0; line < 2 && !clock; line++) {
     const cJSON *l = slot(h, "info", line);
     const std::string n = "info" + std::to_string(line + 1);
     const char *fields[3] = {"left", "main", "right"};
@@ -332,6 +339,26 @@ void Engine::draw_home_weather(const cJSON *h, bool bound) {
     else
       f();
   };
+  if (shown_ == "home_clock") {   // the clock style: the icon of the icon font, the temperature in one field
+    const cJSON *outdoor = home_weather(h, "outdoor_temperature");
+    if (!outdoor)
+      txt("outdoor", "");
+    else
+      draw(outdoor, [this, outdoor] {
+        std::string number, unit;
+        number_and_unit(outdoor, number, unit);
+        txt("outdoor", unit.rfind("°", 0) == 0 ? number + "°" : unit.empty() ? number : number + " " + unit);
+      });
+    const cJSON *weather = home_weather(h, "weather_icon");
+    vis("weather_icon", weather != nullptr);
+    vis("weather_hs", weather != nullptr || outdoor != nullptr);
+    if (weather)
+      draw(weather, [this, weather] {
+        txt("weather_icon", icon_glyph(weather_glyph(weather_icon(weather)).c_str()));
+        page_colour("weather_icon", theme_.text);
+      });
+    return;
+  }
   const cJSON *outdoor = home_weather(h, "outdoor_temperature");
   if (!outdoor)
     show_number("outdoor_u", false);
@@ -360,6 +387,64 @@ void Engine::draw_home_weather(const cJSON *h, bool bound) {
       const int pic = weather_pic(weather, "weather_home");
       if (pic >= 0) num("weather_pic", "pic", pic);
     });
+}
+
+/* The clock style's row of shortcuts (ohpanel_hmi.py home_clock_page): the shortcuts configured, in their order, at
+   every second of its places, centred -- as many as the row has room for (its places + 1, halved). The places between
+   them, and those left over, hidden with their touch areas (they overlap the ones shown). */
+void Engine::draw_home_shortcuts(const cJSON *h) {
+  const int places = clock_places_;
+  std::vector<int> shortcuts;
+  for (int i = 0; i < 12 && static_cast<int>(shortcuts.size()) < (places + 1) / 2; i++)
+    if (slot(h, "shortcuts", i))
+      shortcuts.push_back(i);
+  clock_slots_.assign(places, -1);
+  const int n = static_cast<int>(shortcuts.size()), first = places / 2 - (n - 1);
+  for (int k = 0; k < n; k++)
+    clock_slots_[first + 2 * k] = shortcuts[k];
+  for (int p = 0; p < places; p++) {
+    const std::string obj = "slot" + std::to_string(p + 1) + "_icon";
+    const cJSON *s = clock_slots_[p] >= 0 ? slot(h, "shortcuts", clock_slots_[p]) : nullptr;
+    vis("slot" + std::to_string(p + 1) + "_hs", s != nullptr);
+    if (!s) {
+      anims_.erase(obj);
+      vis(obj, false);
+      continue;
+    }
+    vis(obj, true);
+    bind(s, [this, s, obj] {
+      if (shown(s)) {
+        show_icon(obj, s, color_of(s, "color", theme_.text));
+      } else {
+        anims_.erase(obj);
+        txt(obj, "");
+      }
+    });
+  }
+}
+
+/* A weather icon's name (the Meteocons' of weather-icons.json: "partly-cloudy-day-rain") as one of the icon font
+   (Material Design's weather-*): the clock style's small icon, where home's picture has no room. */
+std::string Engine::weather_glyph(const std::string &name) {
+  const auto has = [&name](const char *part) { return name.find(part) != std::string::npos; };
+  const bool night = has("night"), partly = has("partly");
+  if (name.empty() || name == "not-available") return "weather-cloudy-alert";
+  if (has("thunderstorms")) return has("rain") ? "weather-lightning-rainy" : "weather-lightning";
+  if (has("tornado")) return "weather-tornado";
+  if (has("hurricane")) return "weather-hurricane";
+  if (has("hail")) return "weather-hail";
+  if (has("sleet")) return "weather-snowy-rainy";
+  if (has("snow")) return partly ? "weather-partly-snowy" : "weather-snowy";
+  if (has("rain")) return partly ? "weather-partly-rainy" : "weather-pouring";
+  if (has("drizzle")) return partly ? "weather-partly-rainy" : "weather-rainy";
+  if (has("fog") || has("mist")) return "weather-fog";
+  if (has("haze") || has("smoke")) return "weather-hazy";
+  if (has("dust")) return "weather-dust";
+  if (has("wind")) return "weather-windy";
+  if (partly) return night ? "weather-night-partly-cloudy" : "weather-partly-cloudy";
+  if (has("cloudy") || has("overcast")) return "weather-cloudy";
+  if (has("clear")) return night ? "weather-night" : "weather-sunny";
+  return "weather-cloudy";
 }
 
 }  // namespace appdisplay

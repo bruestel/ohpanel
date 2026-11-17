@@ -93,8 +93,14 @@ FONTS = [
     # the relays' labels upright, Engine::relay_label): each character 18 px wide (font 1's height), as high as its
     # advance at the bottom of a 16 px cell -- the firmware puts them one over the other, its advance apart
     (UBUNTU_NAME + " turned", 16, [(UBUNTU, 16.9, 15, "latin1-turned")]),
+    # the big clock of home's clock style (ohpanel_hmi.py home_clock_page): the digits only, the cell no higher than
+    # they are (102 px, 83 px) -- landscape (11) and upright (12); a few KB each
+    (UBUNTU_NAME + " clock", 110, [(UBUNTU, 144, 106, "clock")]),
+    (UBUNTU_NAME + " clock small", 90, [(UBUNTU, 116, 86, "clock")]),
 ]
-TURNED_FONT = len(FONTS) - 1   # 10
+TURNED_FONT = 10
+CLOCK_FONT, CLOCK_FONT_SMALL = 11, 12
+CLOCK_CHARS = "0123456789:. -"
 
 
 def chars_of(part) -> list[tuple[int, str]]:
@@ -102,6 +108,8 @@ def chars_of(part) -> list[tuple[int, str]]:
     font, _, _, which = part
     if which == "text":
         return [(c, chr(c)) for c in text_chars(font)]
+    if which == "clock":
+        return [(ord(c), c) for c in CLOCK_CHARS]
     if which == "latin1":
         have = zifont.cmap(os.path.join(FONT_DIR, font))
         return [(c, chr(c)) for c in range(0x20, 0x100) if c in have and not 0x7F <= c < 0xA0]

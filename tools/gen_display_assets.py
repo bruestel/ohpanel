@@ -93,6 +93,9 @@ def c_json_z(name, path):
     import json
     doc = json.loads(path.read_text())
     if isinstance(doc, dict) and "design" in doc:   # a display manifest
+        # of the objects only what the firmware counts: the clock style's shortcut places (Engine::load_design)
+        clock = (doc.get("objects") or {}).get("home_clock") or []
+        doc["clock_slots"] = sum(1 for n in clock if n.startswith("slot") and n.endswith("_icon"))
         for key in NOT_EMBEDDED:
             doc.pop(key, None)
     text = json.dumps(doc, separators=(",", ":"), ensure_ascii=False).encode()

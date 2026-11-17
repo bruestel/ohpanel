@@ -323,6 +323,14 @@ bool Engine::load_design(const char *manifest_json, const char *weather_json) {
       if (cJSON_GetArraySize(o) >= 2)   // [font, width, maxl]; the byte limit since design 2026-10-17
         fit_[pg->string][o->string] = {cJSON_GetArrayItem(o, 0)->valueint, cJSON_GetArrayItem(o, 1)->valueint,
                                        cJSON_GetArraySize(o) > 2 ? cJSON_GetArrayItem(o, 2)->valueint : 0};
+  // the clock style's shortcut places: counted into the embedded manifest (tools/gen_display_assets.py, which leaves
+  // the objects out), else from the objects (the whole manifest: the host tests)
+  clock_places_ = cJSON_IsNumber(member(m, "clock_slots")) ? member(m, "clock_slots")->valueint : 0;
+  const cJSON *clock_objects = member(member(m, "objects"), "home_clock");
+  for (const cJSON *o = cJSON_IsArray(clock_objects) && !member(m, "clock_slots") ? clock_objects->child : nullptr; o;
+       o = o->next)
+    if (const char *n = cJSON_GetStringValue(o); n && std::strncmp(n, "slot", 4) == 0 && std::strstr(n, "_icon"))
+      clock_places_++;
   boxes_.clear();
   const cJSON *boxes = member(m, "boxes");
   for (const cJSON *pg = cJSON_IsObject(boxes) ? boxes->child : nullptr; pg; pg = pg->next)
@@ -467,7 +475,7 @@ void Engine::set_status(const PanelStatus &status) {
   }
   if (shown_ == "boot")
     draw_boot();
-  else if (shown_ == "home")
+  else if (home_shown())
     draw_wifi();
 }
 
@@ -482,7 +490,7 @@ void Engine::set_relay(int index, bool on) {
   if (index < 0 || index > 1)
     return;
   relays_[index] = on;
-  if (shown_ == "home")
+  if (home_shown())
     draw_relays();
 }
 
@@ -1214,7 +1222,7 @@ void Engine::open(const std::string &id, bool remember, bool last_sheet) {
   favorites_asked_ = false;
   group_asked_ = false;
   labels_asked_ = false;
-  show_physical(page ? template_of(page) : "home");
+  show_physical(page ? template_of(page) : home_page());
 }
 
 void Engine::back() {
@@ -1760,11 +1768,12 @@ void Engine::on_message(const nextion::Message &m) {
    still come (the display reports the two in either order). */
 constexpr int64_t kSwipeQuietMs = 300;
 
-void Engine::on_event(const std::string &page, const std::string &component, const std::string &value) {
+void Engine::on_event(const std::string &from, const std::string &component, const std::string &value) {
   if (component == "currentpage") {
-    on_page_loaded(page);
+    on_page_loaded(from);
     return;
   }
+  const std::string &page = from == "home_clock" ? std::string("home") : from;   // home in its clock style
   if (value == "press")   // a finger down: the drawing rests until its release has come (kPressRestMs)
     draw_rest_until_ms_ = now_ms_ + kPressRestMs;
   // a touch that did not move (the design reports it as a swipe "none"): someone is at the panel -- counted as such
@@ -1827,6 +1836,11 @@ void Engine::act(const std::string &page, const std::string &component, const st
   if (page == "home") {
     if (component.rfind("short", 0) == 0 && value == "release")   // short1 .. short12
       act_shortcut(atoi(component.c_str() + 5) - 1);
+    else if (component.rfind("slot", 0) == 0 && value == "release") {   // the clock style's row (draw_home)
+      const size_t k = static_cast<size_t>(atoi(component.c_str() + 4) - 1);
+      if (k < clock_slots_.size() && clock_slots_[k] >= 0)
+        act_shortcut(clock_slots_[k]);
+    }
     else if (component == "weather" && value == "release") {
       const std::string target = str(member(config_, "home"), "weather_page");
       if (!target.empty())
@@ -1942,7 +1956,7 @@ void Engine::hardware_button(int index) {
     if (cb_.command && status_.openhab)
       cb_.command(item, relays_[index] ? "ON" : "OFF");
   }
-  if (shown_ == "home")
+  if (home_shown())
     draw_relays();
 }
 
@@ -2354,7 +2368,7 @@ void Engine::show_current() {
   else if (confirm_)   // a tile's question over its page
     show_physical("qr");
   else
-    show_physical(current_ == "home" ? "home" : template_of(page_config(current_)));
+    show_physical(current_ == "home" ? home_page() : template_of(page_config(current_)));
 }
 
 void Engine::set_level(int level) {

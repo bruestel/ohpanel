@@ -255,6 +255,7 @@ class Engine {
     int maxl = 0;   // the field's room in bytes (txt_maxl): a longer text the display cuts silently; 0: unknown
   };
   std::map<std::string, std::map<std::string, Fit>> fit_;
+  int clock_places_ = 0;   // the clock style's shortcut places (home_clock's slotN_icon, the manifest's objects)
   struct Box {
     int x, y, w, h;
   };
@@ -583,6 +584,12 @@ class Engine {
   void draw_boot();
   void draw_home();
   void draw_clock();
+  /* Home's design page: "home_clock" in the clock style (home.style "clock", a design that has it), else "home". */
+  std::string home_page() const;
+  bool home_shown() const { return shown_ == "home" || shown_ == "home_clock"; }
+  std::vector<int> clock_slots_;   // the clock style's shortcut places: the shortcut each shows (-1: none)
+  void draw_home_shortcuts(const cJSON *home);
+  static std::string weather_glyph(const std::string &name);
   void draw_relays();
   void draw_buttons(const cJSON *page);
   void draw_button(const cJSON *page, int index);

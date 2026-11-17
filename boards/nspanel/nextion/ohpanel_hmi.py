@@ -370,9 +370,7 @@ def home_page(p: Project) -> None:
     my, mw, mh = layout.MERIDIEM
     text(home, "ampm", (x + w - mw, my, mw, mh), 2, xcen=2, ycen=2, maxl=10)
 
-    for k, (sx, sy) in enumerate(layout.STATUS_ICONS, start=1):
-        text(home, f"top{k}", (sx, sy, 25, 25), ICON_FONT, xcen=1, maxl=10, pco=LIGHT_GREY)
-    text(home, "wifi", layout.WIFI_ICON, ICON_FONT, xcen=1, maxl=5, pco=WIFI_GREY)
+    status_row(home)
 
     weather_pics = PICTURES["weather_home"]
     picture(home, "weather_pic", layout.WEATHER_HOME, weather_pics[sorted(weather_pics)[0]])
@@ -449,14 +447,7 @@ def home_page(p: Project) -> None:
         text(home, f"info{line}_badge", icon_box, 1, xcen=1, ycen=2, maxl=5, pic=badge)
         text(home, f"info{line}_badgeico", icon_box, ICON_FONT, xcen=1, maxl=5, pic=badge)
 
-    # the relays: a label, and beside it a bar the firmware colours (the theme's accent while the relay is on,
-    # dark grey while off: Engine::draw_relays) -- under it, or upright beside it (layout.RELAYS_UPRIGHT: the label
-    # drawn by the firmware there, read from the bottom up in the turned font, its field hidden; the manifest's "boxes")
-    for k, ((x, y, w, h), bar) in enumerate(zip(layout.RELAYS, layout.RELAY_BARS), start=1):
-        text(home, f"relay{k}_text", (x, y, w, h), 1, xcen=1, maxl=20, pco=WHITE if k == 1 else LIGHT_GREY)
-        text(home, f"relay{k}_bar", bar, 1, maxl=1, bco=TILE_OFF_565)
-        if layout.RELAYS_UPRIGHT:
-            hotspot(home, f"relay{k}_label", (x, y, w, h))
+    relay_labels(home)
 
     # the shortcuts, and the touch areas over them and the weather icon
     for n, (x, y) in enumerate(layout.SHORTCUTS, start=1):
@@ -474,6 +465,61 @@ def home_page(p: Project) -> None:
                 event("home", f"short{n}", "release"))
     # everything hidden while the page loads: the firmware shows what is configured
     on_load(home, loaded(home) + ["vis 255,0"])
+
+
+def status_row(page) -> None:
+    """Home's status row (home_page, home_clock_page): up to ten icons from the left, the WiFi icon at its end."""
+    for k, (sx, sy) in enumerate(layout.STATUS_ICONS, start=1):
+        text(page, f"top{k}", (sx, sy, 25, 25), ICON_FONT, xcen=1, maxl=10, pco=LIGHT_GREY)
+    text(page, "wifi", layout.WIFI_ICON, ICON_FONT, xcen=1, maxl=5, pco=WIFI_GREY)
+
+
+def relay_labels(page) -> None:
+    """The relays (home_page, home_clock_page): a label, and beside it a bar the firmware colours (the theme's accent
+    while the relay is on, dark grey while off: Engine::draw_relays) -- under it, or upright beside it
+    (layout.RELAYS_UPRIGHT: the label drawn by the firmware there, read from the bottom up in the turned font, its
+    field hidden; the manifest's "boxes")."""
+    for k, ((x, y, w, h), bar) in enumerate(zip(layout.RELAYS, layout.RELAY_BARS), start=1):
+        text(page, f"relay{k}_text", (x, y, w, h), 1, xcen=1, maxl=20, pco=WHITE if k == 1 else LIGHT_GREY)
+        text(page, f"relay{k}_bar", bar, 1, maxl=1, bco=TILE_OFF_565)
+        if layout.RELAYS_UPRIGHT:
+            hotspot(page, f"relay{k}_label", (x, y, w, h))
+
+
+def home_clock_page(p: Project) -> None:
+    """Home in its clock style (home.style "clock", boards/nspanel/nextion/layout.py CLOCK_BIG...): the status row and
+    the relays as on home; the clock large across the width in a font of its own (fonts.py: the digits only), AM/PM
+    after it; the date, the weather icon (an icon of the 32 px font: the weather pictures are home's 116 px) and the
+    outdoor temperature in one line under it; a row of shortcuts at CLOCK_SLOTS places half a step apart (the firmware
+    shows every second one, centred: Engine::draw_home_shortcuts). Its events name the page "home_clock"; the
+    firmware takes them as home's."""
+    page = new_page(p, "home_clock")
+    text(page, "clock", layout.CLOCK_BIG, layout.CLOCK_BIG_FONT, xcen=1, maxl=8)
+    text(page, "ampm", layout.CLOCK_BIG_MERIDIEM, 2, ycen=2, maxl=10)
+    text(page, "date", layout.CLOCK_BIG_DATE, TEXT_FONT, xcen=layout.CLOCK_BIG_DATE_XCEN, maxl=25)
+    status_row(page)
+    text(page, "weather_icon", layout.CLOCK_BIG_WEATHER, ICON_FONT_LARGE, xcen=1, maxl=5)
+    text(page, "outdoor", layout.CLOCK_BIG_OUTDOOR, TEXT_FONT, maxl=16)
+    relay_labels(page)
+    for k, x in enumerate(layout.CLOCK_SLOT_X, start=1):
+        text(page, f"slot{k}_icon", (x, layout.CLOCK_SLOT_Y, layout.SHORTCUT, layout.SHORTCUT), ICON_FONT_LARGE,
+             xcen=1, maxl=10, pco=LIGHT_GREY)
+    # the touch areas: the weather (its icon and the temperature), the clock and the date (home.clock_page), a slot each
+    wx, wy, ww, wh = layout.CLOCK_BIG_WEATHER
+    ox, oy, ow, oh = layout.CLOCK_BIG_OUTDOOR
+    hotspot(page, "weather_hs", (wx, min(wy, oy), ox + ow - wx, max(wy + wh, oy + oh) - min(wy, oy)),
+            event("home_clock", "weather", "release"), event("home_clock", "weather", "press"))
+    cx, cy, cw, ch = layout.CLOCK_BIG
+    hotspot(page, "clock_hs", (cx, cy, cw, ch), event("home_clock", "clock", "release"),
+            event("home_clock", "clock", "press"))
+    dx, dy, dw, dh = layout.CLOCK_BIG_DATE
+    hotspot(page, "date_hs", (dx, dy, dw, dh), event("home_clock", "clock", "release"),
+            event("home_clock", "clock", "press"))
+    for k, x in enumerate(layout.CLOCK_SLOT_X, start=1):
+        hotspot(page, f"slot{k}_hs", (x, layout.CLOCK_SLOT_Y, layout.SHORTCUT, layout.SHORTCUT),
+                event("home_clock", f"slot{k}", "release"))
+    # everything hidden while the page loads: the firmware shows what is configured
+    on_load(page, loaded(page) + ["vis 255,0"])
 
 
 def weather_page(p: Project) -> None:
@@ -1248,6 +1294,7 @@ THEME_COLOURS = {
     "weather": {"low": "th_dim", "low_arrow": "th_dim",   # the high leads
                 **{f"{part}{k}": "th_dim" for part in ("low", "low_arrow") for k in range(1, layout.WEATHER_LINE_STEPS + 1)}},
     "qr": {"caption1": "th_text", "caption2": "th_text"},
+    "home_clock": {"date": "th_dim"},
 }
 
 
@@ -1327,7 +1374,7 @@ def fixed_colours(p: Project) -> int:
 # Engine::render), the timer shows the dots and lights them up one after the
 # other: the panel does not answer.
 BUSY_PAGES = ("home", "weather", "buttons", "entities", "entities_cards", "entities_rows", "qr", "light", "cover", "covers", "media",
-              "settings", "system", "thermostat")
+              "settings", "system", "thermostat", "home_clock")
 BUSY_DELAY_MS = 800   # page changes take 120 to 650 ms (measured): no flicker on a normal one
 BUSY_STEP_MS = 300
 BUSY_GLYPH = "EEA79D"  # Material Design Icons "circle-medium" (boards/nspanel/nextion/icons.json), UTF-8
@@ -1503,6 +1550,7 @@ def drawn_boxes(p: Project) -> dict:
             "thermostat": {n: box("thermostat", n) for n in ["ring_hs", "minus_hs", "plus_hs", "state_hs", "power_hs"] +
                            [f"m{n}{k}_hs" for n in range(1, 5) for k in range(1, n + 1)]},
             "home": {f"relay{k}_label": box("home", f"relay{k}_label") for k in (1, 2) if layout.RELAYS_UPRIGHT},
+            "home_clock": {f"relay{k}_label": box("home_clock", f"relay{k}_label") for k in (1, 2) if layout.RELAYS_UPRIGHT},
             "keypad": {n: box("keypad", n) for n in ["state_hs"] +
                        [f"b{n}{k}_hs" for n in range(1, 5) for k in range(1, n + 1)]}}
 
@@ -1645,7 +1693,7 @@ def own_fonts(p: Project) -> None:
 
 # Every page in the order of their ids (the firmware goes by the manifest).
 PAGES = ("home", "weather", "settings", "boot", "blank", "light", "cover", "buttons", "volpage", "qr", "entities",
-         "media", "system", "netpage", "covers", "thermostat", "splash", "keypad")   # entities: entities_cards and entities_rows come with it
+         "media", "system", "netpage", "covers", "thermostat", "splash", "keypad", "home_clock")   # entities: entities_cards and entities_rows come with it
 
 
 def main():
@@ -1671,7 +1719,7 @@ def main():
                 "cover": cover_page, "buttons": buttons_page, "volpage": volume_page,
                 "qr": qr_page, "entities": entities_pages, "media": media_page, "system": system_page,
                 "netpage": network_page, "covers": covers_page, "thermostat": thermostat_page, "splash": splash_page,
-                "keypad": keypad_page}
+                "keypad": keypad_page, "home_clock": home_clock_page}
     for name in PAGES:
         builders[name](p)
     p.remove_pages([SEED_PAGE])

@@ -450,7 +450,7 @@ cJSON *Engine::weather_feed_build(const WeatherFeed &f, const std::string &codes
 /* Whether the page shown draws from the weather feed of `item` (home's, or the weather page's). */
 bool Engine::shows_weather_feed(const std::string &item) const {
   if (current_ == "home")
-    return shown_ == "home" && str(member(member(config_, "home"), "weather_feed"), "item") == item;
+    return home_shown() && str(member(member(config_, "home"), "weather_feed"), "item") == item;
   const cJSON *page = page_config(current_);
   return type_of(page) == PageType::Weather && shown_ == "weather" && str(member(page, "feed"), "item") == item;
 }

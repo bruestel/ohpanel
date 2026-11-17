@@ -306,6 +306,7 @@ weather, status icons and info lines do not show; the hardware buttons still swi
 
 | Member | Type | |
 |---|---|---|
+| `style` | `normal`, `clock` | `normal` (default): the clock top right, the weather, value rows, info lines, the shortcuts in three rows of four. `clock`: the clock large across the width (to read from across the room), the date and the weather (an icon and the temperature) in one line under it, the shortcuts in one row (up to 7, upright 5: the first configured ones, centred); the status icons and the relays as before, no value rows and no info lines. Needs the display design of 0.27.0 |
 | `relays` | up to 2 relays | what the two hardware buttons do, see below |
 | `values` | up to 2 value rows | below the weather: an icon and a value each, `{"item", "icon"?, "color"?, "format"?, "factor"?, "decimals"?, "value_style"?}` (`indoor_temperature: {item}` is the older name of the first, with a house as its icon) |
 | `outdoor_temperature` | `{item, decimals?}` | beside the weather icon, large, on the clock's line; a temperature as weather apps show it (`17°`) |

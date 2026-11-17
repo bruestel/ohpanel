@@ -589,6 +589,46 @@
     "k12"
    ],
    "close": true
+  },
+  "home_clock": {
+   "id": 20,
+   "background": true,
+   "crop": [
+    "clock",
+    "ampm",
+    "date",
+    "top1",
+    "top2",
+    "top3",
+    "top4",
+    "top5",
+    "top6",
+    "top7",
+    "top8",
+    "top9",
+    "top10",
+    "wifi",
+    "weather_icon",
+    "outdoor",
+    "relay1_text",
+    "relay2_text",
+    "slot1_icon",
+    "slot2_icon",
+    "slot3_icon",
+    "slot4_icon",
+    "slot5_icon",
+    "slot6_icon",
+    "slot7_icon",
+    "slot8_icon",
+    "slot9_icon",
+    "slot10_icon",
+    "slot11_icon",
+    "slot12_icon",
+    "slot13_icon",
+    "busy1",
+    "busy2",
+    "busy3"
+   ]
   }
  },
  "pictures": {
@@ -3011,6 +3051,48 @@
     1,
     26,
     5
+   ],
+   "relay1_text": [
+    1,
+    120,
+    26
+   ],
+   "relay1_bar": [
+    1,
+    120,
+    1
+   ],
+   "relay2_text": [
+    1,
+    120,
+    26
+   ],
+   "relay2_bar": [
+    1,
+    120,
+    1
+   ]
+  },
+  "home_clock": {
+   "clock": [
+    11,
+    426,
+    8
+   ],
+   "ampm": [
+    2,
+    32,
+    10
+   ],
+   "date": [
+    3,
+    205,
+    32
+   ],
+   "outdoor": [
+    3,
+    169,
+    26
    ],
    "relay1_text": [
     1,
@@ -6925,6 +7007,12 @@
      96
     ]
    ]
+  },
+  "11": {
+   "first": 32,
+   "widths": [],
+   "lead": [],
+   "trail": []
   },
   "2": {
    "first": 32,
@@ -15480,6 +15568,7 @@
    ]
   },
   "home": {},
+  "home_clock": {},
   "keypad": {
    "state_hs": [
     16,
@@ -16437,7 +16526,64 @@
    "b44_hs",
    "close_hs",
    "close"
+  ],
+  "home_clock": [
+   "swipe",
+   "swipe_tm",
+   "clock",
+   "ampm",
+   "date",
+   "top1",
+   "top2",
+   "top3",
+   "top4",
+   "top5",
+   "top6",
+   "top7",
+   "top8",
+   "top9",
+   "top10",
+   "wifi",
+   "weather_icon",
+   "outdoor",
+   "relay1_text",
+   "relay1_bar",
+   "relay2_text",
+   "relay2_bar",
+   "slot1_icon",
+   "slot2_icon",
+   "slot3_icon",
+   "slot4_icon",
+   "slot5_icon",
+   "slot6_icon",
+   "slot7_icon",
+   "slot8_icon",
+   "slot9_icon",
+   "slot10_icon",
+   "slot11_icon",
+   "slot12_icon",
+   "slot13_icon",
+   "weather_hs",
+   "clock_hs",
+   "date_hs",
+   "slot1_hs",
+   "slot2_hs",
+   "slot3_hs",
+   "slot4_hs",
+   "slot5_hs",
+   "slot6_hs",
+   "slot7_hs",
+   "slot8_hs",
+   "slot9_hs",
+   "slot10_hs",
+   "slot11_hs",
+   "slot12_hs",
+   "slot13_hs",
+   "busy1",
+   "busy2",
+   "busy3",
+   "busy_tm"
   ]
  },
- "design": "255a2db5"
+ "design": "6134bef3"
 }

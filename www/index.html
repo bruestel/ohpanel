@@ -3530,17 +3530,29 @@ function indicatorLook(s) {
           color: style.color || color(s.color, THEME.text)};
 }
 
-function fillHome(cfg) {
+function fillHome(cfg, template = 'home') {
   const h = cfg.home || {}, f = {};
   const now = new Date();
   f.clock = {text: strftime(disp.time.replace(/ ?%p/, ''), now)};
   const date = strftime(disp.date, now);
-  f.date = {text: date, color: THEME.dim, font: fontToFit('home', 'date', date, 2)};
+  f.date = {text: date, color: THEME.dim, font: fontToFit(template, 'date', date, 2)};
   f.ampm = {text: disp.time.includes('%p') ? strftime('%p', now) : ''};
   // without an item they do not show (Engine::draw_home)
   const wIcon = homeWeather(h, 'weather_icon'), wNow = homeWeather(h, 'outdoor_temperature');
   const wLow = homeWeather(h, 'outdoor_low'), wHigh = homeWeather(h, 'outdoor_high');
   f.weather_pic = wIcon ? {pic: weatherPic(wIcon)} : {hide: true};
+  if (template === 'home_clock') {   // the clock style: the weather as an icon, the temperature in one field
+    f.weather_icon = wIcon ? {icon: weatherGlyph((weatherPic(wIcon) || '').replace(/^weather:/, '')), color: THEME.text}
+                           : {hide: true};
+    if (wNow) {
+      const [num, unit] = numberUnit(wNow);
+      f.outdoor = {text: unit.startsWith('°') ? num + '°' : unit ? num + ' ' + unit : num};
+    } else f.outdoor = {text: ''};
+    clockSlots(h).forEach((i, k) => {
+      const s = i >= 0 ? h.shortcuts[i] : null;
+      f['slot' + (k + 1) + '_icon'] = s && shortcutShown(s) ? indicatorLook(s) : {text: ''};
+    });
+  }
   // outdoors as weather apps show it: "°" without the scale, in the number's size and colour; another
   // unit small after it (Engine::draw_home)
   const degrees = unit => unit.startsWith('°') ? '°' : unit;
@@ -4048,6 +4060,28 @@ function fillWeather(page) {
 /* The picture for a weather condition code, from the icon set the reference
    names (boards/nspanel/nextion/weather-icons.json) -- a code it has as a whole
    number only ("3.0" from a Number item) as that number (Engine::weather_icon). */
+/* A weather picture's name as an icon of the icon font (Engine::weather_glyph): the clock style's small icon. */
+function weatherGlyph(name) {
+  const has = p => name.includes(p), night = has('night'), partly = has('partly');
+  if (!name || name === 'not-available') return 'weather-cloudy-alert';
+  if (has('thunderstorms')) return has('rain') ? 'weather-lightning-rainy' : 'weather-lightning';
+  if (has('tornado')) return 'weather-tornado';
+  if (has('hurricane')) return 'weather-hurricane';
+  if (has('hail')) return 'weather-hail';
+  if (has('sleet')) return 'weather-snowy-rainy';
+  if (has('snow')) return partly ? 'weather-partly-snowy' : 'weather-snowy';
+  if (has('rain')) return partly ? 'weather-partly-rainy' : 'weather-pouring';
+  if (has('drizzle')) return partly ? 'weather-partly-rainy' : 'weather-rainy';
+  if (has('fog') || has('mist')) return 'weather-fog';
+  if (has('haze') || has('smoke')) return 'weather-hazy';
+  if (has('dust')) return 'weather-dust';
+  if (has('wind')) return 'weather-windy';
+  if (partly) return night ? 'weather-night-partly-cloudy' : 'weather-partly-cloudy';
+  if (has('cloudy') || has('overcast')) return 'weather-cloudy';
+  if (has('clear')) return night ? 'weather-night' : 'weather-sunny';
+  return 'weather-cloudy';
+}
+
 function weatherPic(ref) {
   const set = LAYOUT.weather[(ref && ref.codes) || 'openweathermap'];
   if (!set) return undefined;
@@ -4488,8 +4522,24 @@ function drawNote(box, n) {
 /* Draws a page of the configuration into box (the display's size, screenSize()) as the display shows
    it; the design page it shows on. */
 /* The design page a configured page (null: home) shows on (Engine::template_of). */
+/* Home's design page: its clock style's (home.style "clock") where the design has it (Engine::home_page). */
+function homeTemplate(cfg) {
+  return ((cfg || PV.cfg || {}).home || {}).style === 'clock' && LAYOUT.pages.home_clock ? 'home_clock' : 'home';
+}
+/* The clock style's row of shortcuts (Engine::draw_home_shortcuts): for each of its places the shortcut it shows (-1:
+   none) -- the configured ones in their order at every second place, centred. */
+function clockSlots(h) {
+  const objects = (LAYOUT.pages.home_clock || {}).objects || [];
+  let places = 0;
+  while (objects.some(o => o.n === 'slot' + (places + 1) + '_icon')) places++;
+  const list = [];
+  for (let i = 0; i < 12 && list.length < Math.floor((places + 1) / 2); i++) if ((h.shortcuts || [])[i]) list.push(i);
+  const out = Array(places).fill(-1), first = Math.floor(places / 2) - (list.length - 1);
+  list.forEach((s, k) => { out[first + 2 * k] = s; });
+  return out;
+}
 function templateOf(page) {
-  return !page ? 'home' : page.type === 'media_favorites' ? 'buttons'
+  return !page ? homeTemplate() : page.type === 'media_favorites' ? 'buttons'
        : page.type === 'entities' && LAYOUT.pages['entities_' + page.style] ? 'entities_' + page.style
        : page.type === 'cover' && page.group && LAYOUT.pages.covers ? 'covers'
        : page.type === 'image' ? 'qr'   // its title and cross; the picture where the code goes (Engine::template_of)
@@ -4502,7 +4552,7 @@ function drawPage(box, cfg, id) {
   const template = templateOf(page);
   const layout = LAYOUT.pages[template];
   const kind = page && PAGE_KINDS[page.type];
-  const fill = !page ? fillHome(cfg) : kind && kind.fill ? kind.fill(page, cfg) : {};
+  const fill = !page ? fillHome(cfg, template) : kind && kind.fill ? kind.fill(page, cfg) : {};
 
   /* The objects the design adds to every page: the close cross and the page
      dots, which show where the page sits in the swipe row. The start page,
@@ -5885,6 +5935,31 @@ function pvTargets(template) {
       const n = /^tile(\d)$/.exec(a.c);
       if (n) out.push({t: 'tile:' + (n[1] - 1), x: a.x, y: a.y, w: a.w, h: a.h});
     });
+  } else if (!page && template === 'home_clock') {   // the clock style
+    const around = (t, names) => {
+      const parts = names.map(n => objects.find(o => o.n === n)).filter(Boolean);
+      if (!parts.length) return;
+      const x = Math.min(...parts.map(o => o.x)), y = Math.min(...parts.map(o => o.y));
+      out.push({t, x, y, w: Math.max(...parts.map(o => o.x + o.w)) - x, h: Math.max(...parts.map(o => o.y + o.h)) - y});
+    };
+    around('weather', ['weather_icon']);
+    around('outdoor', ['outdoor']);
+    around('clock', ['clock', 'date', 'ampm']);
+    for (let i = 0; i < 10; i++) at('status:' + i, 'top' + (i + 1));
+    // the shortcuts shown, and the place after them for the next one (the first empty entry)
+    const h = (PV.cfg && PV.cfg.home) || {}, slots = clockSlots(h);
+    slots.forEach((i, k) => { if (i >= 0) at('shortcut:' + i, 'slot' + (k + 1) + '_icon'); });
+    const last = slots.lastIndexOf(-1) >= 0 ? Math.max(-1, ...slots.map((i, k) => i >= 0 ? k : -1)) : -1;
+    const free = [...Array(12).keys()].find(i => !(h.shortcuts || [])[i]);
+    const next = last < 0 ? Math.floor(slots.length / 2) : last + 2;
+    if (free !== undefined && next < slots.length && slots.filter(i => i >= 0).length < Math.floor((slots.length + 1) / 2))
+      at('shortcut:' + free, 'slot' + (next + 1) + '_icon');
+    for (let i = 0; i < 2; i++) {
+      const parts = ['_text', '_bar', '_label'].map(p => objects.find(o => o.n === 'relay' + (i + 1) + p)).filter(Boolean);
+      if (!parts.length) continue;
+      const x = Math.min(...parts.map(o => o.x)) - 2, y = Math.min(...parts.map(o => o.y)) - 4;
+      out.push({t: 'relay:' + i, x, y, w: Math.max(...parts.map(o => o.x + o.w)) + 2 - x, h: Math.max(...parts.map(o => o.y + o.h)) + 2 - y});
+    }
   } else if (!page) {
     at('weather', 'weather_pic');
     // a frame around several objects
@@ -7106,7 +7181,14 @@ function pvEditor() {
     // a tap on the clock or the date (home.clock_page)
     const opens = selectInput(pvPageOptions(), h.clock_page,
                               v => pvEdit(c => { c.home = c.home || {}; if (v) c.home.clock_page = v; else delete c.home.clock_page; }));
-    box.append(pvRow($('vTime').closest('label'), $('vDate').closest('label')), pvRow(field('Tapping it opens', opens)), pvButtons([]));
+    // home's look (home.style, Engine::home_page): the clock style needs a display design that has its page
+    const style = selectInput([['', 'normal: the clock top right, values, info lines, shortcuts 4 × 3'],
+                               ['clock', 'large clock: across the width, the shortcuts in one row']], h.style || '',
+                              v => { pvEdit(c => { c.home = c.home || {}; if (v) c.home.style = v; else delete c.home.style; }); PV.edKey = null; renderPreview(); });
+    const styleField = field('Home screen', style);
+    const noDesign = !LAYOUT.pages.home_clock ? note('The display design in use has no large clock yet: update it (Settings > Firmware).') : null;
+    box.append(pvRow(styleField), ...(noDesign ? [noDesign] : []),
+               pvRow($('vTime').closest('label'), $('vDate').closest('label')), pvRow(field('Tapping it opens', opens)), pvButtons([]));
   } else if (t === 'title') {
     head.textContent = 'Page title';
     box.append(pvRow(field('Title', titleInput(page, v => pvEdit((c, p) => { p.title = v; })))));

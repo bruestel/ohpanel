@@ -313,3 +313,20 @@ COVERS_PRESET_W = (VISIBLE_W - 2 * MARGIN - 2 * 8) // 3
 COVERS_PRESET_H = 44                         # pills: as high as the EU's rows (the firmware rounds their ends)
 COVERS_PRESETS = [(MARGIN + k * (COVERS_PRESET_W + 8), COVERS_ROWS_Y + (COVERS_ROWS_H - COVERS_PRESET_H) // 2,
                    COVERS_PRESET_W, COVERS_PRESET_H) for k in range(3)]
+
+
+# Home's clock style (home.style "clock", ohpanel_hmi.py home_clock_page; layout_eu.py says more): upright, the clock in
+# the smaller digits (font 12: Ubuntu at 116 px, 83 px high, "12:47" 290 px wide) across the width, AM/PM above its
+# minutes; the date centred under it, the weather icon and the outdoor temperature under that; a row of up to 5
+# shortcuts; the relays as on home.
+CLOCK_BIG_FONT = 12
+CLOCK_MID = VISIBLE_W // 2                                   # 160
+CLOCK_BIG = (MARGIN, 64, RIGHT - MARGIN, 90)
+CLOCK_BIG_MERIDIEM = (RIGHT - 32, 40, 32, 22)
+CLOCK_BIG_DATE = (MARGIN, 178, RIGHT - MARGIN, 30)
+CLOCK_BIG_DATE_XCEN = 1
+CLOCK_BIG_WEATHER = (CLOCK_MID - 40, 216, 35, 35)
+CLOCK_BIG_OUTDOOR = (CLOCK_MID, 219, RIGHT - CLOCK_MID, 30)
+CLOCK_SLOT_STEP, CLOCK_SLOTS = 28, 9                         # 5 shortcuts at most
+CLOCK_SLOT_Y = 320
+CLOCK_SLOT_X = [CLOCK_MID - SHORTCUT // 2 + (k - CLOCK_SLOTS // 2) * CLOCK_SLOT_STEP for k in range(CLOCK_SLOTS)]
