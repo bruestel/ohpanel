@@ -1209,14 +1209,15 @@ class Validator {
       item_ref(pg, "color_temperature", p);
     } else if (t == "media") {
       allowed(pg, p, {"id", "type", "title", "icon", "control", "mute", "volume", "track", "artist", "album", "art",
-                      "favorites", "play", "uri", "live", "clock"});
+                      "favorites", "play", "uri", "live", "clock", "stop"});
       boolean(pg, "live", p);   // false: the volume sent only when the slider is let go
       boolean(pg, "clock", p);  // the time in the title's row
       icon(pg, p);
       item_ref(pg, "control", p, true);
       // art: what plays as a picture -- an item holding its address (or the picture as a data: address)
       // uri: what plays, as an address (Sonos: currenttrackuri) -- a favourite's name shows again by it
-      for (const char *n : {"mute", "volume", "track", "artist", "album", "art", "uri"})
+      // stop: a Switch the play button sends ON while something plays (Sonos, Kodi, Squeezebox: their stop channel)
+      for (const char *n : {"mute", "volume", "track", "artist", "album", "art", "uri", "stop"})
         item_ref(pg, n, p);
       // the favourites page its star button opens, and the item a favourite's stream goes to
       if (const cJSON *f = cJSON_GetObjectItem(pg, "favorites")) {

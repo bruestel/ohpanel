@@ -4005,6 +4005,53 @@ int main(int argc, char **argv) {
     if (g_failures) r.dump();
   }
 
+  {  // the media page's stop item: while something plays the play button stops (ON to the item) instead of pausing,
+     // drawn as a square; not playing, it plays as before
+    Callbacks cb6 = cb;
+    std::vector<std::pair<std::string, std::string>> sent;
+    cb6.command = [&](const std::string &item, const std::string &cmd) { sent.push_back({item, cmd}); };
+    Recorder r;
+    Engine m(r, cb6);
+    m.release_wait(0);
+    CHECK(m.load_design(read("boards/nspanel/nextion/display-manifest-eu.json").c_str(),
+                        read("boards/nspanel/nextion/weather-icons.json").c_str()));
+    set_state("Stop_Player", "PLAY", "Player");
+    set_state("Stop_Page", "NULL", "UnDef");
+    m.set_config(R"({"version": 1, "display": {"open_page": {"item": "Stop_Page"}}, "pages": [{"id": "player", "type": "media", "title": "Kitchen",
+      "control": {"item": "Stop_Player"}, "stop": {"item": "Stop_Stop"}}]})");
+    PanelStatus up;
+    up.openhab = true;
+    m.set_status(up);
+    int64_t t = 1000;
+    m.idle(t);
+    m.start();
+    m.idle(t += 5000);
+    m.on_message(loaded("home"));
+    m.on_state("Stop_Page");
+    set_state("Stop_Page", "player", "String");
+    m.on_state("Stop_Page");
+    m.on_message(loaded("media"));
+    CHECK(m.current() == "player");
+    const auto square = [&] {   // the stop symbol: one fill as wide as high on the disc's middle
+      for (const std::string &l : r.out) {
+        int x, y, w, h, c;
+        if (std::sscanf(l.c_str(), "fill %d,%d,%d,%d,%d", &x, &y, &w, &h, &c) == 5 && w == h && w > 20)
+          return true;
+      }
+      return false;
+    };
+    CHECK(square());
+    m.on_message(event("media", "play", "release"));
+    CHECK(sent.size() == 1 && sent.back() == std::make_pair(std::string("Stop_Stop"), std::string("ON")));
+    set_state("Stop_Player", "PAUSE", "Player");
+    r.out.clear();
+    m.on_state("Stop_Player");
+    CHECK(!square());   // the triangle again
+    m.on_message(event("media", "play", "release"));
+    CHECK(sent.size() == 2 && sent.back() == std::make_pair(std::string("Stop_Player"), std::string("PLAY")));
+    if (g_failures) r.dump();
+  }
+
   {  // hardware buttons with "open": "next" / "previous": the swipe row a page on or back, around its ends; from a page
      // not in the row its first (last) page; a screen that is off only woken, on the start page
     Callbacks cb5 = cb;

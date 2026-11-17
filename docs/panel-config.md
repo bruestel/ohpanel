@@ -884,6 +884,7 @@ and a star that opens a page of favourites.
 | Member | |
 |---|---|
 | `control` | `{item}`, a Player item: play/pause, previous/next (`PREVIOUS`, `NEXT`) |
+| `stop` | `{item}`, a Switch (optional): while something plays, the play button shows a square and stops instead of pausing, sending `ON` to it -- the player's stop channel (Sonos, Kodi, Squeezebox, Chromecast: `stop`); a Player item knows no STOP |
 | `volume`, `mute` | `{item}` each: the volume button, which opens a card with a slider, minus, plus and the mute; the slider sends while it moves, `"live": false` only when let go |
 | `track`, `artist`, `album` | `{item}` each: what plays, in three lines (the album, or the playlist) |
 | `art` | `{item}`: the cover, see below |

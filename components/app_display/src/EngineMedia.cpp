@@ -231,12 +231,12 @@ void Engine::media_refresh(const cJSON *page) {
     txt("art_icon", icon_glyph(what.c_str()));
     num("art_icon", "pco", theme_.accent);
   }
-  // previous, play/pause between them (draw_play), next
+  // previous, play/pause (or stop) between them (draw_play), next
   txt("prev_icon", icon_glyph("skip-previous"));
   txt("next_icon", icon_glyph("skip-next"));
   num("prev_icon", "pco", theme_.dim);
   num("next_icon", "pco", theme_.dim);
-  draw_play(playing);
+  draw_play(playing, !str(member(page, "stop"), "item").empty());
   // the volume: the speaker on its disc, crossed out when muted (the number on the volume page)
   if (member(page, "volume")) {
     txt("volume_icon", icon_glyph(on(member(page, "mute")) ? "volume-off" : "volume-high"));
@@ -248,15 +248,16 @@ void Engine::media_refresh(const cJSON *page) {
 
 /* Play/pause: a disc in the theme's accent (disc: by rows, round) in
    the box of play_hs (the manifest's "boxes"), with the symbol on it in
-   filled rectangles -- two bars while playing (pause), a triangle while not,
+   filled rectangles -- two bars while playing (pause), or a square with a stop item, a triangle while not,
    nudged right to look centred. Exactly centred, whatever the fonts; drawn
    again only when it changes (drawn_, emptied with each page). */
-void Engine::draw_play(bool playing) {
+void Engine::draw_play(bool playing, bool stop) {
   const auto pg = boxes_.find("media");
   if (pg == boxes_.end() || !pg->second.count("play_hs") || note_drawn_)
     return;
   const Box &b = pg->second.at("play_hs");
-  const std::string key = std::string(playing ? "pause|" : "play|") + std::to_string(theme_.accent);
+  const std::string key =
+      std::string(!playing ? "play|" : stop ? "stop|" : "pause|") + std::to_string(theme_.accent);
   std::string &drawn = drawn_["play"];
   if (drawn == key)
     return;
@@ -265,7 +266,10 @@ void Engine::draw_play(bool playing) {
   disc(cx, cy, r, theme_.accent);
   // the symbol in proportion to the disc (84 px: bars 9 x 32, 8 apart; a triangle 31 wide, 36 high)
   const int bar_w = r * 9 / 42, bar_h = r * 32 / 42, gap = r * 8 / 42;
-  if (playing) {
+  if (playing && stop) {   // a square as large as the bars stand
+    const int side = r * 28 / 42;
+    fill(cx - side / 2, cy - side / 2, side, side, kSymbol);
+  } else if (playing) {
     const int x0 = cx - (2 * bar_w + gap) / 2, y0 = cy - bar_h / 2;
     fill(x0, y0, bar_w, bar_h, kSymbol);
     fill(x0 + bar_w + gap, y0, bar_w, bar_h, kSymbol);
@@ -437,7 +441,10 @@ void Engine::media_event(const cJSON *page, const std::string &component) {
   if (!cb_.command)
     return;
   const std::string control = str(member(page, "control"), "item");
-  if (component == "play" && !control.empty()) {
+  const std::string stop = str(member(page, "stop"), "item");
+  if (component == "play" && !stop.empty() && media_playing(page)) {
+    cb_.command(stop, "ON");   // the player's stop channel (a Switch): a player item knows no STOP
+  } else if (component == "play" && !control.empty()) {
     cb_.command(control, media_playing(page) ? "PAUSE" : "PLAY");
   } else if ((component == "previous" || component == "next") && !control.empty()) {
     cb_.command(control, component == "next" ? "NEXT" : "PREVIOUS");

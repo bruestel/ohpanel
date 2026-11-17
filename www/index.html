@@ -4560,7 +4560,7 @@ function drawPage(box, cfg, id) {
       continue;
     }
     if (want.disc) {   // the media page's play/pause, drawn by the firmware (Engine::draw_play)
-      el.appendChild(playCanvas(want.disc, want.playing, o.w, o.h));
+      el.appendChild(playCanvas(want.disc, want.playing, o.w, o.h, want.stop));
       box.appendChild(el);
       continue;
     }
@@ -7586,7 +7586,7 @@ function placeIcon(canvas, o, font, name) {
 
 /* Play/pause as the panel draws it (Engine::draw_play): the disc and on it
    two bars or a triangle, in filled rectangles, without smoothing. */
-function playCanvas(accent, playing, w, h) {
+function playCanvas(accent, playing, w, h, stop) {
   const c = document.createElement('canvas');
   c.width = w; c.height = h;
   const g = c.getContext('2d'), r = Math.floor(Math.min(w, h) / 2), cx = Math.floor(w / 2), cy = Math.floor(h / 2);
@@ -7597,7 +7597,10 @@ function playCanvas(accent, playing, w, h) {
   }
   g.fillStyle = 'rgb(20,24,28)';
   const bw = Math.floor(r * 9 / 42), bh = Math.floor(r * 32 / 42), gap = Math.floor(r * 8 / 42);
-  if (playing) {
+  if (playing && stop) {
+    const side = Math.floor(r * 28 / 42);
+    g.fillRect(cx - Math.floor(side / 2), cy - Math.floor(side / 2), side, side);
+  } else if (playing) {
     const x0 = cx - Math.floor((2 * bw + gap) / 2), y0 = cy - Math.floor(bh / 2);
     g.fillRect(x0, y0, bw, bh); g.fillRect(x0 + bw + gap, y0, bw, bh);
   } else {
@@ -7649,7 +7652,7 @@ function fillMedia(page, cfg) {
     : {icon: playing || track ? 'music' : page.icon || 'speaker', color: THEME.accent, bg: MEDIA_GREY};
   f.prev_icon = {icon: 'skip-previous', color: THEME.dim};
   f.next_icon = {icon: 'skip-next', color: THEME.dim};
-  f.play_hs = {disc: THEME.accent, playing};
+  f.play_hs = {disc: THEME.accent, playing, stop: !!(page.stop && page.stop.item)};
   if (page.volume) {
     f.volume_pic = {bg: MEDIA_PILL, radius: 24};   // a disc
     f.volume_icon = {icon: isOn(page.mute) ? 'volume-off' : 'volume-high', color: THEME.text, bg: MEDIA_PILL};
@@ -8102,13 +8105,14 @@ function pvMediaEditor(box, head, hint, page) {
     two(field('Player (play, pause, next, previous)', itemField((page.control || {}).item, v => ref('control', v), 'Player')),
         field('Volume (optional)', itemField((page.volume || {}).item, v => ref('volume', v), 'Dimmer,Number'))),
     two(field('Mute (optional)', itemField((page.mute || {}).item, v => ref('mute', v), 'Switch')),
-        field('Title playing (optional)', itemField((page.track || {}).item, v => ref('track', v), 'String'))),
-    two(field('Artist (optional)', itemField((page.artist || {}).item, v => ref('artist', v), 'String')),
-        field('Third line: album or source (optional)', itemField((page.album || {}).item, v => ref('album', v), 'String'))),
-    two(field('Cover, an item with its address (optional)', itemField((page.art || {}).item, v => ref('art', v), 'String,Image')),
-        field('Favourites, the star (optional)', favSel)),
-    two(field('Play item, gets a favourite\'s stream URI (Sonos: playuri; needed with favourites)', itemField((page.play || {}).item, v => ref('play', v), 'String')),
-        field('What plays, as an address (optional; Sonos: currenttrackuri)', itemField((page.uri || {}).item, v => ref('uri', v), 'String'))),
+        field('Stop (optional; the play button stops instead of pausing)', itemField((page.stop || {}).item, v => ref('stop', v), 'Switch'))),
+    two(field('Title playing (optional)', itemField((page.track || {}).item, v => ref('track', v), 'String')),
+        field('Artist (optional)', itemField((page.artist || {}).item, v => ref('artist', v), 'String'))),
+    two(field('Third line: album or source (optional)', itemField((page.album || {}).item, v => ref('album', v), 'String')),
+        field('Cover, an item with its address (optional)', itemField((page.art || {}).item, v => ref('art', v), 'String,Image'))),
+    two(field('Favourites, the star (optional)', favSel),
+        field('Play item, gets a favourite\'s stream URI (Sonos: playuri; needed with favourites)', itemField((page.play || {}).item, v => ref('play', v), 'String'))),
+    two(field('What plays, as an address (optional; Sonos: currenttrackuri)', itemField((page.uri || {}).item, v => ref('uri', v), 'String'))),
     pvFlag('Send the volume while its slider moves (off: only when it is let go)', page.live !== false,
            on => pvEdit((c, p) => { if (on) delete p.live; else p.live = false; })),
     pvFlag('Show the clock at the top right', page.clock === true,

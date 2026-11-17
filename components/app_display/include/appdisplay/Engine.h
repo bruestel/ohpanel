@@ -789,7 +789,7 @@ class Engine {
   std::optional<Hint> hint_;
   // the cover: asked for, loaded, being drawn (in parts, from idle())
   void draw_art(const cJSON *page);
-  void draw_play(bool playing);
+  void draw_play(bool playing, bool stop);
   static constexpr int kSliderOff = 0x632C;      // a light's brightness slider filled while it is off: grey (100, 100, 100)
   static constexpr int kSymbol = 0x10C3;         // the play/pause symbol on its disc: near black (20, 24, 28)
   void draw_art_step();
