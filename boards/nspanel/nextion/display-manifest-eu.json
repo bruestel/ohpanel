@@ -406,6 +406,7 @@
     "title",
     "dots",
     "row1_icon",
+    "row1_badge",
     "row1_text",
     "row1_value",
     "row1_longtext",
@@ -413,6 +414,7 @@
     "row1_wide",
     "row1_textscr",
     "row2_icon",
+    "row2_badge",
     "row2_text",
     "row2_value",
     "row2_longtext",
@@ -420,6 +422,7 @@
     "row2_wide",
     "row2_textscr",
     "row3_icon",
+    "row3_badge",
     "row3_text",
     "row3_value",
     "row3_longtext",
@@ -427,6 +430,7 @@
     "row3_wide",
     "row3_textscr",
     "row4_icon",
+    "row4_badge",
     "row4_text",
     "row4_value",
     "row4_longtext",
@@ -434,6 +438,7 @@
     "row4_wide",
     "row4_textscr",
     "row5_icon",
+    "row5_badge",
     "row5_text",
     "row5_value",
     "row5_longtext",
@@ -441,6 +446,7 @@
     "row5_wide",
     "row5_textscr",
     "row6_icon",
+    "row6_badge",
     "row6_text",
     "row6_value",
     "row6_longtext",
@@ -448,6 +454,7 @@
     "row6_wide",
     "row6_textscr",
     "row7_icon",
+    "row7_badge",
     "row7_text",
     "row7_value",
     "row7_longtext",
@@ -2106,6 +2113,11 @@
     300,
     46
    ],
+   "row1_badge": [
+    13,
+    44,
+    33
+   ],
    "row1_text": [
     2,
     214,
@@ -2135,6 +2147,11 @@
     2,
     382,
     1
+   ],
+   "row2_badge": [
+    13,
+    44,
+    33
    ],
    "row2_text": [
     2,
@@ -2166,6 +2183,11 @@
     382,
     1
    ],
+   "row3_badge": [
+    13,
+    44,
+    33
+   ],
    "row3_text": [
     2,
     214,
@@ -2195,6 +2217,11 @@
     2,
     382,
     1
+   ],
+   "row4_badge": [
+    13,
+    44,
+    33
    ],
    "row4_text": [
     2,
@@ -2226,6 +2253,11 @@
     382,
     1
    ],
+   "row5_badge": [
+    13,
+    44,
+    33
+   ],
    "row5_text": [
     2,
     214,
@@ -2256,6 +2288,11 @@
     382,
     1
    ],
+   "row6_badge": [
+    13,
+    44,
+    33
+   ],
    "row6_text": [
     2,
     214,
@@ -2285,6 +2322,11 @@
     2,
     382,
     1
+   ],
+   "row7_badge": [
+    13,
+    44,
+    33
    ],
    "row7_text": [
     2,
@@ -2323,6 +2365,11 @@
     300,
     46
    ],
+   "card1_badge": [
+    13,
+    44,
+    33
+   ],
    "card1_text": [
     0,
     156,
@@ -2332,6 +2379,11 @@
     2,
     156,
     29
+   ],
+   "card2_badge": [
+    13,
+    44,
+    33
    ],
    "card2_text": [
     0,
@@ -2343,6 +2395,11 @@
     156,
     29
    ],
+   "card3_badge": [
+    13,
+    44,
+    33
+   ],
    "card3_text": [
     0,
     156,
@@ -2352,6 +2409,11 @@
     2,
     156,
     29
+   ],
+   "card4_badge": [
+    13,
+    44,
+    33
    ],
    "card4_text": [
     0,
@@ -2363,6 +2425,11 @@
     156,
     29
    ],
+   "card5_badge": [
+    13,
+    44,
+    33
+   ],
    "card5_text": [
     0,
     156,
@@ -2372,6 +2439,11 @@
     2,
     156,
     29
+   ],
+   "card6_badge": [
+    13,
+    44,
+    33
    ],
    "card6_text": [
     0,
@@ -2383,6 +2455,11 @@
     156,
     29
    ],
+   "card7_badge": [
+    13,
+    44,
+    33
+   ],
    "card7_text": [
     0,
     156,
@@ -2392,6 +2469,11 @@
     2,
     156,
     29
+   ],
+   "card8_badge": [
+    13,
+    44,
+    33
    ],
    "card8_text": [
     0,
@@ -2409,6 +2491,11 @@
     3,
     300,
     46
+   ],
+   "row1_badge": [
+    14,
+    40,
+    33
    ],
    "row1_text": [
     2,
@@ -2435,6 +2522,11 @@
     372,
     67
    ],
+   "row2_badge": [
+    14,
+    40,
+    33
+   ],
    "row2_text": [
     2,
     214,
@@ -2459,6 +2551,11 @@
     2,
     372,
     67
+   ],
+   "row3_badge": [
+    14,
+    40,
+    33
    ],
    "row3_text": [
     2,
@@ -2485,6 +2582,11 @@
     372,
     67
    ],
+   "row4_badge": [
+    14,
+    40,
+    33
+   ],
    "row4_text": [
     2,
     214,
@@ -2509,6 +2611,11 @@
     2,
     372,
     67
+   ],
+   "row5_badge": [
+    14,
+    40,
+    33
    ],
    "row5_text": [
     2,
@@ -2535,6 +2642,11 @@
     372,
     67
    ],
+   "row6_badge": [
+    14,
+    40,
+    33
+   ],
    "row6_text": [
     2,
     214,
@@ -2559,6 +2671,11 @@
     2,
     372,
     67
+   ],
+   "row7_badge": [
+    14,
+    40,
+    33
    ],
    "row7_text": [
     2,
@@ -7009,6 +7126,18 @@
    ]
   },
   "11": {
+   "first": 32,
+   "widths": [],
+   "lead": [],
+   "trail": []
+  },
+  "13": {
+   "first": 32,
+   "widths": [],
+   "lead": [],
+   "trail": []
+  },
+  "14": {
    "first": 32,
    "widths": [],
    "lead": [],
@@ -15638,6 +15767,96 @@
    ]
   }
  },
+ "badges": {
+  "13": {
+   "0": 11,
+   "1": 7,
+   "2": 10,
+   "3": 10,
+   "4": 10,
+   "5": 10,
+   "6": 10,
+   "7": 9,
+   "8": 10,
+   "9": 10,
+   "a": 12,
+   "b": 10,
+   "c": 12,
+   "d": 12,
+   "e": 9,
+   "f": 9,
+   "g": 12,
+   "h": 12,
+   "i": 6,
+   "j": 10,
+   "k": 11,
+   "l": 9,
+   "m": 12,
+   "n": 13,
+   "o": 13,
+   "p": 10,
+   "q": 13,
+   "r": 11,
+   "s": 10,
+   "t": 10,
+   "u": 12,
+   "v": 11,
+   "w": 12,
+   "x": 11,
+   "y": 10,
+   "z": 10,
+   "start": 4,
+   "end": 4,
+   "pad2": 2,
+   "pad3": 3,
+   "pad4": 4,
+   "pad8": 8
+  },
+  "14": {
+   "0": 10,
+   "1": 6,
+   "2": 9,
+   "3": 9,
+   "4": 9,
+   "5": 9,
+   "6": 9,
+   "7": 8,
+   "8": 9,
+   "9": 9,
+   "a": 10,
+   "b": 9,
+   "c": 11,
+   "d": 10,
+   "e": 8,
+   "f": 8,
+   "g": 11,
+   "h": 11,
+   "i": 5,
+   "j": 9,
+   "k": 10,
+   "l": 8,
+   "m": 11,
+   "n": 12,
+   "o": 11,
+   "p": 9,
+   "q": 11,
+   "r": 10,
+   "s": 9,
+   "t": 9,
+   "u": 10,
+   "v": 10,
+   "w": 11,
+   "x": 10,
+   "y": 9,
+   "z": 9,
+   "start": 3,
+   "end": 3,
+   "pad2": 2,
+   "pad3": 3,
+   "pad4": 4,
+   "pad8": 8
+  }
+ },
  "screen": {
   "w": 480,
   "h": 320,
@@ -16074,6 +16293,7 @@
    "title",
    "dots",
    "row1_icon",
+   "row1_badge",
    "row1_text",
    "row1_value",
    "row1_longtext",
@@ -16082,6 +16302,7 @@
    "row1_textscr",
    "row1_line",
    "row2_icon",
+   "row2_badge",
    "row2_text",
    "row2_value",
    "row2_longtext",
@@ -16090,6 +16311,7 @@
    "row2_textscr",
    "row2_line",
    "row3_icon",
+   "row3_badge",
    "row3_text",
    "row3_value",
    "row3_longtext",
@@ -16098,6 +16320,7 @@
    "row3_textscr",
    "row3_line",
    "row4_icon",
+   "row4_badge",
    "row4_text",
    "row4_value",
    "row4_longtext",
@@ -16106,6 +16329,7 @@
    "row4_textscr",
    "row4_line",
    "row5_icon",
+   "row5_badge",
    "row5_text",
    "row5_value",
    "row5_longtext",
@@ -16114,6 +16338,7 @@
    "row5_textscr",
    "row5_line",
    "row6_icon",
+   "row6_badge",
    "row6_text",
    "row6_value",
    "row6_longtext",
@@ -16122,6 +16347,7 @@
    "row6_textscr",
    "row6_line",
    "row7_icon",
+   "row7_badge",
    "row7_text",
    "row7_value",
    "row7_longtext",
@@ -16143,34 +16369,42 @@
    "dots",
    "card1_pic",
    "card1_icon",
+   "card1_badge",
    "card1_text",
    "card1_value",
    "card2_pic",
    "card2_icon",
+   "card2_badge",
    "card2_text",
    "card2_value",
    "card3_pic",
    "card3_icon",
+   "card3_badge",
    "card3_text",
    "card3_value",
    "card4_pic",
    "card4_icon",
+   "card4_badge",
    "card4_text",
    "card4_value",
    "card5_pic",
    "card5_icon",
+   "card5_badge",
    "card5_text",
    "card5_value",
    "card6_pic",
    "card6_icon",
+   "card6_badge",
    "card6_text",
    "card6_value",
    "card7_pic",
    "card7_icon",
+   "card7_badge",
    "card7_text",
    "card7_value",
    "card8_pic",
    "card8_icon",
+   "card8_badge",
    "card8_text",
    "card8_value",
    "close_hs",
@@ -16187,6 +16421,7 @@
    "dots",
    "row1_pic",
    "row1_icon",
+   "row1_badge",
    "row1_text",
    "row1_value",
    "row1_longtext",
@@ -16195,6 +16430,7 @@
    "row1_textscr",
    "row2_pic",
    "row2_icon",
+   "row2_badge",
    "row2_text",
    "row2_value",
    "row2_longtext",
@@ -16203,6 +16439,7 @@
    "row2_textscr",
    "row3_pic",
    "row3_icon",
+   "row3_badge",
    "row3_text",
    "row3_value",
    "row3_longtext",
@@ -16211,6 +16448,7 @@
    "row3_textscr",
    "row4_pic",
    "row4_icon",
+   "row4_badge",
    "row4_text",
    "row4_value",
    "row4_longtext",
@@ -16219,6 +16457,7 @@
    "row4_textscr",
    "row5_pic",
    "row5_icon",
+   "row5_badge",
    "row5_text",
    "row5_value",
    "row5_longtext",
@@ -16227,6 +16466,7 @@
    "row5_textscr",
    "row6_pic",
    "row6_icon",
+   "row6_badge",
    "row6_text",
    "row6_value",
    "row6_longtext",
@@ -16235,6 +16475,7 @@
    "row6_textscr",
    "row7_pic",
    "row7_icon",
+   "row7_badge",
    "row7_text",
    "row7_value",
    "row7_longtext",
@@ -16585,5 +16826,5 @@
    "busy_tm"
   ]
  },
- "design": "6134bef3"
+ "design": "92e77bbf"
 }

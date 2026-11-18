@@ -1143,8 +1143,7 @@ int main(int argc, char **argv) {
     members["gPlantsIndoor"][0].metadata["plant"].config["badge"] = "F";
     rec.out.clear();
     e.on_options("gPlantsIndoor");
-    CHECK(rec.has("row2_icon.txt=\"" + icon_glyph("ohpanel-badge-start") + icon_glyph("ohpanel-badge-f") +
-                  icon_glyph("ohpanel-badge-end") + "\""));
+    CHECK(rec.has("vis row2_icon,0") && rec.has_prefix("row2_badge.txt=\"" + icon_glyph("ohpanel-badge-start")));
     if (g_failures) rec.dump();
   }
   {  // the weather page: home's weather icon opens its first day; the days are sheets, swiped left and right
@@ -3917,14 +3916,41 @@ int main(int argc, char **argv) {
     r.out.clear();
     b.on_message(loaded("entities_rows"));
     CHECK(b.current() == "fixed");
-    CHECK(r.has("row1_icon.txt=\"" + badge("5") + "\"") && r.has("row1_icon.pco=65472"));   // in the row's colour
-    CHECK(r.has(std::string("row2_icon.txt=\"") + icon_glyph("alert") + "\""));       // a rule's icon first
+    // in a field of its own (a design since 0.27.0), in the row's colour, the icon hidden
+    CHECK(r.has("row1_badge.txt=\"" + badge("5") + "\"") && r.has("row1_badge.pco=65472") && r.has("vis row1_icon,0"));
+    CHECK(r.has(std::string("row2_icon.txt=\"") + icon_glyph("alert") + "\"") && r.has("vis row2_badge,0"));   // a rule's icon first
     b.on_message(event("entities_rows", "swipe", "left"));
     r.out.clear();
     b.on_message(loaded("entities_cards"));
     CHECK(b.current() == "feed");
-    CHECK(r.has("card1_icon.txt=\"" + badge("s12") + "\""));                           // capitals as their pieces
-    CHECK(r.has("card2_icon.txt=\"" + badge("re5") + "\""));                           // "re-5 x": three, the rest out
+    // capitals as their pieces; "re-5 x": three, the rest out -- each filled out to the widest of the page (the
+    // manifest's widths of the badge font): as wide as each other, the characters in the middle
+    const auto sent = [&r](const std::string &obj) {
+      for (const std::string &l : r.out)
+        if (l.rfind(obj + ".txt=\"", 0) == 0)
+          return l.substr(obj.size() + 6, l.size() - obj.size() - 7);
+      return std::string();
+    };
+    cJSON *man = cJSON_Parse(read("boards/nspanel/nextion/display-manifest-eu.json").c_str());
+    const cJSON *widths = cJSON_GetObjectItem(cJSON_GetObjectItem(man, "badges"), "13");
+    const auto px = [widths](std::string text) {   // the pieces back by their glyphs, their widths added
+      int w = 0;
+      for (const cJSON *p = widths ? widths->child : nullptr; p; p = p->next) {
+        const std::string g = icon_glyph((std::string("ohpanel-badge-") + p->string).c_str());
+        for (size_t at; (at = text.find(g)) != std::string::npos;) {
+          text.erase(at, g.size());
+          w += p->valueint;
+        }
+      }
+      return text.empty() ? w : -1;
+    };
+    const std::string s12 = sent("card1_badge"), re5 = sent("card2_badge");
+    CHECK(!s12.empty() && px(s12) > 0 && px(s12) == px(re5));
+    CHECK(s12.find(icon_glyph("ohpanel-badge-s") + icon_glyph("ohpanel-badge-1") + icon_glyph("ohpanel-badge-2")) !=
+          std::string::npos);
+    CHECK(re5.find(icon_glyph("ohpanel-badge-r") + icon_glyph("ohpanel-badge-e") + icon_glyph("ohpanel-badge-5")) !=
+          std::string::npos);
+    cJSON_Delete(man);
     CHECK(r.has(std::string("card3_icon.txt=\"") + icon_glyph("tram") + "\""));       // no badge: the icon
     if (g_failures) r.dump();
   }

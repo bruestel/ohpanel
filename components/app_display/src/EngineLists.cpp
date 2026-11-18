@@ -315,22 +315,78 @@ constexpr int kLabelAgeS = 60;   // a row's openHAB label asked for again as its
    BADGE) side by side -- the start, its letters and digits (at most three, others left out), the end --, one badge
    in the colour the icon field draws it in, which the field centres as it does an icon (test/host/badge_test.py
    measures it); "" without one. */
-std::string badge_of(const cJSON *row) {
-  const std::string text = str(row, "badge");
-  std::string pieces;
-  int chars = 0;
-  for (const char c : text) {
+/* A row's badge as its pieces' names: its letters and digits, lower case, at most three, others left out. */
+std::string badge_chars(const cJSON *row) {
+  std::string chars;
+  for (const char c : str(row, "badge")) {
     const char lower = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
-    if (chars < kMaxBadgeChars && ((lower >= 'a' && lower <= 'z') || (lower >= '0' && lower <= '9'))) {
-      pieces += icon_glyph((std::string("ohpanel-badge-") + lower).c_str());
-      chars++;
-    }
+    if (chars.size() < kMaxBadgeChars && ((lower >= 'a' && lower <= 'z') || (lower >= '0' && lower <= '9')))
+      chars += lower;
   }
-  if (!chars)
+  return chars;
+}
+
+std::string piece(const std::string &name) { return icon_glyph(("ohpanel-badge-" + name).c_str()); }
+
+/* The badge in the icon field (a design without the badge field, before 0.27.0's). */
+std::string badge_of(const cJSON *row) {
+  const std::string chars = badge_chars(row);
+  if (chars.empty())
     return {};
-  return icon_glyph("ohpanel-badge-start") + pieces + icon_glyph("ohpanel-badge-end");
+  std::string out = piece("start");
+  for (const char c : chars)
+    out += piece(std::string(1, c));
+  return out + piece("end");
 }
 }  // namespace
+
+/* How wide a badge of `chars` is in the badge font `font` (0: not known). */
+int Engine::badge_width(const std::string &chars, int font) const {
+  const auto f = badge_widths_.find(font);
+  if (chars.empty() || f == badge_widths_.end())
+    return 0;
+  const auto w = [&f](const std::string &name) { const auto it = f->second.find(name); return it == f->second.end() ? 0 : it->second; };
+  int width = w("start") + w("end");
+  for (const char c : chars)
+    width += w(std::string(1, c));
+  return width;
+}
+
+/* A badge of `chars` in the badge font, `width` px wide: the band filled out on both sides of its characters with
+   the filling pieces (8, 4, 3, 2 px: none of 1 px, the display's compiler hangs on one), so that every badge of a list
+   is as wide as its widest -- a side short of 1 px gives it to the other; a badge 1 px narrower stays so. At most
+   three pieces a side (the field's room: ohpanel_hmi.py BADGE_FIELD_BYTES) for up to 15 px. */
+std::string Engine::badge_glyphs(const std::string &chars, int font, int width) const {
+  const int pad = std::max(0, width - badge_width(chars, font));
+  int left = pad / 2, right = pad - left;
+  if (left == 1) {
+    left = 0;
+    right = right + 1;
+  }
+  if (right == 1) {
+    right = 0;
+    left = left ? left + 1 : 0;
+  }
+  const auto fill = [](int px) {
+    std::string out;
+    int eights = px / 8, rest = px % 8;
+    if (rest == 1 && eights > 0) {   // 9: 4 + 3 + 2
+      eights--;
+      rest = 9;
+    }
+    for (int k = 0; k < eights; k++)
+      out += piece("pad8");
+    static const char *const kRest[] = {"", "", "2", "3", "4", "3 2", "4 2", "4 3", "", "4 3 2"};
+    for (const char *p = kRest[rest]; *p; p++)
+      if (*p != ' ')
+        out += piece(std::string("pad") + *p);
+    return out;
+  };
+  std::string out = piece("start") + fill(left);
+  for (const char c : chars)
+    out += piece(std::string(1, c));
+  return out + fill(right) + piece("end");
+}
 
 /* What a row of an entity page is called: its own "label", else its item's label in openHAB as known
    (Callbacks::label), else -- not known yet, or none -- the item's name. */
@@ -391,6 +447,15 @@ void Engine::draw_entities(const cJSON *page, const std::string &physical) {
     txt("dots", sheets > 1 ? sheet_dots(sheets, sheet_) : "");
     vis("dots", sheets > 1);
   }
+  /* the badges in a field of their own (a design since 0.27.0): its font, and the widest badge of the page (all its
+     rows, not the sheet's: the badges keep their width from sheet to sheet) */
+  int badge_font = -1, badge_w = 0;
+  if (const auto pf = fit_.find(physical); pf != fit_.end())
+    if (const auto bf = pf->second.find(cards ? "card1_badge" : "row1_badge"); bf != pf->second.end())
+      badge_font = bf->second.font;
+  if (badge_font >= 0)
+    for (const cJSON *row = cJSON_IsArray(all) ? all->child : nullptr; row; row = row->next)
+      badge_w = std::max(badge_w, badge_width(badge_chars(row), badge_font));
   for (int r = 0; r < per; r++) {
     const cJSON *at = cJSON_GetArrayItem(all, sheet_ * per + r);
     const cJSON *row = cJSON_IsObject(at) ? at : nullptr;
@@ -406,10 +471,14 @@ void Engine::draw_entities(const cJSON *page, const std::string &physical) {
       if (cards) {
         for (const char *part : kCard)
           vis(n + part, false);
+        if (badge_font >= 0)
+          vis(n + "_badge", false);
       } else {
         for (const char *part : kFields)
           vis(n + part, false);
         vis(n + "_icon", false);
+        if (badge_font >= 0)
+          vis(n + "_badge", false);
         vis(n + (list ? "_line" : "_pic"), false);
       }
       continue;
@@ -430,7 +499,7 @@ void Engine::draw_entities(const cJSON *page, const std::string &physical) {
       vis(n + "_line", r + 1 < per && cJSON_IsObject(cJSON_GetArrayItem(all, sheet_ * per + r + 1)));
     // a label too long for its field scrolls -- where the row says so, else the page (not the cards)
     const bool scroll = !cards && (member(row, "scroll") ? flag(row, "scroll") : flag(page, "scroll"));
-    bind(row, [this, row, page, n, obj, cards, wide, scroll, label, physical] {
+    bind(row, [this, row, page, n, obj, cards, wide, scroll, label, physical, badge_font, badge_w] {
       const RuleStyle style = style_of(row, member(page, "value_style"));
       const std::string v = value_of(row, page, &style);
       std::string field = obj, lab;
@@ -463,10 +532,22 @@ void Engine::draw_entities(const cJSON *page, const std::string &physical) {
         vis(field, true);
       }
       // a rule may show another icon or colour it (icon_color), colour the value and let it blink
-      // a rule's icon, else the row's line badge, else its icon
-      const std::string badge = badge_of(row);
-      txt(n + "_icon", !style.icon.empty() ? icon_glyph(style.icon.c_str()) : !badge.empty() ? badge : glyph(row));
-      num(n + "_icon", "pco", style.icon_color >= 0 ? style.icon_color : color_of(row, "color", theme_.accent));
+      // a rule's icon, else the row's line badge (in its own field, larger: a design since 0.27.0), else its icon
+      const int colour = style.icon_color >= 0 ? style.icon_color : color_of(row, "color", theme_.accent);
+      const std::string chars = style.icon.empty() ? badge_chars(row) : "";
+      if (!chars.empty() && badge_font >= 0) {
+        vis(n + "_icon", false);
+        txt(n + "_badge", badge_glyphs(chars, badge_font, badge_w));
+        num(n + "_badge", "pco", colour);
+        vis(n + "_badge", true);
+      } else {
+        if (badge_font >= 0)
+          vis(n + "_badge", false);
+        const std::string badge = badge_of(row);
+        txt(n + "_icon", !style.icon.empty() ? icon_glyph(style.icon.c_str()) : !badge.empty() ? badge : glyph(row));
+        num(n + "_icon", "pco", colour);
+        vis(n + "_icon", true);
+      }
       show_text(field, v, style.blink);
       num(field, "pco", style.color >= 0 ? style.color : color_of(row, "value_color", theme_.text));
     });

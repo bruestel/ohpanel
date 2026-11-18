@@ -97,9 +97,14 @@ FONTS = [
     # they are (102 px, 83 px) -- landscape (11) and upright (12); a few KB each
     (UBUNTU_NAME + " clock", 110, [(UBUNTU, 144, 106, "clock")]),
     (UBUNTU_NAME + " clock small", 90, [(UBUNTU, 116, 86, "clock")]),
+    # an entity row's line badge in a field of its own, larger than in the icon field (own_icons.py badge_font): the
+    # list's and the cards' (13), the rows' (14)
+    ("badges32", 32, [(OWN, 32, 0, "badge")]),
+    ("badges28", 28, [(OWN, 28, 0, "badge")]),
 ]
 TURNED_FONT = 10
 CLOCK_FONT, CLOCK_FONT_SMALL = 11, 12
+BADGE_FONT, BADGE_FONT_SMALL = 13, 14
 CLOCK_CHARS = "0123456789:. -"
 
 
@@ -194,6 +199,10 @@ def make(name: str, height: int, parts) -> bytes:
     from PIL import ImageFont
     chars = {}
     for part in parts:
+        if part[3] == "badge":
+            for code, img in own_icons.badge_font(height).items():
+                chars[code] = (img.width, 0, 0, own_icons.levels(img, 3))
+            continue
         if part[3] == "own":
             chars.update(own(part[1], part[2], height))
             continue

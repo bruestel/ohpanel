@@ -44,7 +44,9 @@ SVG_DIR = os.path.join(HERE, "assets", "icons")
 FIRST = 0xFF00
 CATEGORY = "OHpanel"
 FRAMES = 8   # of an equalizer
-BADGE = "ohpanel-badge-"   # a line badge's pieces: BADGE + a digit or letter (lower case), + "start", + "end"
+BADGE = "ohpanel-badge-"   # a line badge's pieces: BADGE + a digit or letter (lower case), + "start", + "end", + "padN"
+BADGE_PADS = (2, 3, 4, 8)  # the band alone, N px wide: the firmware makes a list's badges as wide as its widest
+# (no 1 px piece: the Nextion Editor's compiler hangs on a character one pixel wide)
 BADGE_CHARS = "0123456789abcdefghijklmnopqrstuvwxyz"
 SORA = os.path.join(HERE, "assets", "fonts", "Sora[wght].ttf")
 
@@ -539,11 +541,18 @@ def _badge_metrics(em):
 BADGE_NARROWER = {"m": 0.82, "w": 0.75}   # of the others' narrowing
 
 
-def _badge(piece, em):
-    """A line badge's piece (BADGE_CHARS, "start" or "end"): an alpha picture em high, as wide as it needs."""
+def _badge_font_metrics(cell):
+    """A badge's band in the badge fonts (fonts.py: a cell of their own, the badge field's, not an icon's em): the band
+    most of the cell, the characters larger than in the icon fonts (Engine::draw_entities, its row's badge field)."""
+    height = round(cell * 0.86)
+    return dict(top=(cell - height) // 2, height=height, cap=max(2, round(cell * 0.11)), size=cell * 0.58, narrow=0.71)
+
+
+def _badge(piece, em, metrics=None):
+    """A line badge's piece (BADGE_CHARS, "start", "end" or "padN"): an alpha picture em high, as wide as it needs."""
     from PIL import Image, ImageDraw, ImageFont
     k = 8   # drawn this much larger, scaled down (anti-aliased)
-    m = _badge_metrics(em)
+    m = metrics or _badge_metrics(em)
     top, bottom, cap = m["top"] * k, (m["top"] + m["height"]) * k, m["cap"]
     if piece in ("start", "end"):
         img = Image.new("L", (cap * k, em * k), 0)
@@ -553,6 +562,11 @@ def _badge(piece, em):
         ImageDraw.Draw(img).rounded_rectangle((left, top, left + cap * k * 3 - 1, bottom - 1),
                                               radius=round((cap - 0.5) * k), fill=255)
         return img.resize((cap, em), Image.BOX)
+    if piece.startswith("pad"):   # the band alone
+        width = int(piece[3:])
+        img = Image.new("L", (width * k, em * k), 0)
+        ImageDraw.Draw(img).rectangle((0, top, width * k - 1, bottom - 1), fill=255)
+        return img.resize((width, em), Image.BOX)
     # the character alone, its ink cut out and drawn narrower
     font = ImageFont.truetype(SORA, round(m["size"] * k))
     font.set_variation_by_name("Bold" if em >= 24 else "ExtraBold")   # small and narrow: the strokes heavier
@@ -578,7 +592,7 @@ def _badge(piece, em):
 def icons():
     """name -> (draw(em) -> alpha picture em high (em wide, but a badge's piece), aliases), in name order."""
     out = {}
-    for piece in list(BADGE_CHARS) + ["start", "end"]:
+    for piece in list(BADGE_CHARS) + ["start", "end"] + [f"pad{n}" for n in BADGE_PADS]:
         out[BADGE + piece] = (lambda em, p=piece: _badge(p, em), [])
     for n in range(1, FRAMES + 1):
         out[f"ohpanel-equalizer-{n}"] = (lambda em, f=n - 1: _bars(f, em), ["music", "playing"])
@@ -617,6 +631,23 @@ def icons():
         if not name.startswith("ohpanel-"):
             raise ValueError(f"own icon {name!r}: does not start with ohpanel-")
     return dict(sorted(out.items()))
+
+
+def badge_font(cell: int) -> dict:
+    """The badge pieces for a badge font (fonts.py) `cell` px high: code point -> alpha picture, at the code points the
+    icon fonts have them."""
+    from PIL import Image
+    codes = code_points()
+    out = {codes[BADGE + piece]: _badge(piece, cell, _badge_font_metrics(cell))
+           for piece in list(BADGE_CHARS) + ["start", "end"] + [f"pad{n}" for n in BADGE_PADS]}
+    out[0x20] = Image.new("L", (4, cell), 0)   # a space: a font of no plain character at all the compiler may not take
+    return out
+
+
+def badge_font_widths(cell: int) -> dict:
+    """piece ("1", "m", "start", "end", "pad4") -> its width in px in the badge font `cell` px high."""
+    return {piece: _badge(piece, cell, _badge_font_metrics(cell)).width
+            for piece in list(BADGE_CHARS) + ["start", "end"] + [f"pad{n}" for n in BADGE_PADS]}
 
 
 def code_points() -> dict[str, int]:

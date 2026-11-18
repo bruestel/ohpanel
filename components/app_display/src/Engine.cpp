@@ -325,6 +325,12 @@ bool Engine::load_design(const char *manifest_json, const char *weather_json) {
                                        cJSON_GetArraySize(o) > 2 ? cJSON_GetArrayItem(o, 2)->valueint : 0};
   // the clock style's shortcut places: counted into the embedded manifest (tools/gen_display_assets.py, which leaves
   // the objects out), else from the objects (the whole manifest: the host tests)
+  badge_widths_.clear();
+  const cJSON *badges = member(m, "badges");
+  for (const cJSON *f = cJSON_IsObject(badges) ? badges->child : nullptr; f; f = f->next)
+    for (const cJSON *w = f->child; w; w = w->next)
+      if (cJSON_IsNumber(w))
+        badge_widths_[atoi(f->string)][w->string] = w->valueint;
   clock_places_ = cJSON_IsNumber(member(m, "clock_slots")) ? member(m, "clock_slots")->valueint : 0;
   const cJSON *clock_objects = member(member(m, "objects"), "home_clock");
   for (const cJSON *o = cJSON_IsArray(clock_objects) && !member(m, "clock_slots") ? clock_objects->child : nullptr; o;

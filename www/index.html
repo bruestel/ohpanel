@@ -3821,8 +3821,13 @@ function fillEntities(page) {
   f.dots = sheets > 1 ? {icons: Array.from({length: sheets}, (_, k) => k === PV.sheet ? 'circle-medium' : 'circle-small'),
                          color: PALETTE['light-grey']}
                       : undefined;
+  // the badges in a field of their own (a design since 0.27.0): as wide as the page's widest (Engine::draw_entities)
+  const badgeObjs = (LAYOUT.pages[templateOf(page)] || {}).objects || [];
+  const badgeField = badgeObjs.find(o => o.n === (cards ? 'card1_badge' : 'row1_badge'));
+  const badgeW = badgeField ? Math.max(0, ...rows.map(r => r ? badgeWidth(badgeOf(r), badgeField.h) : 0)) : 0;
   for (let i = 0; i < per; i++) {
     const at = PV.sheet * per + i, r = rows[at], n = (cards ? 'card' : 'row') + (i + 1);
+    if (badgeField) f[n + '_badge'] = {hide: true};
     const parts = cards ? ['_pic', '_icon', '_text', '_value']
                 : ['_icon', '_text', '_value', '_longtext', '_shortval', '_wide', '_textscr']
                   .concat(list ? ['_line'] : ['_pic']);
@@ -3834,7 +3839,12 @@ function fillEntities(page) {
     // a rule colours the icon by its icon_color only (Engine::draw_entities)
     const iconColor = style.iconColor || color(r.color, THEME.accent);
     // a rule's icon, else the row's line badge, else its icon
-    f[n + '_icon'] = icon ? {icon, color: iconColor, bg} : badge ? {lineBadge: badge, color: iconColor, bg} : {text: '', bg};
+    if (!icon && badge && badgeField) {
+      f[n + '_icon'] = {hide: true};
+      const bo = badgeObjs.find(o => o.n === n + '_badge') || badgeField;
+      f[n + '_badge'] = {draw: {box: [bo.x, bo.y, bo.w, bo.h], fn: ctx => drawBadge(ctx, bo, badge, iconColor, badgeW)}};
+    } else
+      f[n + '_icon'] = icon ? {icon, color: iconColor, bg} : badge ? {lineBadge: badge, color: iconColor, bg} : {text: '', bg};
     const value = r.item || r.text !== undefined ? shown(r, page, style) : '';
     const wide = (page.wide || r.wide) && !cards;   // the page's layout, or this row's
     // a value that fits the narrow field leaves the label more room (Engine::draw_entities)
@@ -7600,6 +7610,30 @@ function badgeCanvas(chars, color, px) {
   c.style.height = px + 'px';
   c.style.width = (c.width * px / size) + 'px';
   return c;
+}
+/* A line badge in its own field (a design since 0.27.0: own_icons.py badge_font), roughly as the display draws it: a
+   band most of the field's height, rounded ends, its characters cut out, `width` px wide (the page's widest). */
+function badgeWidth(chars, h) {
+  if (!chars) return 0;
+  const c = document.createElement('canvas').getContext('2d');
+  c.font = 'bold ' + Math.round(h * 0.6) + 'px Sora, Ubuntu, system-ui, sans-serif';
+  return Math.round(2 * Math.max(2, Math.round(h * 0.11)) + [...chars.toUpperCase()].reduce((s, ch) => s + c.measureText(ch).width * 0.71 + 1, 0));
+}
+function drawBadge(ctx, o, chars, color, width) {
+  const band = Math.round(o.h * 0.86), w = Math.max(width, badgeWidth(chars, o.h));
+  const x = o.x + Math.floor((o.w - w) / 2), y = o.y + Math.floor((o.h - band) / 2);
+  const c = document.createElement('canvas');
+  c.width = w; c.height = band;
+  const g = c.getContext('2d');
+  g.fillStyle = color || '#fff';
+  g.beginPath(); g.roundRect(0, 0, w, band, Math.max(2, Math.round(o.h * 0.11)) * 1.5); g.fill();
+  g.globalCompositeOperation = 'destination-out';
+  g.font = 'bold ' + Math.round(o.h * 0.6) + 'px Sora, Ubuntu, system-ui, sans-serif';
+  g.textAlign = 'center'; g.textBaseline = 'middle';
+  g.save(); g.translate(w / 2, band / 2 + 1); g.scale(0.71, 1);
+  g.fillText(chars.toUpperCase(), 0, 0);
+  g.restore();
+  ctx.drawImage(c, x, y);
 }
 /* How wide a badge is on the display, roughly (its pieces as the icon set has them, at the field's em): whether
    it fits the icon field of the page's style. */

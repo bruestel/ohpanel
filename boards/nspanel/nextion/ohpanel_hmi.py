@@ -65,6 +65,7 @@ from hmipatch import Project  # noqa: E402
 sys.path.insert(0, HERE)
 import layout  # noqa: E402
 import fonts  # noqa: E402
+import own_icons  # noqa: E402
 import zifont  # noqa: E402
 
 BACKGROUNDS = os.path.join(layout.ASSETS, "backgrounds")   # the panel variant's (generate.py)
@@ -100,9 +101,9 @@ SLIDER_TRACK = "#3a3f3a"                 # the slider's empty part
 TILE_OFF = "#2c2c2c"                     # generate.py TILES: the button's text sits on it
 
 TEXT_FONT, ICON_FONT, ICON_FONT_LARGE = 3, 7, 8   # the icon font at 24 px; font 8: the same glyphs at 32 px
-# an entity row's icon field holds a line badge too (Engine::draw_entities): its pieces side by side, three bytes
-# each (own_icons.py BADGE) -- the start, three characters and the end
-BADGE_BYTES = 5 * 3
+# an entity row's icon field: one icon (its line badge has a field of its own, badge_field -- before 0.27.0 the icon
+# field held it); 6 bytes, the page's memory (3584 bytes) is nearly full with the badge fields
+BADGE_BYTES = 6
 ICON_FONT_XL = 9   # and at 48 px: a button's icon in the middle of its tile
 
 # The seed's objects by type (main(): from the seed's page, which goes once
@@ -592,6 +593,7 @@ def entities_pages(p: Project) -> None:
     for r in range(1, layout.ENTITY_LIST_N + 1):
         y = layout.ENTITY_LIST_Y + (r - 1) * layout.ENTITY_LIST_STEP
         icon(page, f"row{r}_icon", layout.ENTITY_ICON_X, y + h / 2, ICON_FONT_LARGE, maxl=BADGE_BYTES)
+        badge_field(page, f"row{r}_badge", layout.MARGIN - 2, y + h // 2, tx - 2 - (layout.MARGIN - 2), fonts.BADGE_FONT)
         text(page, f"row{r}_text", (tx, y, layout.RIGHT - vw - tx, h), font, maxl=24, pco=LIGHT_GREY)
         text(page, f"row{r}_value", (layout.RIGHT - vw, y, vw, h), font, xcen=2, maxl=24)
         text(page, f"row{r}_longtext", (tx, y, layout.RIGHT - nw - tx, h), font, maxl=40, pco=LIGHT_GREY)
@@ -611,6 +613,7 @@ def entities_pages(p: Project) -> None:
         picture(page, f"{c}_pic", (x, y, w, h), PICTURES[f"card{k}"]["box"])
         part = card_parts(x, y, w)
         icon(page, f"{c}_icon", x + 24, y + h / 2, ICON_FONT_LARGE, maxl=BADGE_BYTES, bco=TILE_OFF_565)
+        badge_field(page, f"{c}_badge", x + 3, y + h // 2, layout.SYSTEM_TEXT_X - 4, fonts.BADGE_FONT, bco=TILE_OFF_565)
         text(page, f"{c}_text", part("text"), layout.SYSTEM_TEXT_FONT, maxl=24, pco=LIGHT_GREY, bco=TILE_OFF_565)
         text(page, f"{c}_value", part("value"), layout.SYSTEM_VALUE_FONT, maxl=24, bco=TILE_OFF_565)
     close(page)
@@ -625,6 +628,8 @@ def entities_pages(p: Project) -> None:
         y = layout.ENTITY_ROWS_Y + (r - 1) * layout.ENTITY_ROWS_STEP
         picture(page, f"row{r}_pic", (layout.MARGIN, y, row_w, h), PICTURES[f"rowcard{r}"]["box"])
         icon(page, f"row{r}_icon", layout.ENTITY_ICON_X + 2, y + h / 2, ICON_FONT, maxl=BADGE_BYTES, bco=TILE_OFF_565)
+        badge_field(page, f"row{r}_badge", layout.MARGIN + 2, y + h // 2, tx - 2 - (layout.MARGIN + 2), fonts.BADGE_FONT_SMALL,
+                    bco=TILE_OFF_565)
         text(page, f"row{r}_text", (tx, y + 1, right - (vw - 10) - tx, h - 2), font, maxl=24, pco=LIGHT_GREY,
              bco=TILE_OFF_565)
         text(page, f"row{r}_value", (right - (vw - 10), y + 1, vw - 10, h - 2), font, xcen=2, maxl=24, bco=TILE_OFF_565)
@@ -635,6 +640,19 @@ def entities_pages(p: Project) -> None:
         scrolling_row(page, r, tx, y + 1, h - 2, right, vw - 10, font, bco=TILE_OFF_565)
     close(page)
     on_load(page, loaded(page) + ["vis 255,0", "vis title,1", "vis close_hs,1", "vis close,1"])
+
+
+# A badge field: start, three characters, end and up to three filling pieces on either side (Engine::draw_entities),
+# 3 bytes each -- no more: the list's page has little memory left (3196 of 3584 bytes without them), and the Nextion
+# Editor's compiler, past it, hangs instead of saying so
+BADGE_FIELD_BYTES = 11 * 3
+
+
+def badge_field(page, name: str, x: int, cy: int, w: int, font: int, bco=None):
+    """An entity row's line badge in a field of its own (fonts.py badges32/badges28), larger than in the icon field:
+    from `x`, `w` wide, as high as its font, centred on the row's middle `cy`; the firmware shows it in the icon's place."""
+    h = fonts.FONTS[font][1]
+    return text(page, name, (x, cy - h // 2, w, h), font, xcen=1, maxl=BADGE_FIELD_BYTES, bco=bco)
 
 
 def scrolling_row(page, r: int, tx: int, y: int, h: int, right: int, vw: int, font: int, bco=None):
@@ -1758,6 +1776,8 @@ def main():
     m["weather_line"] = {"x0": layout.WEATHER_LINE_LOW_X0, "step": layout.WEATHER_LINE_STEP,
                          "n": layout.WEATHER_LINE_STEPS, "font": 4, "high_x": layout.WEATHER_LINE_HIGH[0]}
     m["boxes"] = drawn_boxes(p)
+    # the badge fonts' pieces by name: how wide each is (Engine::draw_entities makes a list's badges as wide as its widest)
+    m["badges"] = {str(f): own_icons.badge_font_widths(fonts.FONTS[f][1]) for f in (fonts.BADGE_FONT, fonts.BADGE_FONT_SMALL)}
     # the display as the design is turned, and what of it shows (Engine::draw_note centres its card in that)
     m["screen"] = {"w": layout.SCREEN_W, "h": layout.SCREEN_H, "visible_w": layout.VISIBLE_W, "visible_h": layout.VISIBLE_H}
     m["variant"] = layout.VARIANT

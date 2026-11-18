@@ -255,7 +255,12 @@ class Engine {
     int maxl = 0;   // the field's room in bytes (txt_maxl): a longer text the display cuts silently; 0: unknown
   };
   std::map<std::string, std::map<std::string, Fit>> fit_;
-  int clock_places_ = 0;   // the clock style's shortcut places (home_clock's slotN_icon, the manifest's objects)
+  int clock_places_ = 0;
+  /* The badge fonts' pieces (the manifest's "badges": font -> piece -> px): a line badge in a field of its own
+     (rowN_badge, cardN_badge) is made as wide as the widest of its page. */
+  std::map<int, std::map<std::string, int>> badge_widths_;
+  std::string badge_glyphs(const std::string &chars, int font, int width) const;
+  int badge_width(const std::string &chars, int font) const;   // the clock style's shortcut places (home_clock's slotN_icon, the manifest's objects)
   struct Box {
     int x, y, w, h;
   };

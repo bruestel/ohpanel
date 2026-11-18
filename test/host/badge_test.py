@@ -48,7 +48,10 @@ def pieces(font_id):
     if font_id not in _pieces:
         _, height, parts = fonts.FONTS[font_id]
         part = next(p for p in parts if p[0] == fonts.OWN)
-        chars = fonts.own(part[1], part[2], height)
+        if part[3] == "badge":   # a badge font (own_icons.py badge_font)
+            chars = {c: (img.width, 0, 0, own_icons.levels(img, 3)) for c, img in own_icons.badge_font(height).items()}
+        else:
+            chars = fonts.own(part[1], part[2], height)
         out = {}
         for name, code in own_icons.code_points().items():
             if name.startswith(own_icons.BADGE):
@@ -80,7 +83,7 @@ def main():
     lines = ([a + b for a in string.ascii_uppercase for b in string.digits]                  # S1, N8
              + [a + b + c for a in "SUMNXEB" for b in string.digits for c in string.digits]   # U55, M10, N31
              + [a + b + c for a, b in ("RE", "RB", "IC", "IR", "EC", "SB", "NE") for c in string.digits])   # RE5
-    for font_id in (7, 8):
+    for font_id in (7, 8, fonts.BADGE_FONT, fonts.BADGE_FONT_SMALL):
         p, rows = pieces(font_id), band(font_id)
         check(len(rows) >= 10, f"font {font_id}: a band of {len(rows)} rows")
         for ch, (w, px) in p.items():
@@ -91,8 +94,11 @@ def main():
             outside = [px[y][x] for y in range(len(px)) if y not in rows for x in range(w)]
             check(max(outside) <= (FULL if ch in ("start", "end") else 0),
                   f"font {font_id}: piece {ch!r} draws outside its band")
-            if ch not in ("start", "end"):
+            if ch not in ("start", "end") and not ch.startswith("pad"):
                 check(any(px[y][x] < FULL for y in rows for x in range(w)), f"font {font_id}: piece {ch!r} has no cut-out")
+            if ch.startswith("pad"):   # the band alone, as wide as its name says
+                check(w == int(ch[3:]) and all(px[y][x] == FULL for y in rows for x in range(w)),
+                      f"font {font_id}: piece {ch!r} is no whole band {ch[3:]} px wide")
     for path in sorted(os.listdir(os.path.join(ROOT, "www"))):
         if not (path.startswith("layout-") and path.endswith(".json")):
             continue
@@ -121,6 +127,19 @@ def main():
             print(f"badge: {variant} {page} (font {font_id}, field {field_w} px): 0..999 and {len(lines)} lines fit "
                   f"(widest \"{widest}\" {width(font_id, widest)} px), centred within {worst:.1f} px across, "
                   f"{abs(by - iy):.1f} px up or down")
+        # the badges in a field of their own (a design since 0.27.0): every number and line fits, filled out to the
+        # widest too
+        for page, name in {"entities": "row1_badge", "entities_rows": "row1_badge", "entities_cards": "card1_badge"}.items():
+            obj = next((o for o in layout["pages"][page]["objects"] if o["n"] == name), None)
+            if not obj:
+                continue
+            font_id, field_w = obj["f"], obj["w"]
+            check(obj["h"] == fonts.FONTS[font_id][1], f"{variant} {page}.{name}: not as high as its font")
+            widest = max(itertools.chain(numbers, lines), key=lambda t: width(font_id, t))
+            check(width(font_id, widest) <= field_w,
+                  f"{variant} {page}.{name}: \"{widest}\" is {width(font_id, widest)} px, the field {field_w}")
+            print(f"badge: {variant} {page} badge field (font {font_id}, {field_w} px): widest \"{widest}\" "
+                  f"{width(font_id, widest)} px")
     if failures:
         print(f"badge: {failures} check(s) failed")
         sys.exit(1)

@@ -507,8 +507,10 @@ A **row** is `{"item", "label"?, "icon"?, "badge"?, "color"?, "value_color"?, "v
 `color` is the icon's, `value_color` the value's (a matching rule's colour comes first);
 `badge` is a line badge in the icon's place, as on the stops: one to three letters and digits (`"badge":
 "S12"`, `"12"`, `"RE5"`) on a band of the icon's colour, cut out of it, rounded at its ends; every number up
-to 999 and a letter or two with digits fit every style (three characters are small in the style `rows`); a
-rule's icon still comes first; it needs the display design of OHpanel 0.24.0 or later;
+to 999 and a letter or two with digits fit every style. Since the display design of 0.27.0 a badge has a field
+of its own, reaching to the label, and is larger (in the style `rows` too), and all badges of a page are as
+wide as its widest, their characters in the middle; with an older design it is smaller, in the icon's field, as
+wide as its characters. A rule's icon still comes first;
 `"wide": true` puts this row alone in the wide layout (a day's date above its lessons, say);
 `"scroll"` decides for this row whether a label too long for its field scrolls (else the page's `scroll` counts).
 Without a label the item's openHAB label is used (its name while openHAB has not told it yet). The panel asks

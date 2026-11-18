@@ -31,7 +31,7 @@ log "Compiling"
 click 197 63 2                                  # Compile
 # wait until the output pane stops changing (upper part only, right of the left margin - the caret
 # blinks at the start of the last line, which is inside the upper part when the output is short)
-wait_stable "compile" 260x110+235+550 8
+wait_stable "compile" 260x110+235+550 20   # 8 s was too short for a design whose compile pauses longer (0.27.0)
 click 370 650 0.5                               # output pane: scroll to the summary line
 xdotool key ctrl+End
 sleep 1
@@ -42,6 +42,8 @@ if region 290x200+225+550 txt:- | grep '#FF0000' >/dev/null; then
     fail "compile reported errors"
 fi
 
+cp "$WORK/compile.png" "${TARGET%.*}.compile.png"   # kept also when the export fails
+
 # --- export tft
 log "Exporting TFT"
 click 16 38 1.5                                 # File
@@ -49,13 +51,21 @@ click 65 62 3                                   # TFT file output
 click 485 380 0.5                               # output folder field
 xdotool key ctrl+a
 type_text "$(winpath "$WORK")"
-click 504 415 2                                 # Output
 tft_written() {
     [ -f "$WORK/$NAME.tft" ] || return 1
     local size1 size2
     size1=$(stat -c%s "$WORK/$NAME.tft"); sleep 2; size2=$(stat -c%s "$WORK/$NAME.tft")
     [ "$size1" -gt 0 ] && [ "$size1" = "$size2" ]
 }
+# Output, again every 15 s until the file comes: a compile that is quiet for long (after its warnings) may not have
+# ended when the output pane stood still, and the editor ignores the click until it has
+for attempt in $(seq 1 24); do
+    click 504 415 2                             # Output
+    for _ in $(seq 1 13); do
+        [ -f "$WORK/$NAME.tft" ] && break 2
+        sleep 1
+    done
+done
 wait_for "tft export" 120 tft_written
 
 cp "$WORK/$NAME.tft" "$TARGET"
