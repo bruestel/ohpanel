@@ -607,13 +607,15 @@ def entities_pages(p: Project) -> None:
     page = new_page(p, "entities_cards", touch=True)
     title(page)
     text(page, "dots", layout.ENTITY_DOTS, ICON_FONT, xcen=1, maxl=DOTS_BYTES, pco=LIGHT_GREY)
-    w, h, ctx = layout.SYSTEM_CARD_W, layout.SYSTEM_CARD_H, layout.SYSTEM_TEXT_X
+    w, h, tx = layout.SYSTEM_CARD_W, layout.SYSTEM_CARD_H, layout.ENTITY_CARD_TEXT_X
     for k, (x, y) in enumerate(layout.SYSTEM_CARDS, start=1):
         c = f"card{k}"
         picture(page, f"{c}_pic", (x, y, w, h), PICTURES[f"card{k}"]["box"])
-        part = card_parts(x, y, w)
+        part = card_parts(x, y, w, tx)
         icon(page, f"{c}_icon", x + 24, y + h / 2, ICON_FONT_LARGE, maxl=BADGE_BYTES, bco=TILE_OFF_565)
-        badge_field(page, f"{c}_badge", x + 3, y + h // 2, layout.SYSTEM_TEXT_X - 4, fonts.BADGE_FONT, bco=TILE_OFF_565)
+        # the line badge: 5 px in from the card's edge, as far as 5 px short of the text (the widest, 40 px: some
+        # 8 px of room on either side)
+        badge_field(page, f"{c}_badge", x + 5, y + h // 2, tx - 10, fonts.BADGE_FONT, bco=TILE_OFF_565)
         text(page, f"{c}_text", part("text"), layout.SYSTEM_TEXT_FONT, maxl=24, pco=LIGHT_GREY, bco=TILE_OFF_565)
         text(page, f"{c}_value", part("value"), layout.SYSTEM_VALUE_FONT, maxl=24, bco=TILE_OFF_565)
     close(page)
@@ -698,12 +700,12 @@ def system_page(p: Project) -> None:
     on_load(page, loaded(page) + ["vis 255,0", "vis title,1", "vis close_hs,1", "vis close,1"])
 
 
-def card_parts(x: int, y: int, w: int):
+def card_parts(x: int, y: int, w: int, tx: int | None = None):
     """The fields on a card of the panel info (and the entity cards) by their
     place in it (layout.SYSTEM_PARTS: top and height): from the text's left
-    edge (SYSTEM_TEXT_X) to 6 px short of the card's right one, or `clear` px
+    edge (`tx`, SYSTEM_TEXT_X) to 6 px short of the card's right one, or `clear` px
     short of it (of the badge top right)."""
-    tx = layout.SYSTEM_TEXT_X
+    tx = layout.SYSTEM_TEXT_X if tx is None else tx
     return lambda name, clear=6: (x + tx, y + layout.SYSTEM_PARTS[name][0], w - tx - clear, layout.SYSTEM_PARTS[name][1])
 
 
@@ -1568,7 +1570,9 @@ def drawn_boxes(p: Project) -> dict:
             "thermostat": {n: box("thermostat", n) for n in ["ring_hs", "minus_hs", "plus_hs", "state_hs", "power_hs"] +
                            [f"m{n}{k}_hs" for n in range(1, 5) for k in range(1, n + 1)]},
             "home": {f"relay{k}_label": box("home", f"relay{k}_label") for k in (1, 2) if layout.RELAYS_UPRIGHT},
-            "home_clock": {f"relay{k}_label": box("home_clock", f"relay{k}_label") for k in (1, 2) if layout.RELAYS_UPRIGHT},
+            # the clock and AM/PM: the firmware draws AM/PM itself after the minutes, the two centred together
+            "home_clock": {f"relay{k}_label": box("home_clock", f"relay{k}_label") for k in (1, 2) if layout.RELAYS_UPRIGHT} |
+                          {n: box("home_clock", n) for n in ("clock", "ampm")},
             "keypad": {n: box("keypad", n) for n in ["state_hs"] +
                        [f"b{n}{k}_hs" for n in range(1, 5) for k in range(1, n + 1)]}}
 

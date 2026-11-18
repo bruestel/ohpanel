@@ -241,6 +241,7 @@ SYSTEM_CARD_W, SYSTEM_CARD_H = (VISIBLE_W - 2 * MARGIN - 6) // 2, 58     # 210 x
 SYSTEM_CARDS = [(MARGIN + c * (SYSTEM_CARD_W + 6), 44 + r * (SYSTEM_CARD_H + 6)) for r in range(4) for c in range(2)]
 SYSTEM_CARD_RADIUS = 12
 SYSTEM_TEXT_X = 48            # label and value from the card's left
+ENTITY_CARD_TEXT_X = SYSTEM_TEXT_X + 8   # an entity card's label and value: room for a line badge before them
 SYSTEM_TEXT_FONT, SYSTEM_VALUE_FONT = 0, 2
 # the fields on a card: top and height of the label and the value, or of the smaller label (top) and the value's two
 # lines (line1, line2)
@@ -445,8 +446,8 @@ CLOCK_BIG = (MARGIN, 38, HOME_RIGHT - MARGIN, 110)
 CLOCK_BIG_MERIDIEM = (HOME_RIGHT - 32, 54, 32, 22)
 CLOCK_BIG_DATE = (MARGIN, 162, CLOCK_MID - 8 - MARGIN, 30)
 CLOCK_BIG_DATE_XCEN = 2
-CLOCK_BIG_WEATHER = (CLOCK_MID + 4, 159, 35, 35)
-CLOCK_BIG_OUTDOOR = (CLOCK_MID + 44, 162, HOME_RIGHT - CLOCK_MID - 44, 30)
+CLOCK_BIG_WEATHER = (CLOCK_MID + 16, 159, 35, 35)
+CLOCK_BIG_OUTDOOR = (CLOCK_MID + 56, 162, 96, 30)   # a temperature, "-12.5 °C" in font 3
 CLOCK_SLOT_STEP, CLOCK_SLOTS = 28, 13
 CLOCK_SLOT_Y = 236
 CLOCK_SLOT_X = [CLOCK_MID - SHORTCUT // 2 + (k - CLOCK_SLOTS // 2) * CLOCK_SLOT_STEP for k in range(CLOCK_SLOTS)]

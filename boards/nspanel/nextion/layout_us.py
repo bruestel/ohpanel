@@ -190,6 +190,7 @@ SYSTEM_CARD_W, SYSTEM_CARD_H = VISIBLE_W - 2 * MARGIN, 50     # 296 x 50
 SYSTEM_CARDS = [(MARGIN, 36 + r * (SYSTEM_CARD_H + 2)) for r in range(8)]   # the page dots under them (ENTITY_DOTS)
 SYSTEM_CARD_RADIUS = 12
 SYSTEM_TEXT_X = 48
+ENTITY_CARD_TEXT_X = SYSTEM_TEXT_X + 8   # an entity card's label and value: room for a line badge before them
 SYSTEM_TEXT_FONT, SYSTEM_VALUE_FONT = 0, 2
 SYSTEM_PARTS = {"text": (4, 18), "value": (22, 26), "top": (2, 16), "line1": (17, 16), "line2": (33, 16)}
 # the network page: a label with its value under it, the whole width (an IPv6 address is long)
@@ -325,8 +326,10 @@ CLOCK_BIG = (MARGIN, 64, RIGHT - MARGIN, 90)
 CLOCK_BIG_MERIDIEM = (RIGHT - 32, 40, 32, 22)
 CLOCK_BIG_DATE = (MARGIN, 178, RIGHT - MARGIN, 30)
 CLOCK_BIG_DATE_XCEN = 1
+# the icon left of the middle, the temperature from it: a temperature as wide as the icon ("7°", "-12°") centres the
+# two (the field is left-aligned: centring the whole field put them left of the middle)
 CLOCK_BIG_WEATHER = (CLOCK_MID - 40, 216, 35, 35)
-CLOCK_BIG_OUTDOOR = (CLOCK_MID, 219, RIGHT - CLOCK_MID, 30)
+CLOCK_BIG_OUTDOOR = (CLOCK_MID, 219, 96, 30)          # a temperature, "-12.5 °C" in font 3
 CLOCK_SLOT_STEP, CLOCK_SLOTS = 28, 9                         # 5 shortcuts at most
 CLOCK_SLOT_Y = 320
 CLOCK_SLOT_X = [CLOCK_MID - SHORTCUT // 2 + (k - CLOCK_SLOTS // 2) * CLOCK_SLOT_STEP for k in range(CLOCK_SLOTS)]

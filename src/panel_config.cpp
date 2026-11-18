@@ -102,6 +102,12 @@ std::vector<std::string> items() {
   const std::string json = load();
   cJSON *root = cJSON_ParseWithLength(json.data(), json.size());
   std::vector<std::string> out;
+  // home in its clock style shows no low and high (only the normal one does): their items not subscribed
+  if (cJSON *home = cJSON_GetObjectItem(root, "home");
+      home && cJSON_IsString(cJSON_GetObjectItem(home, "style")) &&
+      std::strcmp(cJSON_GetObjectItem(home, "style")->valuestring, "clock") == 0)
+    for (const char *key : {"outdoor_low", "outdoor_high"})
+      cJSON_DeleteItemFromObject(home, key);
   collect_items(root, out);
   cJSON_Delete(root);
   std::sort(out.begin(), out.end());

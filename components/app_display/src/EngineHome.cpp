@@ -63,6 +63,71 @@ void Engine::draw_boot() {
   }
 }
 
+/* The large clock with AM/PM (draw_clock): the time centred in the clock's field, AM/PM 6 px after its last digit --
+   level with the digits' top, both drawn here (the field itself hidden: the display repainted it whole on a change, AM/PM with it, a flicker
+   each minute), each only as wide as it is, on the page's background as it is there. A change of the hour's
+   digits (twice a day) clears where the two were. */
+void Engine::draw_big_clock(const std::string &time, const std::string &meridiem) {
+  const auto bx = boxes_.find(shown_);
+  const auto f = fit_.find(shown_);
+  if (bx == boxes_.end() || !bx->second.count("clock") || !bx->second.count("ampm") || f == fit_.end() ||
+      !f->second.count("clock"))
+    return;
+  const Box &c = bx->second.at("clock"), &m = bx->second.at("ampm");
+  const int font = f->second.at("clock").font;
+  const int digits = text_width(font, time), left = c.x + (c.w - digits) / 2, x = left + digits + 6;
+  // AM/PM as far as the relays' labels at the side (or the screen's edge): a two-digit hour's ends past the field
+  int right = display_size_.visible_w;
+  for (const char *label : {"relay1_label", "relay2_label"})
+    if (const auto r = bx->second.find(label); r != bx->second.end() && r->second.x > x)
+      right = std::min(right, r->second.x);
+  /* where even the widest time ("00:00") leaves no room for it there (the NSPanel US upright: 116 px digits), AM/PM
+     stands where the design has it, above the clock to the right -- in the one place all day */
+  const int need = text_width(2, meridiem) + 4, widest = text_width(font, "00:00");
+  const bool beside = c.x + (c.w - widest) / 2 + widest + 6 + need <= right;
+  const int mx = beside ? x : m.x, my = beside ? c.y : m.y;
+  const int mw = beside ? std::max(0, std::min(right - x, need)) : m.w;
+  const std::string key = std::to_string(left) + "," + std::to_string(digits) + "," + std::to_string(beside ? mw : 0) + "|" + time +
+                          "|" + meridiem;
+  std::string &drawn = drawn_["big_clock"];
+  if (drawn == key)
+    return;
+  const auto ground = [this](int xcen, int ycen) {
+    return bg_sent_ >= 0 ? std::to_string(bg_sent_) + "," + std::to_string(xcen) + "," + std::to_string(ycen) + ",0"
+                         : "0," + std::to_string(xcen) + "," + std::to_string(ycen) + ",3";
+  };
+  // where the two were, if the time takes another place now: cleared
+  int was_left = 0, was_end = 0;
+  const bool moved = !drawn.empty() && std::sscanf(drawn.c_str(), "%d,", &was_left) == 1 && was_left != left;
+  if (moved) {
+    int was_digits = 0, was_mw = 0;
+    std::sscanf(drawn.c_str(), "%d,%d,%d", &was_left, &was_digits, &was_mw);
+    was_end = std::min(right, was_left + was_digits + 6 + was_mw);
+    const int from = std::min(was_left, left), to = std::max(was_end, x + mw);
+    send("xstr " + std::to_string(from) + "," + std::to_string(c.y) + "," + std::to_string(to - from) + "," +
+         std::to_string(c.h) + ",2,0," + ground(0, 1) + ",\"\"");
+  }
+  drawn = key;
+  send("xstr " + std::to_string(left - 1) + "," + std::to_string(c.y) + "," + std::to_string(digits + 2) + "," +
+       std::to_string(c.h) + "," + std::to_string(font) + "," + std::to_string(theme_.text) + "," + ground(1, 1) +
+       ",\"" + nextion::quote(time) + "\"");
+  if (mw > 0)
+    // beside: its top level with the digits' (both fonts' ink starts 4 rows into the cell: fonts.py,
+    // zifont.cap_rows); above: as the design's field, at its bottom
+    send("xstr " + std::to_string(mx) + "," + std::to_string(my) + "," + std::to_string(mw) + "," +
+         std::to_string(m.h) + ",2," + std::to_string(theme_.text) + "," + ground(beside ? 0 : 0, beside ? 0 : 2) + ",\"" +
+         nextion::quote(meridiem) + "\"");
+}
+
+/* The large clock, once the page's refresh is on again (draw_clock). */
+void Engine::meridiem_tick() {
+  if (meridiem_pending_.empty() || refresh_paused_)
+    return;
+  if (shown_ == home_page())
+    draw_big_clock(clock_pending_, meridiem_pending_);
+  meridiem_pending_.clear();
+}
+
 std::string Engine::home_page() const {
   return str(member(config_, "home"), "style") == "clock" && pages_.count("home_clock") ? "home_clock" : "home";
 }
@@ -84,17 +149,31 @@ void Engine::draw_clock() {
      repaints all of its field when it changes: both are drawn again together
      -- with refreshing paused, the display draws them in their order, AM/PM
      last. Only with a 12-hour clock; hidden otherwise. */
-  const bool pause = ampm && !refresh_paused_;
-  if (pause)
-    send("ref_stop");
-  txt("clock", format_time(time_format, t, settings_.texts));
-  vis("ampm", ampm);
-  if (ampm) {
-    sent_.erase("ampm.txt");   // drawn again even if unchanged
-    txt("ampm", format_time("%p", t, settings_.texts));
+  const auto bx = boxes_.find(shown_);
+  const bool placed = ampm && bx != boxes_.end() && bx->second.count("clock") && bx->second.count("ampm");
+  if (placed) {
+    /* The large clock (home.style "clock") with AM/PM: drawn by the firmware (draw_big_clock), the design's fields
+       hidden -- once the page's refresh is on again (meridiem_tick, from idle()). */
+    vis("ampm", false);
+    vis("clock", false);
+    clock_pending_ = format_time(time_format, t, settings_.texts);
+    meridiem_pending_ = format_time("%p", t, settings_.texts);
+    if (!refresh_paused_)
+      meridiem_tick();
+  } else {
+    const bool pause = ampm && !refresh_paused_;
+    if (pause)
+      send("ref_stop");
+    vis("clock", true);   // (hidden while the large clock had AM/PM)
+    txt("clock", format_time(time_format, t, settings_.texts));
+    vis("ampm", ampm);
+    if (ampm) {
+      sent_.erase("ampm.txt");   // drawn again even if unchanged
+      txt("ampm", format_time("%p", t, settings_.texts));
+    }
+    if (pause)
+      send("ref_star");
   }
-  if (pause)
-    send("ref_star");
   /* A date wider than its field (long names: "%A, %e %B") in a smaller font first, two
      sizes down at most (26, 22, 18 px), only then shortened with "..." */
   const std::string date = format_time(settings_.date_format, t, settings_.texts);

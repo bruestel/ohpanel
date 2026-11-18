@@ -4057,7 +4057,18 @@ int main(int argc, char **argv) {
     r.out.clear();
     c.on_message(loaded("home_clock"));
     CHECK(c.current() == "home");
-    CHECK(r.has_prefix("clock.txt=\"") && r.has("vis ampm,1") && r.has_prefix("ampm.txt=\""));
+    /* the large clock with AM/PM drawn by the firmware, its fields hidden: the time in the clock's font, AM/PM in
+       font 2 after it -- once the page's refresh is on again (the next idle) */
+    CHECK(r.has("vis clock,0") && r.has("vis ampm,0") && !r.has_prefix("clock.txt=\""));
+    c.idle(t += 10);
+    const auto drawn = [&](const char *font, bool meridiem) {
+      for (const auto &x : r.out)
+        if (x.rfind("xstr ", 0) == 0 && x.find(font) != std::string::npos &&
+            (!meridiem || x.find("\"AM\"") != std::string::npos || x.find("\"PM\"") != std::string::npos))
+          return true;
+      return false;
+    };
+    CHECK(drawn(",11,", false) && drawn(",2,", true));
     CHECK(r.has("outdoor.txt=\"8°\"") || r.has("outdoor.txt=\"8,4°\"") || r.has_prefix("outdoor.txt=\"8"));
     CHECK(r.has(std::string("weather_icon.txt=\"") + icon_glyph("weather-cloudy") + "\""));
     CHECK(!r.has_prefix("row1") && !r.has_prefix("info1") && !r.has_prefix("short"));   // not on this page

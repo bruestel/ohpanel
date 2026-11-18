@@ -73,14 +73,19 @@ def metrics(data: bytes, first: int, last: int) -> dict:
     widths, and the blank columns inside them before and after the ink
     ("lead", "trail"), so a text whose first and last characters have room to
     spare there still counts as fitting. A character the font lacks counts
-    as "?" -- none at all in a font without text (icons only, no "?" either): an empty list."""
+    as "?" -- as nothing (0) in a font with digits but no "?" (the clock's: fonts.py CLOCK_CHARS) --, none at all in
+    a font without text (icons only, no "?" or digits either): an empty list."""
     font = read(data)
     out = {"first": first, "widths": [], "lead": [], "trail": []}
-    if ord("?") not in font["chars"]:
+    if ord("?") not in font["chars"] and ord("0") not in font["chars"]:
         return out
     height = font["height"]
     for c in range(first, last + 1):
-        width, left, right, glyph = font["chars"].get(c, font["chars"][ord("?")])
+        if c not in font["chars"] and ord("?") not in font["chars"]:
+            for k in ("widths", "lead", "trail"):
+                out[k].append(0)
+            continue
+        width, left, right, glyph = font["chars"].get(c, font["chars"].get(ord("?")))
         bw = left + width + right
         pixels = decode(glyph)
         cols = [x for x in range(bw) if any(pixels[y * bw + x] for y in range(height))]
@@ -103,7 +108,11 @@ def fit_metrics(data: bytes) -> dict:
     """metrics() of FIT_RUNS, the runs one after the other in the lists and
     named in "ranges" ([first, count]; Engine::FontWidths)."""
     out = {"first": FIT_RUNS[0][0], "widths": [], "lead": [], "trail": [], "ranges": []}
-    for first, last in FIT_RUNS:
+    chars = read(data)["chars"]
+    runs = FIT_RUNS
+    if ord("?") not in chars and ord("0") in chars:   # the clock's digits: up to its last character only
+        runs = ((FIT_RUNS[0][0], max(c for c in chars if c < FIT_RUNS[0][1])),)
+    for first, last in runs:
         part = metrics(data, first, last)
         if not part["widths"]:   # a font without text
             return part
@@ -115,11 +124,12 @@ def fit_metrics(data: bytes) -> dict:
 
 def cap_rows(data: bytes) -> list[int]:
     """The first and last row of ink of "H" in its cell: where capitals and
-    digits stand. Empty for a font without it (icons only)."""
+    digits stand -- of "0" in a font of digits only (the clock's). Empty for a font without either (icons only)."""
     font = read(data)
-    if ord("H") not in font["chars"]:
+    mark = ord("H") if ord("H") in font["chars"] else ord("0")
+    if mark not in font["chars"]:
         return []
-    width, left, right, glyph = font["chars"][ord("H")]
+    width, left, right, glyph = font["chars"][mark]
     bw, pixels = left + width + right, decode(glyph)
     rows = [y for y in range(font["height"]) if any(pixels[y * bw + x] for x in range(bw))]
     return [rows[0], rows[-1]] if rows else []

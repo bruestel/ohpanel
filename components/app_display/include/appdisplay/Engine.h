@@ -589,6 +589,9 @@ class Engine {
   void draw_boot();
   void draw_home();
   void draw_clock();
+  void draw_big_clock(const std::string &time, const std::string &meridiem);
+  std::string clock_pending_, meridiem_pending_;   // the large clock to draw, once refresh is on (meridiem_tick)
+  void meridiem_tick();
   /* Home's design page: "home_clock" in the clock style (home.style "clock", a design that has it), else "home". */
   std::string home_page() const;
   bool home_shown() const { return shown_ == "home" || shown_ == "home_clock"; }

@@ -3537,6 +3537,26 @@ function fillHome(cfg, template = 'home') {
   const date = strftime(disp.date, now);
   f.date = {text: date, color: THEME.dim, font: fontToFit(template, 'date', date, 2)};
   f.ampm = {text: disp.time.includes('%p') ? strftime('%p', now) : ''};
+  /* the large clock: the time centred, AM/PM 6 px after its last digit, as far as the relays' labels (Engine::draw_clock,
+     draw_meridiem) */
+  if (template === 'home_clock' && f.ampm.text) {
+    const objs = (LAYOUT.pages.home_clock || {}).objects || [];
+    const c = objs.find(o => o.n === 'clock'), m = objs.find(o => o.n === 'ampm');
+    const fit = LAYOUT.fit && LAYOUT.fit.home_clock && LAYOUT.fit.home_clock.clock;
+    const font = fit ? fit[0] : c && c.f;
+    const digits = c ? textWidth(f.clock.text, font) : null;
+    if (c && m && digits !== null) {
+      const x = c.x + Math.floor((c.w - digits) / 2) + digits + 6;
+      const labels = objs.filter(o => /^relay\d_label$/.test(o.n) && o.x > x).map(o => o.x);
+      const right = Math.min(LAYOUT.visible ? LAYOUT.visible[0] : 480, ...labels);
+      // where even "00:00" leaves it no room beside (the US upright): where the design has it, above to the right
+      const widest = textWidth('00:00', font), need = (textWidth(f.ampm.text, 2) || 28) + 4;
+      if (c.x + Math.floor((c.w - widest) / 2) + widest + 6 + need <= right) {
+        f.ampm.box = [x, c.y, Math.max(0, Math.min(right - x, m.w + 16)), m.h];   // its top level with the digits'
+        f.ampm.ycen = 0;
+      }
+    }
+  }
   // without an item they do not show (Engine::draw_home)
   const wIcon = homeWeather(h, 'weather_icon'), wNow = homeWeather(h, 'outdoor_temperature');
   const wLow = homeWeather(h, 'outdoor_low'), wHigh = homeWeather(h, 'outdoor_high');
@@ -4595,12 +4615,17 @@ function drawPage(box, cfg, id) {
   const chosen = layout.background && LAYOUT.backgrounds.find(b => b.id === bgId);
   if (chosen) bgPic = chosen.pic;
   box.style.background = LAYOUT.pictures[bgPic] ? 'url(' + LAYOUT.pictures[bgPic] + ')' : '#000';
-  for (const o of layout.objects) {
-    const want = fill[o.n] || {};
+  for (const o0 of layout.objects) {
+    const want = fill[o0.n] || {};
     if (want.hide) continue;
+    const o = want.ycen !== undefined ? Object.assign({}, o0, {yc: want.ycen}) : o0;   // placed otherwise (AM/PM)
     const el = document.createElement('div');
     el.className = 'o';
     el.style.left = o.x + 'px'; el.style.top = o.y + 'px'; el.style.width = o.w + 'px'; el.style.height = o.h + 'px';
+    if (want.box) {   // drawn elsewhere by the firmware (the large clock's AM/PM, after its minutes)
+      const [bx, by, bw, bh] = want.box;
+      el.style.left = bx + 'px'; el.style.top = by + 'px'; el.style.width = bw + 'px'; el.style.height = bh + 'px';
+    }
     if (want.draw) {   // what the firmware draws itself (a cover and its pills, a group's rows): a canvas over the area
       const [dx, dy, dw, dh] = want.draw.box || [o.x, o.y, o.w, o.h];
       el.style.left = dx + 'px'; el.style.top = dy + 'px'; el.style.width = dw + 'px'; el.style.height = dh + 'px';
@@ -4792,6 +4817,10 @@ function drawPage(box, cfg, id) {
         node = roll;
       }
       if (caps) standOnCaps(el, node, caps, font);
+      // the large clock's digits (a font of digits only, no "H": stood on "0"): round at the bottom, a little below
+      // the browser's line -- not cut off by the field
+      if (font && font.cap && !/[A-Za-z]/.test(String(want.text || '')) && /clock/.test(font.name || ''))
+        el.style.overflow = 'visible';
       else { el.style.alignItems = 'center'; node.style.lineHeight = '1'; }
       el.appendChild(node);
     }
@@ -7299,6 +7328,7 @@ function pvEditor() {
                // today's high and low, under it (e.g. a weather add-on's daily forecast channels)
                pvRow(field("Today's low (item)", itemField((h.outdoor_low || {}).item, v => pvHomeRef('outdoor_low', 'item', v), 'Number')),
                      field("Today's high (item)", itemField((h.outdoor_high || {}).item, v => pvHomeRef('outdoor_high', 'item', v), 'Number'))),
+               ...(h.style === 'clock' ? [note("The large clock shows the temperature only: today's low and high show on home in its normal style.")] : []),
                pvButtons(h[k] ? [['Remove', 'danger', () => {
                  pvEdit(cfg => { if (cfg.home) ['outdoor_high', 'outdoor_low'].forEach(m => delete cfg.home[m]); });
                  pvHomeHide(k);

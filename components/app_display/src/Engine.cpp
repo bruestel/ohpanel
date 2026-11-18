@@ -2285,6 +2285,7 @@ void Engine::redraw_states() {
 
 void Engine::idle(int64_t now_ms) {
   now_ms_ = now_ms;
+  meridiem_tick();
   cover_tick();
   thermo_tick();
   keypad_tick();
