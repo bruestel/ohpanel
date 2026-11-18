@@ -168,6 +168,19 @@ CONFIG_ESP_WIFI_11KV_SUPPORT=y
 # CONFIG_MBEDTLS_ECP_DP_BP256R1_ENABLED is not set
 # CONFIG_MBEDTLS_ECP_DP_BP384R1_ENABLED is not set
 # CONFIG_MBEDTLS_ECP_DP_BP512R1_ENABLED is not set
+# Certificates are made, read and checked here, never revoked lists or signing requests read (Tls.cpp); no
+# renegotiation (TLS 1.3 has none, and openHAB's Jetty refuses it); CMAC and GCM with other ciphers than AES no suite
+# uses.
+# CONFIG_MBEDTLS_X509_CRL_PARSE_C is not set
+# CONFIG_MBEDTLS_X509_CSR_PARSE_C is not set
+# CONFIG_MBEDTLS_SSL_RENEGOTIATION is not set
+# CONFIG_MBEDTLS_CMAC_C is not set
+# CONFIG_MBEDTLS_GCM_SUPPORT_NON_AES_CIPHER is not set
+
+# --- flash: the app slot is 1.94 MB (boards/nspanel/partitions.csv) and full -----------------------------------
+# A failed assertion aborts without its file, line and expression in the log (about 60 KB of strings, mostly
+# ESP-IDF's): the core dump keeps the backtrace, which names the place all the same.
+CONFIG_COMPILER_OPTIMIZATION_ASSERTIONS_SILENT=y
 
 # The core dump partition is 32 KB (boards/nspanel/partitions.csv): the crashed task and seven more fit.
 CONFIG_ESP_COREDUMP_MAX_TASKS_NUM=8
