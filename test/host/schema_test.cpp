@@ -345,6 +345,16 @@ int main() {
   expect_issue("no confirm page type", doc(R"("pages":[{"id":"ask","type":"confirm","title":"x"}])"), "pages[0].type");
   expect_valid("media page with a stop item", doc(R"("pages":[{"id":"m","type":"media","title":"x","control":{"item":"P"},"stop":{"item":"S"}}])"));
   expect_issue("media stop no item", doc(R"("pages":[{"id":"m","type":"media","title":"x","control":{"item":"P"},"stop":"S"}])"), "pages[0].stop");
+  // another item's state: a rule's ("item" in it), and "visible" (a sitemap's visibility) on indicators and tiles
+  expect_valid("rule on another item", doc(R"("home":{"shortcuts":[{"icon":"fire","item":"Heat_Mode","value_style":[{"item":"Burner","equals":"OFF","color":"grey"}]}]})"));
+  expect_valid("rules only on other items", doc(R"("home":{"shortcuts":[{"icon":"fire","value_style":[{"item":"Burner","equals":"ON","color":"red"}]}]})"));
+  expect_issue("rule on a bad item name", doc(R"("home":{"shortcuts":[{"icon":"fire","item":"A","value_style":[{"item":"a b","equals":"ON","color":"red"}]}]})"),
+               "home.shortcuts[0].value_style[0].item");
+  expect_valid("visible while on", doc(R"("home":{"status_icons":[{"icon":"fire","visible":{"item":"Burner"}}]})"));
+  expect_valid("visible on a condition", doc(R"("home":{"shortcuts":[{"icon":"fire","visible":{"item":"Power","above":100}}]})"));
+  expect_issue("visible without item", doc(R"("home":{"shortcuts":[{"icon":"fire","visible":{"equals":"ON"}}]})"), "home.shortcuts[0].visible.item");
+  expect_issue("visible two conditions", doc(R"("home":{"shortcuts":[{"icon":"fire","visible":{"item":"P","above":1,"below":5}}]})"), "home.shortcuts[0].visible");
+  expect_valid("tile visible", doc(R"("pages":[{"id":"t","type":"buttons","title":"x","buttons":[{"label":"A","icon":"lamp","item":"A","visible":{"item":"Burner","equals":"ON"}}]}])"));
   expect_valid("home in the clock style", doc(R"("home":{"style":"clock"})"));
   expect_issue("home in no such style", doc(R"("home":{"style":"big"})"), "home.style");
   expect_valid("screen woken by an item", doc(R"("display":{"screen":{"wake":{"item":"Hall_Motion"}}})"));

@@ -39,11 +39,17 @@ std::vector<std::string> button_parts(bool centred) {
 
 /* What tile i of a button page holds: its own button, or with a group the
    members of the sheet shown. */
-const cJSON *Engine::button_at(const cJSON *page, int i) {
+const cJSON *Engine::button_raw(const cJSON *page, int i) {
   if (!member(page, "group"))
     return slot(page, "buttons", i);
   const cJSON *row = cJSON_GetArrayItem(rows_of(page), sheet_ * rows_per_sheet(page) + i);
   return cJSON_IsObject(row) ? row : nullptr;
+}
+
+/* ... as it shows: none while its "visible" does not hold (an empty place, as a sitemap's visibility). */
+const cJSON *Engine::button_at(const cJSON *page, int i) {
+  const cJSON *b = button_raw(page, i);
+  return b && visible(b) ? b : nullptr;
 }
 
 void Engine::draw_button(const cJSON *page, int i) {
@@ -141,9 +147,14 @@ void Engine::draw_buttons(const cJSON *page) {
   }
   building_buttons_ = true;
   for (int i = 0; i < 8; i++) {
-    const cJSON *b = button_at(page, i);
-    if (b && member(b, "item"))
-      bind(b, [this, page, i] {
+    const cJSON *b = button_raw(page, i);
+    tile_shown_[i] = b && visible(b);
+    if (b && (member(b, "item") || member(b, "visible") || member(b, "value_style")))
+      bind(b, [this, page, i, b] {
+        if (!building_buttons_ && visible(b) != tile_shown_[i]) {   // shown or hidden ("visible"): the page anew
+          redraw_rows(page);
+          return;
+        }
         // a state changed: the tile's picture and its fields' colours in one go -- drawn one by one, the fields
         // showed a moment in the old colour on the new tile
         if (building_buttons_)

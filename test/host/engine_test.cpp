@@ -4092,6 +4092,49 @@ int main(int argc, char **argv) {
     if (g_failures) r.dump();
   }
 
+  {  // another item's state (forum #161): "visible" shows a shortcut, a status icon, a tile only while that item is on
+     // (or its condition holds), a rule with an "item" of its own colours by that item's state; a change of it draws
+     // anew
+    Recorder r;
+    Engine v(r, cb);
+    v.release_wait(0);
+    CHECK(v.load_design(read("boards/nspanel/nextion/display-manifest-eu.json").c_str(),
+                        read("boards/nspanel/nextion/weather-icons.json").c_str()));
+    set_state("Vis_Burner", "OFF", "OnOff");
+    set_state("Vis_Mode", "ON", "OnOff");
+    v.set_config(R"({"version": 1, "swipe": ["home", "tiles"],
+      "home": {"shortcuts": [{"icon": "fire", "visible": {"item": "Vis_Burner"}},
+                             {"icon": "water", "item": "Vis_Mode", "show": "always",
+                              "value_style": [{"item": "Vis_Burner", "equals": "OFF", "color": "#808080"}]}]},
+      "pages": [{"id": "tiles", "type": "buttons", "title": "Tiles", "buttons": [
+        {"label": "Heat", "icon": "fire", "item": "Vis_Mode", "visible": {"item": "Vis_Burner", "equals": "ON"}}]}]})");
+    int64_t t = 1000;
+    v.idle(t);
+    v.start();
+    v.idle(t += 5000);
+    r.out.clear();
+    v.on_message(loaded("home"));
+    CHECK(r.has("short1_icon.txt=\"\""));                                   // the burner off: hidden
+    CHECK(r.has("short2_icon.pco=33808"));                                    // the rule by the burner's state: grey
+    set_state("Vis_Burner", "ON", "OnOff");
+    r.out.clear();
+    v.on_state("Vis_Burner");
+    CHECK(r.has(std::string("short1_icon.txt=\"") + icon_glyph("fire") + "\""));   // on: shown
+    CHECK(!r.has("short2_icon.pco=33808"));                                         // the rule no longer
+    // a tile: an empty place while hidden, the page drawn anew as it shows
+    set_state("Vis_Burner", "OFF", "OnOff");
+    v.on_state("Vis_Burner");
+    v.on_message(event("home", "swipe", "left"));
+    r.out.clear();
+    v.on_message(loaded("buttons"));
+    CHECK(v.current() == "tiles" && r.has("vis tile1_hs,0"));
+    set_state("Vis_Burner", "ON", "OnOff");
+    r.out.clear();
+    v.on_state("Vis_Burner");
+    CHECK(r.has("vis tile1_hs,1"));
+    if (g_failures) r.dump();
+  }
+
   {  // a tile's confirmation: the question over its page (the QR page's design), "Yes" switches, "Cancel", the close
      // cross and the timeout do not; a question of its own ("confirm": {...}), {label} and {to} in its texts
     Callbacks cb7 = cb;

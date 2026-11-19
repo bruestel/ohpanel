@@ -3484,13 +3484,31 @@ function ruleStyle(rules, ref) {
                    : typeof t === 'string' && t[0] === '@' && ref.meta ? parseFloat(ref.meta[t.slice(1)]) : NaN;
   const cmp = {below: (v, t) => v < t, above: (v, t) => v > t, at_most: (v, t) => v <= t, at_least: (v, t) => v >= t};
   for (const r of rules || []) {
-    const op = Object.keys(cmp).find(k => r[k] !== undefined);
-    if (op) { const t = limit(r[op]); if (st.numeric !== undefined && !isNaN(t) && cmp[op](st.numeric, t)) return set(r); continue; }
-    if (r.equals !== undefined) { if (st.state === r.equals) return set(r); continue; }
-    if (r.within_days !== undefined) { if (withinDays(st, r)) return set(r); continue; }
-    return set(r);
+    if (ruleHolds(r, st, limit, cmp)) return set(r);
   }
   return {};
+}
+/* Whether a rule's condition holds for `own` -- or, with an "item" of its own, for that item's state (forum #161);
+   not known: it does not (Format.cpp rule_matches). */
+function ruleHolds(r, own, limit, cmp) {
+  const st = r.item ? stateOf({item: r.item}) : own;
+  if (!st) return false;
+  const op = Object.keys(cmp).find(k => r[k] !== undefined);
+  if (op) { const t = limit(r[op]); return st.numeric !== undefined && !isNaN(t) && cmp[op](st.numeric, t); }
+  if (r.equals !== undefined) return st.state === r.equals;
+  if (r.within_days !== undefined) return withinDays(st, r);
+  return true;
+}
+/* "visible": {"item", condition?} -- shown only while that item is on, or its condition holds (Engine::visible). */
+function isVisible(ref) {
+  const v = ref && ref.visible;
+  if (!v || typeof v !== 'object') return true;
+  const st = stateOf({item: v.item});
+  if (!st || /^(NULL|UNDEF)$/.test(st.state)) return false;
+  const cmp = {below: (a, t) => a < t, above: (a, t) => a > t, at_most: (a, t) => a <= t, at_least: (a, t) => a >= t};
+  if (['equals', ...Object.keys(cmp)].some(k => v[k] !== undefined))
+    return ruleHolds(Object.assign({}, v, {item: undefined}), st, t => typeof t === 'number' ? t : NaN, cmp);
+  return isOn({item: v.item});
 }
 
 /* What each display object shows for a page of the configuration:
@@ -3647,7 +3665,7 @@ function fillHome(cfg, template = 'home') {
   });
   for (let i = 0; i < 10; i++) {
     const s = (h.status_icons || [])[i], key = 'top' + (i + 1);
-    const visible = s && (s.show === 'always' || (!s.item && s.show !== 'when_on') || isOn(s));
+    const visible = s && isVisible(s) && (s.show === 'always' || (!s.item && s.show !== 'when_on') || isOn(s));
     f[key] = visible ? indicatorLook(s) : {text: ''};
   }
   for (let i = 0; i < SHORTCUTS; i++) {
@@ -3696,7 +3714,7 @@ function buttonCentred(b, style = {}) {
 }
 /* What a button page's tiles hold (Engine::button_at): its own buttons, or a group's members of the sheet shown. */
 function buttonTiles(page) {
-  if (!page.group) return page.buttons || [];
+  if (!page.group) return (page.buttons || []).map(b => b && isVisible(b) ? b : null);   // "visible": an empty place
   const per = rowsPerSheet(page);
   return entityRows(page).slice(PV.sheet * per, (PV.sheet + 1) * per);
 }
@@ -6913,6 +6931,26 @@ const RULE_BLINK = [['', 'no blinking'], ['250', 'blinking fast (0.25 s)'], ['50
                     ['2000', 'blinking very slowly (2 s)']];
 
 /* `opts.withActive`: a button's rules -- they may set whether it is drawn active. */
+/* "visible": shown only while another item is on, or its state matches (Engine::visible, forum #161) -- as a sitemap's
+   visibility; empty item: always. */
+function visibleField(value, onChange) {
+  const v = value && typeof value === 'object' ? Object.assign({}, value) : {};
+  const kinds = [['', 'is on'], ['equals', 'is'], ['above', 'is above'], ['below', 'is below']];
+  let kind = kinds.map(([k]) => k).find(k => k && v[k] !== undefined) || '';
+  const store = () => {
+    if (!v.item) { onChange(undefined); return; }
+    const out = {item: v.item};
+    if (kind && val.value.trim() !== '') out[kind] = kind === 'equals' ? val.value.trim() : +val.value.replace(',', '.');
+    onChange(out);
+  };
+  const item = itemField(v.item || '', x => { v.item = x.trim(); store(); });
+  item.querySelector('input').placeholder = 'always shown; e.g. Burner (as a sitemap\'s visibility)';
+  const val = textInput(kind ? String(v[kind]) : '', () => store(), {placeholder: 'e.g. ON, 20', spellcheck: false});
+  val.hidden = !kind;
+  const cond = selectInput(kinds, kind, k => { kind = k; val.hidden = !k; store(); });
+  return two(field('Shown only while the item (optional)', item), field('Its state', pvRow(cond, val)));
+}
+
 function rulesField(value, onChange, withIcon, withFormat, withIconColor, ref, metaKeys, opts = {}) {
   const box = document.createElement('div');
   box.className = 'rules';
@@ -7001,7 +7039,10 @@ function rulesField(value, onChange, withIcon, withFormat, withIconColor, ref, m
         if (v) r.blink = +v; else delete r.blink;
         store();
       });
-      const parts = [when, times];
+      // the state of another item instead of its own (Format.cpp rule_matches: "item" in the rule, forum #161)
+      const other = field('Of the item (optional: another one, e.g. the burner; empty: its own)',
+                          itemField(r.item || '', v => { if (v.trim()) r.item = v.trim(); else delete r.item; store(); }));
+      const parts = [when, other, times];
       if (opts.withActive)   // the tile drawn active (white) or not while it matches
         parts.push(field('The button', selectInput([['', 'as its state says'], ['true', 'drawn active'], ['false', 'drawn not active']],
                                                    typeof r.active === 'boolean' ? String(r.active) : '', v => {
@@ -7380,6 +7421,7 @@ function pvEditor() {
                                        v => { set('show', v); now.show = v; onCounts(); }))),
       pvRow(field('Item', itemField(e.item, v => { set('item', v); onStates.setItem(v); now.item = v; onCounts(); }))),
       onRow,
+      visibleField(e.visible, v => set('visible', v)),
       pvRow(field('Depending on the state (rules, the first that matches counts)',
                   rulesField(e.value_style, v => set('value_style', v), true))),
     ];
@@ -7573,6 +7615,7 @@ function pvEditor() {
                                            ['none', 'nothing']], b.value, v => set('value', v)))),
       two(actionSel, target),
       pvRow(ask),
+      visibleField(b.visible, v => set('visible', v)),
       always,
       rules,
       pvSlotButtons(slot, 8));
@@ -10565,6 +10608,7 @@ function pvTouchAt(x, y) {
 
 /* Whether a shortcut shows in the preview (Engine::shown); an item without a state yet too, to see it. */
 function shortcutShown(s) {
+  if (!isVisible(s)) return false;   // "visible": another item off (forum #161)
   return s.show === 'always' || (!s.item && s.show !== 'when_on') || isOn(s) || !stateOf(s);
 }
 

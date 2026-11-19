@@ -1011,7 +1011,27 @@ bool Engine::on(const cJSON *ref) const {
 /* Whether a status icon or shortcut shows: "show" says when, by default while
    its item is on, always without one. */
 bool Engine::shown(const cJSON *indicator) const {
+  if (!visible(indicator))
+    return false;
   return str(indicator, "show", member(indicator, "item") ? "when_on" : "always") == "always" || on(indicator);
+}
+
+/* Another item's state, for a rule or a "visible" that names one. */
+std::function<bool(const std::string &, appoh::ItemState &)> Engine::lookup() const {
+  return [this](const std::string &item, appoh::ItemState &out) { return cb_.state && cb_.state(item, out); };
+}
+
+bool Engine::visible(const cJSON *ref) const {
+  const cJSON *v = member(ref, "visible");
+  if (!cJSON_IsObject(v))
+    return true;
+  appoh::ItemState st;
+  if (!cb_.state || !cb_.state(str(v, "item"), st) || st.undefined())
+    return false;   // not known (yet): hidden, as a sitemap's
+  for (const char *k : {"equals", "above", "below", "at_most", "at_least"})
+    if (member(v, k))
+      return rule_matches(v, st, now_, member(ref, "meta"), lookup());
+  return is_on(st);
 }
 
 std::string Engine::toggle_command(const cJSON *ref) const {
@@ -1075,9 +1095,19 @@ std::string Engine::glyph(const cJSON *obj, const char *key) const {
    its item's state; nothing without a state. */
 RuleStyle Engine::style_of(const cJSON *ref, const cJSON *rules) const {
   const cJSON *list = member(ref, "value_style") ? member(ref, "value_style") : rules;
-  if (!list || !has_state(ref))
+  if (!list)
     return {};
-  return rule_style(list, state_of(ref), now_, member(ref, "meta"));   // a group member's metadata: its "@key"s
+  appoh::ItemState own;
+  if (has_state(ref)) {
+    own = state_of(ref);
+  } else {   // no state of its own: only rules that name an item of their own can match
+    bool other = false;
+    for (const cJSON *r = cJSON_IsArray(list) ? list->child : nullptr; r && !other; r = r->next)
+      other = member(r, "item") != nullptr;
+    if (!other)
+      return {};
+  }
+  return rule_style(list, own, now_, member(ref, "meta"), lookup());   // a group member's metadata: its "@key"s
 }
 
 /* Frames shown in turn in obj, interval_ms each (one: just shown); one that
@@ -1155,8 +1185,20 @@ void Engine::animate(int64_t now_ms) {
 /* Remembers what to redraw when the item of `ref` changes, and draws it now. */
 void Engine::bind(const cJSON *ref, std::function<void()> draw) {
   const std::string item = str(ref, "item");
+  std::vector<std::string> items;
   if (!item.empty())
-    bindings_.push_back({item, draw});
+    items.push_back(item);
+  // the other items its rules and its "visible" name: a change of theirs draws it again too
+  const cJSON *rules = member(ref, "value_style");
+  for (const cJSON *r = cJSON_IsArray(rules) ? rules->child : nullptr; r; r = r->next)
+    if (const std::string other = str(r, "item"); !other.empty())
+      items.push_back(other);
+  if (const std::string other = str(member(ref, "visible"), "item"); !other.empty())
+    items.push_back(other);
+  std::sort(items.begin(), items.end());
+  items.erase(std::unique(items.begin(), items.end()), items.end());
+  for (const std::string &i : items)
+    bindings_.push_back({i, draw});
   draw();
 }
 
@@ -1977,9 +2019,13 @@ void Engine::on_state(const std::string &item) {
   follow_relays(&item);
   feed_state(item);
   weather_feed_state(item);
+  // what draws anew may bind anew (a tile shown or hidden by "visible": its page drawn again): the draws taken first
+  std::vector<std::function<void()>> draws;
   for (const auto &b : bindings_)
     if (b.item == item)
-      b.draw();
+      draws.push_back(b.draw);
+  for (const auto &d : draws)
+    d();
 }
 
 // ---------------------------------------------------------- notifications --

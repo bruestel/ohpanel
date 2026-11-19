@@ -477,6 +477,12 @@ class Engine {
   std::string value_of(const cJSON *ref, const cJSON *dflt = nullptr, const RuleStyle *style = nullptr) const;
   bool on(const cJSON *ref) const;
   bool shown(const cJSON *indicator) const;
+  /* "visible": {"item", condition?}: shown only while that item is on (or its condition holds), as a sitemap's
+     visibility; true without one. */
+  bool visible(const cJSON *ref) const;
+  std::function<bool(const std::string &, appoh::ItemState &)> lookup() const;
+  const cJSON *button_raw(const cJSON *page, int i);
+  bool tile_shown_[8] = {};
   std::string toggle_command(const cJSON *ref) const;
   int picture(const std::string &slot, const std::string &name) const;
   int weather_pic(const cJSON *ref, const char *slot) const;

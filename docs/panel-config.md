@@ -403,8 +403,11 @@ its field ends in "...".
 Without an item, a value row, the outdoor temperature and the weather icon do
 not show.
 
-An **indicator** is `{"icon", "interval"?, "blink"?, "color"?, "item"?, "show"?, "on"?, "open"?, "value_style"?}`
+An **indicator** is `{"icon", "interval"?, "blink"?, "color"?, "item"?, "show"?, "on"?, "open"?, "value_style"?, "visible"?}`
 (`value_style`: rules on the item's state that set another icon, colour or blinking, see the entities page).
+`visible`, as a sitemap's visibility, shows it only while another item is on, `{"item": "Burner"}`, or while that
+item's state matches one condition, `{"item": "Power", "above": 100}` (`equals`, `above`, `below`, `at_most`,
+`at_least`); an item not known yet (or NULL) hides it. A button takes `visible` too: hidden, its place is empty.
 `blink` (200 to 2000 ms) makes one icon blink: shown and hidden that long each
 (the web interface offers 0.25, 0.5, 1, 1.5 and 2 s); not with several icons.
 `icon` may be a list of 2 to 8 icons, shown in turn every `interval` ms (200 to
@@ -571,6 +574,10 @@ from its `icon_color`.
 | `{"equals": "s", ...}` | the raw state equals `s` (e.g. `"ON"`, `"OPEN"`) |
 | `{"within_days": n, ...}` | a date (DateTime state or Unix timestamp) is at most `n` days from today (0 = today); with `"from": "HH:MM"` only from that time on the first of those days, with `"until": "HH:MM"` only before that time on the date's own day |
 | `{...}` | always: the fallback, as last rule |
+
+A rule with an `"item"` of its own tests that item's state instead of the field's own: the heating's icon grey
+while the burner is off, `{"item": "Burner", "equals": "OFF", "color": "grey"}`. A field whose rules all name an
+item needs none itself; it is drawn again as any of them changes.
 
 A bin to put out the evening before and to bring in the morning of: `{"within_days": 1, "from": "17:00", "until": "08:00", "color": "yellow"}` matches from 17:00 the day before until 08:00 on the day itself. The panel looks at such rules again every minute.
 

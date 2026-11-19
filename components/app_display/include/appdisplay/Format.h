@@ -14,6 +14,7 @@
 #include <cstdint>
 #include <ctime>
 #include <map>
+#include <functional>
 #include <string>
 
 namespace appdisplay {
@@ -203,7 +204,12 @@ struct RuleStyle {
    matches. Days are compared in local time. A threshold "@key" is the
    number `vars` (an object: a group member's metadata) has under that key;
    a rule whose threshold is not there does not match. */
-RuleStyle rule_style(const cJSON *rules, const appoh::ItemState &s, time_t now, const cJSON *vars = nullptr);
+RuleStyle rule_style(const cJSON *rules, const appoh::ItemState &s, time_t now, const cJSON *vars = nullptr,
+                     const std::function<bool(const std::string &, appoh::ItemState &)> &lookup = {});
+/* Whether a rule's condition (below, above, at_most, at_least, equals, within_days; none: always) holds for `s`. A
+   rule with an "item" of its own is tested on that item's state instead (`lookup`; not known: it does not hold). */
+bool rule_matches(const cJSON *rule, const appoh::ItemState &s, time_t now, const cJSON *vars = nullptr,
+                  const std::function<bool(const std::string &, appoh::ItemState &)> &lookup = {});
 
 /* ON/OPEN/PLAY or a positive number. */
 bool is_on(const appoh::ItemState &s);

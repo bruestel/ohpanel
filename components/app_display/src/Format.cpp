@@ -960,10 +960,60 @@ int clock_minutes(const char *hh_mm) {
   return h * 60 + m;
 }
 
-RuleStyle rule_style(const cJSON *rules, const appoh::ItemState &s, time_t now, const cJSON *vars) {
+bool rule_matches(const cJSON *r, const appoh::ItemState &own, time_t now, const cJSON *vars,
+                  const std::function<bool(const std::string &, appoh::ItemState &)> &lookup) {
+  appoh::ItemState other;
+  const appoh::ItemState *cur = &own;
+  if (const char *item = cJSON_GetStringValue(cJSON_GetObjectItem(r, "item"))) {   // another item's state
+    if (!lookup || !lookup(item, other))
+      return false;
+    cur = &other;
+  }
+  const appoh::ItemState &s = *cur;
+  const cJSON *equals = cJSON_GetObjectItem(r, "equals");
+  const cJSON *within = cJSON_GetObjectItem(r, "within_days");
+  const char *op = nullptr;
+  const cJSON *limit = nullptr;
+  for (const char *k : {"below", "above", "at_most", "at_least"})
+    if ((limit = cJSON_GetObjectItem(r, k))) {
+      op = k;
+      break;
+    }
+  if (op) {
+    double t = 0;
+    if (s.has_numeric && !s.undefined() && threshold(limit, vars, t)) {
+      const double v = s.numeric;
+      return op[0] == 'b' ? v < t : op[1] == 'b' ? v > t : std::strcmp(op, "at_most") == 0 ? v <= t : v >= t;
+    }
+    return false;
+  }
+  if (equals)
+    return cJSON_IsString(equals) && s.state == equals->valuestring;
+  if (within) {
+    const int64_t e = state_epoch(s);
+    if (e < 0)
+      return false;
+    const int days = days_between(now, static_cast<time_t>(e));
+    /* "from": on the window's first day only from that time (the evening before), "until": on the date's own
+       day only before it (the morning of) */
+    struct tm t;
+    localtime_r(&now, &t);
+    const int minute = t.tm_hour * 60 + t.tm_min;
+    const int from = clock_minutes(cJSON_GetStringValue(cJSON_GetObjectItem(r, "from")));
+    const int until = clock_minutes(cJSON_GetStringValue(cJSON_GetObjectItem(r, "until")));
+    return days >= 0 && days <= within->valueint && !(days == within->valueint && from >= 0 && minute < from) &&
+           !(days == 0 && until >= 0 && minute >= until);
+  }
+  return true;
+}
+
+RuleStyle rule_style(const cJSON *rules, const appoh::ItemState &s, time_t now, const cJSON *vars,
+                     const std::function<bool(const std::string &, appoh::ItemState &)> &lookup) {
   if (!cJSON_IsArray(rules))
     return {};
   for (const cJSON *r = rules->child; r; r = r->next) {
+    if (!rule_matches(r, s, now, vars, lookup))
+      continue;
     RuleStyle color;
     color.color = color565(cJSON_GetStringValue(cJSON_GetObjectItem(r, "color")));
     if (const cJSON *b = cJSON_GetObjectItem(r, "blink"); cJSON_IsNumber(b))
@@ -981,42 +1031,7 @@ RuleStyle rule_style(const cJSON *rules, const appoh::ItemState &s, time_t now, 
       color.locked = cJSON_IsTrue(k) ? 1 : 0;
     if (const cJSON *f = cJSON_GetObjectItem(r, "factor"); cJSON_IsNumber(f) && f->valuedouble != 0)
       color.factor = f->valuedouble;
-    const cJSON *equals = cJSON_GetObjectItem(r, "equals");
-    const cJSON *within = cJSON_GetObjectItem(r, "within_days");
-    const char *op = nullptr;
-    const cJSON *limit = nullptr;
-    for (const char *k : {"below", "above", "at_most", "at_least"})
-      if ((limit = cJSON_GetObjectItem(r, k))) {
-        op = k;
-        break;
-      }
-    if (op) {
-      double t = 0;
-      if (s.has_numeric && !s.undefined() && threshold(limit, vars, t)) {
-        const double v = s.numeric;
-        const bool hit = op[0] == 'b' ? v < t : op[1] == 'b' ? v > t : std::strcmp(op, "at_most") == 0 ? v <= t : v >= t;
-        if (hit) return color;
-      }
-    } else if (equals) {
-      if (cJSON_IsString(equals) && s.state == equals->valuestring) return color;
-    } else if (within) {
-      const int64_t e = state_epoch(s);
-      if (e >= 0) {
-        const int days = days_between(now, static_cast<time_t>(e));
-        /* "from": on the window's first day only from that time (the evening before), "until": on the date's own
-           day only before it (the morning of) */
-        struct tm t;
-        localtime_r(&now, &t);
-        const int minute = t.tm_hour * 60 + t.tm_min;
-        const int from = clock_minutes(cJSON_GetStringValue(cJSON_GetObjectItem(r, "from")));
-        const int until = clock_minutes(cJSON_GetStringValue(cJSON_GetObjectItem(r, "until")));
-        if (days >= 0 && days <= within->valueint && !(days == within->valueint && from >= 0 && minute < from) &&
-            !(days == 0 && until >= 0 && minute >= until))
-          return color;
-      }
-    } else {
-      return color;
-    }
+    return color;
   }
   return {};
 }

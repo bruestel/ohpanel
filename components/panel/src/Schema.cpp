@@ -441,8 +441,8 @@ class Validator {
     else
       allowed(v, p, {"item", "format", "factor", "text", "color", "value_style"});
     rules(v, p);
-    if (cJSON_GetObjectItem(v, "value_style") && !cJSON_GetObjectItem(v, "item"))
-      fail(member(p, "value_style"), "needs an \"item\" (it follows the item's state)");
+    if (cJSON_GetObjectItem(v, "value_style") && !cJSON_GetObjectItem(v, "item") && !rules_own_items(v))
+      fail(member(p, "value_style"), "needs an \"item\" (it follows the item's state), or one in each rule");
     const cJSON *item = cJSON_GetObjectItem(v, "item");
     const cJSON *text = cJSON_GetObjectItem(v, "text");
     const cJSON *glyph = cJSON_GetObjectItem(v, "icon");
@@ -682,10 +682,13 @@ class Validator {
         allowed(r, rp, {"below", "above", "at_most", "at_least", "equals", "locked"});
       else if (button)
         allowed(r, rp, {"below", "above", "at_most", "at_least", "equals", "within_days", "from", "until", "color",
-                        "blink", "icon", "active", "layout"});
+                        "blink", "icon", "active", "layout", "item"});
       else
         allowed(r, rp, {"below", "above", "at_most", "at_least", "equals", "within_days", "from", "until", "color",
-                        "blink", "icon", "icon_color", "format", "factor"});
+                        "blink", "icon", "icon_color", "format", "factor", "item"});
+      // tested on another item's state instead of its own (the burner's, for the heating's icon)
+      if (const cJSON *it = cJSON_GetObjectItem(r, "item"))
+        item_name(it, member(rp, "item"));
       // what it sets: a colour, blinking (ms on and off), another icon or its colour, another format (with its
       // factor) -- a button: whether it is drawn active
       if (!cJSON_GetObjectItem(r, "color") && !cJSON_GetObjectItem(r, "blink") && !cJSON_GetObjectItem(r, "icon") &&
@@ -790,12 +793,45 @@ class Validator {
     }
   }
 
+  /* Every rule of `obj`'s value_style names an item of its own (it needs none then). */
+  static bool rules_own_items(const cJSON *obj) {
+    const cJSON *list = cJSON_GetObjectItem(obj, "value_style");
+    if (!cJSON_IsArray(list) || !list->child)
+      return false;
+    for (const cJSON *r = list->child; r; r = r->next)
+      if (!cJSON_IsString(cJSON_GetObjectItem(r, "item")))
+        return false;
+    return true;
+  }
+
+  /* "visible": shown only while another item is on, or its condition holds (a sitemap's visibility). */
+  void visibility(const cJSON *obj, const std::string &path) {
+    const cJSON *v = cJSON_GetObjectItem(obj, "visible");
+    if (!v)
+      return;
+    const std::string p = member(path, "visible");
+    if (!object(v, p))
+      return;
+    allowed(v, p, {"item", "equals", "above", "below", "at_most", "at_least"});
+    item_name(cJSON_GetObjectItem(v, "item"), member(p, "item"));
+    int conditions = 0;
+    for (const char *k : {"equals", "above", "below", "at_most", "at_least"})
+      if (const cJSON *c = cJSON_GetObjectItem(v, k)) {
+        conditions++;
+        if (std::strcmp(k, "equals") == 0 ? !cJSON_IsString(c) : !cJSON_IsNumber(c))
+          fail(member(p, k), std::strcmp(k, "equals") == 0 ? "must be a state (text)" : "must be a number");
+      }
+    if (conditions > 1)
+      fail(p, "one condition at most (none: while the item is on)");
+  }
+
   void indicator(const cJSON *e, const std::string &p, bool may_open) {
     if (may_open)
       allowed(e, p, {"item", "icon", "interval", "color", "show", "on", "open", "open_when_off", "blink",
-                     "value_style"});
+                     "value_style", "visible"});
     else
-      allowed(e, p, {"item", "icon", "interval", "color", "show", "on", "blink", "value_style"});
+      allowed(e, p, {"item", "icon", "interval", "color", "show", "on", "blink", "value_style", "visible"});
+    visibility(e, p);
     rules(e, p);
     optional_item(e, p);
     on_states(e, p);
@@ -879,11 +915,12 @@ class Validator {
 
   void button(const cJSON *b, const std::string &p) {
     allowed(b, p, {"label", "icon", "color", "item", "action", "command", "open", "value", "always_active", "layout",
-                   "value_style", "confirm"});
+                   "value_style", "confirm", "visible"});
     confirm_ref(b, p);   // asked before it switches
+    visibility(b, p);
     rules(b, p, true);   // active (or not), a colour, blinking, another icon -- by the item's state
-    if (cJSON_GetObjectItem(b, "value_style") && !cJSON_GetObjectItem(b, "item"))
-      fail(member(p, "value_style"), "needs an \"item\" (it follows the item's state)");
+    if (cJSON_GetObjectItem(b, "value_style") && !cJSON_GetObjectItem(b, "item") && !rules_own_items(b))
+      fail(member(p, "value_style"), "needs an \"item\" (it follows the item's state), or one in each rule");
     one_of(b, "layout", p, {"corner", "center"});   // the icon top left with the small line, or in the middle alone
     string(b, "label", p, false, 32);
     icon(b, p, true);
