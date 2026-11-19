@@ -904,6 +904,8 @@ pre.box{margin:0;padding:.6rem .7rem;max-height:18rem;overflow:auto;background:v
         <div class="stat"><b id="sOpenhab">–</b><span>State</span></div>
         <div class="stat"><b id="sOhUrl">–</b><span>Address</span></div>
         <div class="stat"><b id="sOhItems">–</b><span>Items</span></div>
+        <div class="stat" id="sOhVersionBox" hidden><b id="sOhVersion">–</b><span>Version</span></div>
+        <div class="stat" id="sOhProtocolBox" hidden><b id="sOhProtocol">–</b><span>Protocol</span></div>
       </div>
     </div>
   </section>
@@ -2322,6 +2324,11 @@ async function refreshInfo() {
   $('sOhUrl').textContent = oh.url || '–';
   $('sOhItems').textContent = !oh.url ? '–' : oh.received + ' of ' + oh.subscribed + ' received'
     + (oh.reconnects ? ' · ' + oh.reconnects + ' reconnects' : '');
+  // openHAB's version, and how the panel talks to it: HTTP/1.1, over https TLS 1.2 (as the NSPanel Pro's page)
+  $('sOhVersionBox').hidden = !oh.version;
+  $('sOhVersion').textContent = oh.version || '–';
+  $('sOhProtocolBox').hidden = !oh.http;
+  $('sOhProtocol').textContent = oh.http ? oh.http + (oh.tls ? ' over ' + oh.tls : '') : '–';
   drawSparks();
   $('sNetHint').textContent = n.provisioning
     ? 'The panel is in setup mode. Enter your home network under “WiFi”.'

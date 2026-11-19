@@ -96,6 +96,9 @@ struct Status {
   size_t received = 0;         // items with a state in the cache
   uint32_t reconnects = 0;
   std::string last_error;
+  std::string version;         // openHAB's (its root document's runtimeInfo.version), "" until known
+  /* How the panel talks to it: HTTP/1.1, over https TLS 1.2 (the firmware's mbedTLS has no TLS 1.3) -- "" for none. */
+  std::string http, tls;
 };
 Status status();
 

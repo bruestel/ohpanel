@@ -506,6 +506,9 @@ esp_err_t get_info(httpd_req_t *req) {
   cJSON_AddNumberToObject(ohj, "received", ohs.received);
   cJSON_AddNumberToObject(ohj, "reconnects", ohs.reconnects);
   cJSON_AddStringToObject(ohj, "last_error", ohs.last_error.c_str());
+  cJSON_AddStringToObject(ohj, "version", ohs.version.c_str());
+  cJSON_AddStringToObject(ohj, "http", ohs.http.c_str());
+  cJSON_AddStringToObject(ohj, "tls", ohs.tls.c_str());
 
   cJSON *auth = cJSON_AddObjectToObject(root, "auth");
   appcfg::Auth a = appcfg::auth();

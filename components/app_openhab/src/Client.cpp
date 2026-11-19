@@ -103,6 +103,9 @@ StateCallback g_on_state;
 std::atomic<bool> g_net_up{false};
 /* Bumped to make the stream task drop its connection and start over. */
 std::atomic<uint32_t> g_generation{0};
+/* openHAB's version, asked once a stream is open (fetch_version) -- again with other settings (g_generation). */
+std::string g_version;
+uint32_t g_version_gen = UINT32_MAX;
 TaskHandle_t g_stream_task = nullptr;
 QueueHandle_t g_jobs = nullptr;
 
@@ -530,6 +533,26 @@ void renew_session() {
   do_subscribe(true);
 }
 
+/* openHAB's version from its root document (as the settings page's test does), once per settings: on the GETs'
+   resumed TLS session, after the stream is subscribed -- nothing waits for it. */
+void fetch_version() {
+  const uint32_t gen = g_generation.load();
+  {
+    Lock l;
+    if (g_version_gen == gen && !g_version.empty())
+      return;
+  }
+  const Response r = http_get_resumed(appcfg::openhab(), "/rest/", 16 * 1024);
+  if (r.status != 200)
+    return;
+  cJSON *doc = cJSON_ParseWithLength(r.body.data(), r.body.size());
+  const char *v = cJSON_GetStringValue(cJSON_GetObjectItem(cJSON_GetObjectItem(doc, "runtimeInfo"), "version"));
+  Lock l;
+  g_version = v ? v : "";
+  g_version_gen = gen;
+  cJSON_Delete(doc);
+}
+
 void worker_task(void *) {
   for (;;) {
     Job *job = nullptr;
@@ -540,8 +563,10 @@ void worker_task(void *) {
     if (!job)
       continue;
     if (may_connect()) {
-      if (job->kind == Job::Kind::Subscribe)
+      if (job->kind == Job::Kind::Subscribe) {
         do_subscribe();
+        fetch_version();
+      }
       else
         do_command(*job);
     }
@@ -760,6 +785,17 @@ Status status() {
   s.received = static_cast<size_t>(std::count_if(all.begin(), all.end(), [](const std::string &i) { return g_cache.count(i) > 0; }));
   s.reconnects = g_reconnects;
   s.last_error = g_last_error;
+  if (g_version_gen == g_generation.load())
+    s.version = g_version;
+  if (s.connected) {
+    s.http = "HTTP/1.1";   // esp_http_client's
+    if (appcfg::openhab().url.rfind("https:", 0) == 0)
+#ifdef CONFIG_MBEDTLS_SSL_PROTO_TLS1_3
+      s.tls = "TLS";        // 1.2 or 1.3, as the server chose: not asked
+#else
+      s.tls = "TLS 1.2";    // the only one the firmware's mbedTLS has
+#endif
+  }
   return s;
 }
 
