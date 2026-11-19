@@ -620,7 +620,7 @@ DisplaySettings display_settings(const cJSON *d) {
   const cJSON *sound = cJSON_GetObjectItem(d, "sound");
   s.screen = screen_settings(cJSON_GetObjectItem(d, "screen"), sound);
   if (cJSON_IsObject(sound)) {
-    s.sound.touch = str(sound, "touch", "");
+    s.sound.touch = str(sound, "touch", "click");   // the soft click by default; "none": silent
     const cJSON *n = cJSON_GetObjectItem(sound, "notifications");
     const char *const levels[] = {"info", "warning", "alert"};
     for (int k = 0; k < 3; k++)

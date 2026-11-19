@@ -5005,6 +5005,7 @@ const VOLUMES = {touch_volume: {label: 'Touch volume', dflt: 12, example: 'Panel
                  notification_volume: {label: 'Notification volume', dflt: 65, example: 'Panel_Notification_Volume'}};
 /* The notifications' tones when none is set (Format.h SoundSettings); "none" silences one. */
 const NOTE_TONES = {info: 'rising', warning: 'falling', alert: 'alarm'};
+const TOUCH_TONE = 'click';   // a touch's tone when none is set (Format.h SoundSettings); "none" silences it
 /* Melodies (RTTTL, sound/Sound.h melody_notes) to start one's own from: public domain tunes only. Each: its title,
    where it comes from, the melody. test/host/sound_test.cpp checks each one plays. */
 const MELODIES = [
@@ -5265,7 +5266,8 @@ function showSoundInputs(cfg) {
     line.append(sel, play);
     return field(label, line);
   };
-  box.appendChild(tone('Touch', so.touch, 'touch_volume', v => editSound(x => { if (v) x.touch = v; else delete x.touch; })));
+  box.appendChild(tone('Touch', so.touch, 'touch_volume', v => editSound(x => { if (v) x.touch = v; else delete x.touch; }),
+                       TOUCH_TONE));
   box.appendChild(volumeRow('touch_volume'));
   const levels = [['info', 'Notification: info'], ['warning', 'Notification: warning'], ['alert', 'Notification: alert']];
   levels.forEach(([level, label]) => box.appendChild(tone(label, (so.notifications || {})[level], 'notification_volume',
@@ -5354,7 +5356,7 @@ function melodiesEditor(so, volume) {
   };
   const remove = name => {
     const refs = {touch: so.touch === name, levels: Object.keys(LEVEL_NAMES).filter(l => (so.notifications || {})[l] === name)};
-    const back = [refs.touch ? 'Touch goes back to none' : null]
+    const back = [refs.touch ? 'Touch goes back to ' + TOUCH_TONE : null]
       .concat(refs.levels.map(l => LEVEL_NAMES[l] + ' goes back to ' + NOTE_TONES[l])).filter(Boolean);
     melodyUi.undo = {name, rtttl: own[name], index: names.indexOf(name), refs, back};
     if (melodyUi.open === name) melodyUi.open = null;

@@ -125,11 +125,11 @@ does (a keypad page with `stay` stays). An item that only gets a command
 (a rule's `sendCommand(Panel_Wake, ON)`) works too, with `expire` to switch it
 back: `Switch Panel_Wake { expire="2m,command=OFF" }`.
 
-`display.sound` sets what the buzzer plays: by default a tone for each notification, none for a touch.
+`display.sound` sets what the buzzer plays: by default a tone for each notification and a soft click for a touch.
 
 | Member | Type | |
 |---|---|---|
-| `touch` | tone or melody | played by a touch that does something: a button, a tile, a key, the close cross, a card closed; not a swipe or a slider. Default `none` |
+| `touch` | tone or melody | played by a touch that does something: a button, a tile, a key, the close cross, a card closed; not a swipe or a slider. Default `click` (soft); `none`: silent |
 | `touch_volume` | number or `{"value", "item"}` | the touch's volume, %, 0 to 100 (default 12); 0: silent |
 | `notifications` | `{"info"?, "warning"?, "alert"?}`, each a tone or melody | played as a notification of that level shows (`display.notifications`): on a screen that is on, or one it wakes; one that waits for a touch on a screen that is off (at night, idle at 0 %) is quiet. `none`: silent. Default `rising`, `falling`, `alarm` |
 | `notification_volume` | number or `{"value", "item"}` | the notifications' volume and that of `play`'s tones, %, 0 to 100 (default 65); 0: silent |

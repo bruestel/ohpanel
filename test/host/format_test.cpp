@@ -49,8 +49,8 @@ int main(int argc, char **argv) {
   t.tm_year = 126; t.tm_mon = 9; t.tm_mday = 5; t.tm_wday = 1; t.tm_hour = 13; t.tm_min = 35;
   CHECK(format_time(ds.date_format, t, ds.texts) == "Mo, 5. Okt. 26");
   DisplaySettings en = display_settings(nullptr);
-  // the buzzer: no touch tone, the notifications' tones and volumes by default; "none" silences one
-  CHECK(en.sound.touch.empty() && en.sound.notify[0] == "rising" && en.sound.notify[1] == "falling" &&
+  // the buzzer: the soft click for a touch, the notifications' tones and volumes by default; "none" silences one
+  CHECK(en.sound.touch == "click" && en.sound.notify[0] == "rising" && en.sound.notify[1] == "falling" &&
         en.sound.notify[2] == "alarm" && en.screen.touch_volume == 12 && en.screen.notify_volume == 65);
   {
     cJSON *so = cJSON_Parse(R"({"sound":{"notifications":{"warning":"none","alert":"beep"},"touch_volume":5}})");

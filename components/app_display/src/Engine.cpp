@@ -2072,13 +2072,16 @@ void Engine::sound(const std::string &tone, int volume) {
   cb_.sound(own != settings_.sound.melodies.end() ? own->second : tone, volume);
 }
 
-/* A touch that acts: its press sounds, or -- most of the design's objects report only that -- its release. Not
-   the page's own touch ("touch": only that the panel is in use), nor a swipe. */
+/* A touch that acts sounds as it is let go -- the release, which a swipe drops (on_event: a finger that came down
+   on a tile and swiped is no touch of it). The keypad's keys sound as they are pressed (no swiping there; typing a
+   code fast). Not the page's own touch ("touch": only that the panel is in use), nor a swipe. */
 void Engine::touch_sound(const std::string &page, const std::string &component, const std::string &value) {
   if (component == "touch" || component == "swipe")
     return;
   const std::string key = page + "/" + component;
   if (value == "press") {
+    if (page != "keypad")
+      return;
     pressed_ = key;
   } else if (value != "release") {
     return;
