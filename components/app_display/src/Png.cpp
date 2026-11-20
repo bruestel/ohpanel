@@ -74,7 +74,10 @@ uint8_t paeth(int a, int b, int c) {
 
 }  // namespace
 
-std::string decode_png(const Chunks &bytes, int size, const uint8_t under[3], PngPicture &out) {
+/* A chunk longer than that is a broken one (as it downloads, its length would be skipped through to the end). */
+constexpr uint32_t kMaxChunk = 8u * 1024 * 1024;
+
+std::string decode_png(ByteSource &bytes, int size, const uint8_t under[3], PngPicture &out) {
   uint8_t head[13];
   if (bytes.read(0, head, 8) != 8 || std::memcmp(head, "\x89PNG\r\n\x1a\n", 8) != 0)
     return "not a PNG";
@@ -169,7 +172,7 @@ std::string decode_png(const Chunks &bytes, int size, const uint8_t under[3], Pn
       return "a broken PNG";
     const uint32_t len = be32(chunk);
     const std::string kind(reinterpret_cast<const char *>(chunk + 4), 4);
-    if (len > bytes.size || at + 12 + len > bytes.size)
+    if (len > kMaxChunk)   // (a shorter file than it says shows as a read that comes short)
       return "a broken PNG";
     const size_t data = at + 8;
     if (kind == "IHDR") {
@@ -216,6 +219,8 @@ std::string decode_png(const Chunks &bytes, int size, const uint8_t under[3], Pn
         return "no memory to decode it";
       for (size_t done = 0; done < len && y < h;) {
         const size_t n = bytes.read(data + done, buf, std::min<size_t>(sizeof(buf), len - done));
+        if (n == 0)
+          return "a broken PNG";
         done += n;
         const int st = inflate->feed(buf, n, [&](const uint8_t *p, size_t m) {
           while (m > 0 && y < h) {

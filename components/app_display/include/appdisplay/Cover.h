@@ -1,5 +1,6 @@
 #pragma once
 
+#include <algorithm>
 #include <cstdint>
 #include <string>
 #include <vector>
@@ -49,6 +50,28 @@ struct Chunks {
   void append(const char *data, size_t n);
   /* Up to n bytes from `at` into `out`; how many there were. */
   size_t read(size_t at, uint8_t *out, size_t n) const;
+};
+
+/* A picture's bytes, read front to back: from memory, or as they download (CoverLoad.cpp). `at` never goes back --
+   the bytes before it may be gone: none come for such a read --; fewer than `n` only at the end. `out` null: the bytes skipped. */
+class ByteSource {
+ public:
+  virtual ~ByteSource() = default;
+  virtual size_t read(size_t at, uint8_t *out, size_t n) = 0;
+};
+
+/* Chunks as a ByteSource. */
+class ChunkSource : public ByteSource {
+ public:
+  explicit ChunkSource(const Chunks &c) : c_(c) {}
+  size_t read(size_t at, uint8_t *out, size_t n) override {
+    if (out)
+      return c_.read(at, out, n);
+    return at >= c_.size ? 0 : std::min(n, c_.size - at);
+  }
+
+ private:
+  const Chunks &c_;
 };
 
 /* The bytes of a "data:...;base64,..." address; false for anything else. */

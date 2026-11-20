@@ -35,9 +35,13 @@ struct PngPicture {
   std::vector<uint8_t> pixels;   // w x h RGB, each cell's average
 };
 
-/* The PNG in `bytes` decoded onto a grid of cells `step` x `step` pixels, the
+/* The PNG in `in` decoded onto a grid of cells `step` x `step` pixels, the
    largest step that leaves its shorter side at least `size` cells; "" when it
    was, else why not. */
-std::string decode_png(const Chunks &bytes, int size, const uint8_t under[3], PngPicture &out);
+std::string decode_png(ByteSource &in, int size, const uint8_t under[3], PngPicture &out);
+inline std::string decode_png(const Chunks &bytes, int size, const uint8_t under[3], PngPicture &out) {
+  ChunkSource in(bytes);
+  return decode_png(in, size, under, out);
+}
 
 }  // namespace appdisplay

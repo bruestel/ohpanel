@@ -1,3 +1,5 @@
 ## ESP-IDF 6.0 no longer bundles cJSON; it is a managed component now.
 dependencies:
   espressif/cjson: "^1.7.18"
+  ## a progressive JPEG (a cover from a Squeezebox server, say), which the ROM's decoder cannot read: CoverLoad.cpp
+  defensiblelogic/lowzag: "^2.2.1"

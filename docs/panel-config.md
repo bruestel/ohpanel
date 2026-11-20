@@ -939,7 +939,7 @@ as a `data:image/jpeg;base64,...` address (an Image item linked to
 `currentalbumart`). The address is the lighter choice: openHAB sends an
 Image item's every new picture through the state stream, 50 to 150 KB as
 text, whether a panel shows it or not. The panel loads the picture when it
-changes, decodes it (JPEG, not progressive; or PNG, not interlaced: Sonos sends a radio station's logo as
+changes, decodes it (JPEG, baseline or progressive; or PNG, not interlaced: Sonos sends a radio station's logo as
 one, transparent parts on the box's grey), takes the square in its middle
 and draws it 70 x 70 points large, each point 2 x 2 pixels, with rounded
 corners: a few thousand rectangles, after everything else on the page, from
@@ -1213,7 +1213,7 @@ as the media page's cover, a picture fetched again over the last one too).
 | `pixel` | 2 ... 6 | how large a point is drawn (default 3): 2 is finer and takes about twice as long, 4 coarser and faster |
 | `icon` | icon | for the page list and shortcuts |
 
-The panel reads JPEG (baseline, not progressive) and PNG, up to 400 KB (a PNG's transparent parts show dark grey). Smaller is faster: the display shows at most
+The panel reads JPEG (baseline and progressive) and PNG, decoded as they download: the file's size does not count (an Image item's picture, which comes as text: up to 400 KB), a progressive JPEG up to about 2 megapixels, a PNG of 8192 x 8192 at most -- a large one takes long, a 2400 x 1600 PNG some 45 s (a PNG's transparent parts show dark grey). Smaller is faster: the display shows at most
 about 140 x 80 points anyway, so ask the camera for a small picture. Frigate:
 `http://frigate:5000/api/<camera>/latest.jpg?h=320`. An address the panel cannot reach, or a picture it cannot
 read: the page stays empty, the log says why (Diagnostics).
