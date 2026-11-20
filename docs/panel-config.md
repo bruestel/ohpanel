@@ -414,7 +414,8 @@ An **indicator** is `{"icon", "interval"?, "blink"?, "color"?, "item"?, "show"?,
 (`value_style`: rules on the item's state that set another icon, colour or blinking, see the entities page).
 `visible`, as a sitemap's visibility, shows it only while another item is on, `{"item": "Burner"}`, or while that
 item's state matches one condition, `{"item": "Power", "above": 100}` (`equals`, `above`, `below`, `at_most`,
-`at_least`); an item not known yet (or NULL) hides it. A button takes `visible` too: hidden, its place is empty.
+`at_least`, or a DateTime item's date near: `within_days` with `from` / `until`, as `on`); an item not known yet (or
+NULL) hides it. A button takes `visible` too: hidden, its place is empty.
 `blink` (200 to 2000 ms) makes one icon blink: shown and hidden that long each
 (the web interface offers 0.25, 0.5, 1, 1.5 and 2 s); not with several icons.
 `icon` may be a list of 2 to 8 icons, shown in turn every `interval` ms (200 to
@@ -428,8 +429,11 @@ or a number above 0, or, with `on`, when it is the state given there or one
 of a list (`"on": "PLAYING"` for a player's String item, `["PLAYING",
 "BUFFERING"]`), which then replace the usual ones; or with a limit, when its
 number is beyond it: `{"above": 7}` (`below`, `at_least`, `at_most`), in the
-item's unit, e.g. an icon only while more than 7 W flow. The editor offers all
-three, the states as chips, and shows how the item's state counts right now;
+item's unit, e.g. an icon only while more than 7 W flow; or, for a DateTime item,
+while its date is near: `{"within_days": 1, "from": "15:00", "until": "12:00"}`
+counts as on from 15:00 the day before until 12:00 on the day itself (as a
+date rule, see the entities page) -- a bin icon only before the collection.
+The editor offers all four, the states as chips, and shows how the item's state counts right now;
 it shows the field only where it does something (shown while on). A shortcut
 opens its page whenever it is shown: with `"show": "always"` always, with
 `"when_on"` while its item is on. `open_when_off` from older configurations is

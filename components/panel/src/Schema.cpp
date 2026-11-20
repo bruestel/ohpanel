@@ -763,19 +763,40 @@ class Validator {
     }
   }
 
-  /* "on": the state that counts as on, a list of them, or a number beyond a limit ({"above": 7}). */
+  /* A date `within_days` days at most (0 to 365) and the times of day "from" / "until" with it, of `v` at `p`; false
+     (said so) if wrong. */
+  bool within_days(const cJSON *v, const std::string &p) {
+    const cJSON *d = cJSON_GetObjectItem(v, "within_days");
+    if (!cJSON_IsNumber(d) || d->valuedouble != static_cast<double>(d->valueint) || d->valueint < 0 || d->valueint > 365) {
+      fail(member(p, "within_days"), "must be a whole number of days, 0 to 365");
+      return false;
+    }
+    for (const char *t : {"from", "until"})
+      if (const cJSON *c = cJSON_GetObjectItem(v, t); c && !(cJSON_IsString(c) && clock_time(c->valuestring)))
+        fail(member(p, t), "must be a time, \"HH:MM\"");
+    return true;
+  }
+
+  /* "on": the state that counts as on, a list of them, a number beyond a limit ({"above": 7}) or a date near
+     ({"within_days": 1, "from"?, "until"?}, as a rule's). */
   void on_states(const cJSON *e, const std::string &path) {
     const cJSON *v = cJSON_GetObjectItem(e, "on");
     if (!v)
       return;
     const std::string p = member(path, "on");
+    if (cJSON_IsObject(v) && cJSON_GetObjectItem(v, "within_days")) {
+      allowed(v, p, {"within_days", "from", "until"});
+      within_days(v, p);
+      return;
+    }
     if (cJSON_IsObject(v)) {
       const int n = cJSON_GetArraySize(v);
       const cJSON *k = v->child;
       const bool known = k && (!std::strcmp(k->string, "above") || !std::strcmp(k->string, "below") ||
                                !std::strcmp(k->string, "at_least") || !std::strcmp(k->string, "at_most"));
       if (n != 1 || !known || !cJSON_IsNumber(k))
-        fail(p, "must be one of \"above\", \"below\", \"at_least\" or \"at_most\" with a number, e.g. {\"above\": 7}");
+        fail(p, "must be one of \"above\", \"below\", \"at_least\" or \"at_most\" with a number, e.g. {\"above\": 7}, "
+                "or a date near, {\"within_days\": 1}");
       return;
     }
     const auto ok = [](const cJSON *s) {
@@ -812,7 +833,7 @@ class Validator {
     const std::string p = member(path, "visible");
     if (!object(v, p))
       return;
-    allowed(v, p, {"item", "equals", "above", "below", "at_most", "at_least"});
+    allowed(v, p, {"item", "equals", "above", "below", "at_most", "at_least", "within_days", "from", "until"});
     item_name(cJSON_GetObjectItem(v, "item"), member(p, "item"));
     int conditions = 0;
     for (const char *k : {"equals", "above", "below", "at_most", "at_least"})
@@ -821,6 +842,14 @@ class Validator {
         if (std::strcmp(k, "equals") == 0 ? !cJSON_IsString(c) : !cJSON_IsNumber(c))
           fail(member(p, k), std::strcmp(k, "equals") == 0 ? "must be a state (text)" : "must be a number");
       }
+    if (cJSON_GetObjectItem(v, "within_days")) {
+      conditions++;
+      within_days(v, p);
+    } else {
+      for (const char *t : {"from", "until"})
+        if (cJSON_GetObjectItem(v, t))
+          fail(member(p, t), "goes with \"within_days\"");
+    }
     if (conditions > 1)
       fail(p, "one condition at most (none: while the item is on)");
   }

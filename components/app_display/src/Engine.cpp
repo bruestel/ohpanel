@@ -973,26 +973,15 @@ std::string Engine::degrees_only(const std::string &unit) {
 
 /* Whether ref's item is on: the states its "on" names (a state or a list,
    e.g. "PLAYING" of a player's String item), a number beyond a limit
-   ({"above": 7}, "below", "at_least", "at_most"), or else ON, OPEN, PLAY or a
-   number above 0. */
+   ({"above": 7}, "below", "at_least", "at_most") or a date near ({"within_days": 1, "from"?, "until"?}) -- as a
+   rule's condition (rule_matches) --, or else ON, OPEN, PLAY or a number above 0. */
 bool Engine::on(const cJSON *ref) const {
   if (!has_state(ref))
     return false;
   const appoh::ItemState s = state_of(ref);
   const cJSON *want = member(ref, "on");
-  if (cJSON_IsObject(want)) {
-    for (const char *op : {"above", "below", "at_least", "at_most"}) {
-      const cJSON *n = cJSON_GetObjectItem(want, op);
-      if (!cJSON_IsNumber(n))
-        continue;
-      if (!s.has_numeric || s.undefined())
-        return false;   // no number: not on
-      const double v = s.numeric, t = n->valuedouble;
-      const std::string o = op;
-      return o == "above" ? v > t : o == "below" ? v < t : o == "at_least" ? v >= t : v <= t;
-    }
-    return false;
-  }
+  if (cJSON_IsObject(want))   // a number beyond a limit ({"above": 7}), a date near ({"within_days": 1}): as a rule's
+    return rule_matches(want, s, now_);
   if (cJSON_IsString(want))
     return s.state == want->valuestring;
   if (cJSON_IsArray(want)) {
@@ -1029,7 +1018,7 @@ bool Engine::visible(const cJSON *ref) const {
   appoh::ItemState st;
   if (!cb_.state || !cb_.state(str(v, "item"), st) || st.undefined())
     return false;   // not known (yet): hidden, as a sitemap's
-  for (const char *k : {"equals", "above", "below", "at_most", "at_least"})
+  for (const char *k : {"equals", "above", "below", "at_most", "at_least", "within_days"})
     if (member(v, k))
       return rule_matches(v, st, now_, member(ref, "meta"), lookup());
   return is_on(st);

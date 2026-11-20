@@ -485,7 +485,12 @@ dialog.mgallery{width:min(92vw,34rem)}
 .pved .pick label.check{margin:0}
 .pick>.sub{margin-left:calc(16px + .5rem)!important}
 .pickfields{display:grid;gap:.6rem;margin:.5rem 0 0 calc(16px + .5rem)}
-.pved .iconpick{display:flex;align-items:center;gap:.5rem}
+.pved .iconpick{display:flex;align-items:center;gap:.5rem;flex-wrap:wrap}
+.iconpick .iconwarn{flex-basis:100%;margin:0}
+.datewin{display:flex;flex-wrap:wrap;align-items:center;gap:.4rem 1rem;margin:.4rem 0}
+.datewin .dwpart{display:inline-flex;align-items:center;gap:.4rem;white-space:nowrap}
+.datewin input[type=number]{width:4.5rem}
+.datewin input[type=time]{width:auto}
 .pved .iconlist{display:grid;gap:.4rem;justify-items:start}
 .pved .iconlist .iconpick{width:100%}
 .pved .iconpick canvas{background:#282c28;border-radius:.4rem;padding:4px;flex:none}
@@ -510,7 +515,7 @@ dialog .sttitle{margin:0;font-size:18px;flex:1}
 .stlist{display:grid;gap:.6rem;margin:.6rem 0}
 .strow{display:grid;grid-template-columns:auto minmax(0,1fr);gap:.8rem;padding:.6rem;border:1px solid var(--line);border-radius:.6rem}
 .strow small{display:block;color:var(--dim);overflow-wrap:anywhere;font-size:12px;margin-bottom:.4rem}
-.strow .iconpick{display:flex;align-items:center;gap:.5rem}
+.strow .iconpick{display:flex;align-items:center;gap:.5rem;flex-wrap:wrap}
 .strow .iconpick canvas{background:#282c28;border-radius:.4rem;padding:4px;flex:none}
 .strow .actions{display:flex;flex-wrap:wrap;gap:.5rem;align-items:center;margin-top:.4rem}
 .sttiles{display:flex;gap:.4rem;align-items:flex-start}
@@ -3434,16 +3439,15 @@ function localizeNumber(text) {
 }
 
 /* Engine::on: the states "on" names, or else ON, OPEN, PLAY or a number above 0. */
+/* The comparisons a condition takes, by its key (Format.cpp rule_matches). */
+const RULE_CMP = {below: (a, t) => a < t, above: (a, t) => a > t, at_most: (a, t) => a <= t, at_least: (a, t) => a >= t};
 function isOn(ref) {
   const st = stateOf(ref);
   if (!st) return false;
   if (typeof ref.on === 'string') return st.state === ref.on;
   if (Array.isArray(ref.on)) return ref.on.includes(st.state);
-  if (ref.on && typeof ref.on === 'object') {   // a number beyond a limit (Engine::on)
-    const [op, t] = Object.entries(ref.on)[0] || [], v = st.numeric;
-    if (v === undefined || typeof t !== 'number') return false;
-    return op === 'above' ? v > t : op === 'below' ? v < t : op === 'at_least' ? v >= t : op === 'at_most' ? v <= t : false;
-  }
+  if (ref.on && typeof ref.on === 'object')   // a number beyond a limit, a date near: as a rule's (Engine::on)
+    return ruleHolds(Object.assign({}, ref.on, {item: undefined}), st, t => typeof t === 'number' ? t : NaN, RULE_CMP);
   return st.state === 'ON' || st.state === 'OPEN' || st.state === 'PLAY' || (st.numeric !== undefined && st.numeric > 0);
 }
 
@@ -3508,9 +3512,8 @@ function isVisible(ref) {
   if (!v || typeof v !== 'object') return true;
   const st = stateOf({item: v.item});
   if (!st || /^(NULL|UNDEF)$/.test(st.state)) return false;
-  const cmp = {below: (a, t) => a < t, above: (a, t) => a > t, at_most: (a, t) => a <= t, at_least: (a, t) => a >= t};
-  if (['equals', ...Object.keys(cmp)].some(k => v[k] !== undefined))
-    return ruleHolds(Object.assign({}, v, {item: undefined}), st, t => typeof t === 'number' ? t : NaN, cmp);
+  if (['equals', 'within_days', ...Object.keys(RULE_CMP)].some(k => v[k] !== undefined))
+    return ruleHolds(Object.assign({}, v, {item: undefined}), st, t => typeof t === 'number' ? t : NaN, RULE_CMP);
   return isOn({item: v.item});
 }
 
@@ -6372,7 +6375,11 @@ function iconField(value, onPick, opts = {}) {
   x.title = 'No icon'; x.setAttribute('aria-label', 'No icon');
   x.addEventListener('click', () => { name.value = own = ''; onPick(''); show(''); name.focus(); });
   wrap.append(name, x);
-  line.append(pic, wrap, more);
+  // a name the panel's icons do not have: it draws nothing (forum #165) -- said under the field
+  const unknown = document.createElement('div');
+  unknown.className = 'sub warn iconwarn';
+  unknown.hidden = true;
+  line.append(pic, wrap, more, unknown);
   function picture(v) {
     let c = v ? iconCanvas(v, '#fff', 24) : null;
     if (!c) {  // no such icon: an empty place of the same size
@@ -6384,12 +6391,21 @@ function iconField(value, onPick, opts = {}) {
   }
   function show(v) {
     wrap.classList.toggle('set', !!v);
+    // as the panel looks it up: the name exactly (a space at its end is part of it)
+    const name = String(v || '');
+    unknown.hidden = !(name && ICONS.index && !ICONS.index.has(name));
+    unknown.textContent = unknown.hidden ? ''
+      : name !== name.trim() && ICONS.index.has(name.trim()) ? 'A space before or after \u201c' + name.trim() + '\u201d: the panel draws nothing.'
+      : 'No icon is called \u201c' + name.trim() + '\u201d: the panel draws nothing. Choose\u2026 lists them.';
     const c = picture(v);
     pic.replaceWith(c);
     pic = c;
   }
   show(own);
   more.addEventListener('click', () => chooseIcon(name.value.trim(), n => { name.value = own = n; onPick(n); show(n); }));
+  // the icon set may come after the field: its name looked at again then (renderPreview runs the registry)
+  let seen = false;
+  OH_ICON_FIELDS.add(() => { if (!line.isConnected) return !seen; seen = true; show(own); return true; });
   if (!opts.openhab)
     return line;
   // "From openHAB": the icon as the panel would draw it now, what it comes from, or why there is none
@@ -6474,7 +6490,7 @@ function iconsField(value, onChange, opts = {}) {
         rm.type = 'button'; rm.className = 'b sec'; rm.textContent = '✕';
         rm.title = 'Remove this icon'; rm.setAttribute('aria-label', 'Remove this icon');
         rm.addEventListener('click', () => { list.splice(i, 1); emit(); build(); });
-        line.appendChild(rm);
+        line.insertBefore(rm, line.querySelector('.iconwarn'));   // beside its field, the warning under both
       }
       box.appendChild(line);
     });
@@ -6899,18 +6915,72 @@ function formatField(ref, onChange) {
 const ON_USUAL = 'ON, OPEN, PLAY or a number above 0';
 
 const ON_LIMITS = [['above', 'above'], ['at_least', 'at least'], ['below', 'below'], ['at_most', 'at most']];
-function onField(value, item, onChange) {
+/* A date's window (`w`: {within_days, from?, until?}, changed in place): its days (`opts.days`: an input of its own;
+   false: the caller's, e.g. a rule's value field -- call box.refresh() when it changes), and the first day's time
+   from, the date's own day's time until -- as a date rule's (Format.cpp rule_matches). `changed` after each change
+   that leaves a whole number of days 0..365 (or none yet: the caller decides). */
+function dateWindowField(w, changed, opts = {}) {
+  const withDays = opts.days !== false;
+  const box = document.createElement('div');
+  box.className = 'datewin';
+  const text = t => Object.assign(document.createElement('span'), {textContent: t});
+  const group = (...parts) => { const g = document.createElement('span'); g.className = 'dwpart'; g.append(...parts); return g; };
+  const warn = document.createElement('div');
+  warn.className = 'sub warn';
+  const fromText = document.createElement('span');
+  const time = (k, label) => {
+    const i = document.createElement('input');
+    i.type = 'time'; i.value = w[k] || ''; i.setAttribute('aria-label', label);
+    i.addEventListener('change', () => { if (i.value) w[k] = i.value; else delete w[k]; refresh(); changed(); });
+    return i;
+  };
+  // as the number says: 1 the day before, 0 that day; on that day, from after until is never
+  const refresh = () => {
+    fromText.textContent = (w.within_days === 1 ? 'the day before' : w.within_days === 0 ? 'that day' : 'the first day') + ' from';
+    warn.textContent = withDays && w.within_days === undefined ? 'Enter the days: a whole number, 0 (that day) to 365.'
+      : w.within_days === 0 && w.from && w.until && w.from >= w.until ? 'With 0 days both times are on that day: from '
+        + w.from + ' until ' + w.until + ' is never.' : '';
+    warn.hidden = !warn.textContent;
+  };
+  const parts = [];
+  if (withDays) {
+    const days = document.createElement('input');
+    days.type = 'number'; days.min = '0'; days.max = '365'; days.step = '1';
+    days.value = w.within_days !== undefined ? String(w.within_days) : '';
+    days.placeholder = 'e.g. 1'; days.setAttribute('aria-label', 'Within that many days');
+    days.addEventListener('input', () => {
+      const t = days.value.trim();
+      // whole days only: "1.5" or "2e1" are no count of days (the panel would refuse them)
+      if (/^\d{1,3}$/.test(t) && +t <= 365) w.within_days = +t; else delete w.within_days;
+      refresh();
+      changed();
+    });
+    parts.push(group(days, text('days')));
+  }
+  parts.push(group(fromText, time('from', 'the first day from')),
+             group(text('the day itself until'), time('until', 'the day itself until')));
+  box.append(...parts, warn);
+  box.refresh = refresh;
+  refresh();
+  return box;
+}
+
+/* `opts.dates`: false where the item holds no date (a keypad's toggle: a Switch). */
+function onField(value, item, onChange, opts = {}) {
   // a number beyond a limit ({"above": 7}), states of its own, or the usual ones
   const limit = value && typeof value === 'object' && !Array.isArray(value)
     ? Object.entries(value).find(([k]) => ON_LIMITS.some(([o]) => o === k)) : null;
   let op = limit ? limit[0] : 'above', num = limit ? String(limit[1]) : '';
   const list = Array.isArray(value) ? [...value] : typeof value === 'string' && value ? [value] : [];
-  let kind = limit ? 'number' : list.length ? 'own' : '';
+  // a date near ({"within_days": 1, "from"?, "until"?}: a DateTime item, forum #165)
+  const win = value && typeof value === 'object' && value.within_days !== undefined ? Object.assign({}, value) : {};
+  let kind = win.within_days !== undefined ? 'date' : limit ? 'number' : list.length ? 'own' : '';
   let own = kind === 'own';
   const box = document.createElement('div');
   box.className = 'onfield';
   const mode = selectInput([['', 'the usual states: ' + ON_USUAL], ['own', 'one of these states'],
-                            ['number', 'a number beyond a limit']],
+                            ['number', 'a number beyond a limit'],
+                            ...(opts.dates === false && kind !== 'date' ? [] : [['date', 'a date within days (a DateTime item)']])],
                            kind, v => { kind = v; own = v === 'own'; draw(); store(); if (own) add.focus(); if (v === 'number') numIn.focus(); });
   const numRow = document.createElement('div');
   numRow.className = 'onnum';
@@ -6920,7 +6990,9 @@ function onField(value, item, onChange) {
   numIn.setAttribute('aria-label', 'The limit');
   numIn.addEventListener('input', () => { num = numIn.value; draw(); store(); });
   numRow.append(opIn, numIn);
-  const current = () => kind === 'number' ? (num !== '' && isFinite(+num) ? {[op]: +num} : undefined)
+  const dateRow = dateWindowField(win, () => { draw(); store(); });
+  const current = () => kind === 'date' ? (win.within_days !== undefined ? Object.assign({}, win) : undefined)
+                      : kind === 'number' ? (num !== '' && isFinite(+num) ? {[op]: +num} : undefined)
                                           : own && list.length ? (list.length === 1 ? list[0] : [...list]) : undefined;
   const chips = document.createElement('div');
   chips.className = 'chips';
@@ -6929,9 +7001,10 @@ function onField(value, item, onChange) {
   add.setAttribute('aria-label', 'Add a state');
   const hint = document.createElement('div');
   hint.className = 'sub onhint';
-  box.append(mode, chips, numRow, hint);
+  box.append(mode, chips, numRow, dateRow, hint);
 
-  const store = () => onChange(current() === undefined ? '' : current());
+  // a date's window without its days yet: nothing stored (the setting as it was), the field says what is missing
+  const store = () => { if (kind === 'date' && win.within_days === undefined) return; onChange(current() === undefined ? '' : current()); };
   const take = text => {
     text.split(',').map(x => x.trim()).filter(Boolean).forEach(x => { if (!list.includes(x)) list.push(x); });
     add.value = '';
@@ -6946,6 +7019,7 @@ function onField(value, item, onChange) {
   function draw() {
     chips.hidden = !own;
     numRow.hidden = kind !== 'number';
+    dateRow.hidden = kind !== 'date';
     chips.innerHTML = '';
     list.forEach((x, k) => {
       const c = document.createElement('span');
@@ -6962,7 +7036,9 @@ function onField(value, item, onChange) {
     const st = item && liveStates[item];
     if (!item) { hint.textContent = 'Without an item it counts as on always.'; return; }
     if (!st) {
-      hint.textContent = kind === 'number' ? 'A Number item\'s value, in its unit: e.g. above 7 for more than 7 W.'
+      hint.textContent = kind === 'date' ? 'A DateTime item: on from that many days before its date (1: the day before), '
+                                          + 'from the time on that first day, until the time on the day itself.'
+                       : kind === 'number' ? 'A Number item\'s value, in its unit: e.g. above 7 for more than 7 W.'
                        : own ? 'As openHAB has the state, e.g. PLAYING.'
                              : 'Right for a Switch, Contact, Dimmer or Player; a String item needs its own states.';
       return;
@@ -6980,7 +7056,23 @@ function onField(value, item, onChange) {
       hint.append(b);
     }
   }
-  box.setItem = v => { item = v; draw(); };
+  box.setItem = v => {
+    item = v;
+    /* a DateTime item never counts as on by the usual states: "a date within days" chosen for it, that day (0) --
+       a condition chosen already stays (forum #165) */
+    const st = v && liveStates[v];
+    if (!kind && opts.dates !== false && st && st.type === 'DateTime') {
+      kind = 'date';
+      win.within_days = 0;
+      mode.value = 'date';
+      dateRow.refresh();
+      dateRow.querySelector('input[type=number]').value = '0';
+      draw();
+      store();
+      return;
+    }
+    draw();
+  };
   draw();
   return box;
 }
@@ -7070,20 +7162,38 @@ const RULE_BLINK = [['', 'no blinking'], ['250', 'blinking fast (0.25 s)'], ['50
    visibility; empty item: always. */
 function visibleField(value, onChange) {
   const v = value && typeof value === 'object' ? Object.assign({}, value) : {};
-  const kinds = [['', 'is on'], ['equals', 'is'], ['above', 'is above'], ['below', 'is below']];
+  const kinds = [['', 'is on'], ['equals', 'is'], ['above', 'is above'], ['below', 'is below'],
+                 ['at_least', 'is at least'], ['at_most', 'is at most'], ['within_days', 'is a date within days']];
   let kind = kinds.map(([k]) => k).find(k => k && v[k] !== undefined) || '';
+  const win = kind === 'within_days' ? {within_days: v.within_days, from: v.from, until: v.until} : {};
+  Object.keys(win).forEach(k => { if (win[k] === undefined) delete win[k]; });
   const store = () => {
     if (!v.item) { onChange(undefined); return; }
     const out = {item: v.item};
-    if (kind && val.value.trim() !== '') out[kind] = kind === 'equals' ? val.value.trim() : +val.value.replace(',', '.');
+    if (kind === 'within_days') {
+      if (win.within_days === undefined) return;   // its days not entered yet: as it was (the field says so)
+      Object.assign(out, win);
+    } else if (kind && val.value.trim() !== '') {
+      out[kind] = kind === 'equals' ? val.value.trim() : +val.value.replace(',', '.');
+    }
     onChange(out);
   };
   const item = itemField(v.item || '', x => { v.item = x.trim(); store(); });
   item.querySelector('input').placeholder = 'always shown; e.g. Burner (as a sitemap\'s visibility)';
-  const val = textInput(kind ? String(v[kind]) : '', () => store(), {placeholder: 'e.g. ON, 20', spellcheck: false});
-  val.hidden = !kind;
-  const cond = selectInput(kinds, kind, k => { kind = k; val.hidden = !k; store(); });
-  return two(field('Shown only while the item (optional)', item), field('Its state', pvRow(cond, val)));
+  const val = textInput(kind && kind !== 'within_days' ? String(v[kind]) : '', () => store(),
+                        {placeholder: 'e.g. ON, 20', spellcheck: false});
+  val.hidden = !kind || kind === 'within_days';
+  const dates = dateWindowField(win, () => store());   // a DateTime item's date near (forum #165)
+  dates.hidden = kind !== 'within_days';
+  const cond = selectInput(kinds, kind, k => {
+    kind = k;
+    val.hidden = !k || k === 'within_days';
+    dates.hidden = k !== 'within_days';
+    store();
+  });
+  const box = document.createElement('div');
+  box.append(two(field('Shown only while the item (optional)', item), field('Its state', pvRow(cond, val))), dates);
+  return box;
 }
 
 function rulesField(value, onChange, withIcon, withFormat, withIconColor, ref, metaKeys, opts = {}) {
@@ -7147,22 +7257,9 @@ function rulesField(value, onChange, withIcon, withFormat, withIconColor, ref, m
       when.className = 'when';
       when.append(cond, source, val, keySel);
       // a date rule's times of day: the first of its days only from, the date's own day only until (empty: all day)
-      const times = document.createElement('div');
-      times.className = 'times';
+      const times = dateWindowField(r, store, {days: false});   // its days: the value field above
       times.hidden = kind !== 'within_days';
-      const time = (k, label) => {
-        const i = document.createElement('input');
-        i.type = 'time'; i.value = r[k] || ''; i.setAttribute('aria-label', label);
-        i.addEventListener('change', () => { if (i.value) r[k] = i.value; else delete r[k]; store(); });
-        return i;
-      };
-      const fromText = document.createTextNode('');
-      const nameFirst = () => {   // as the number says: 1 the evening before, 0 that day
-        fromText.textContent = (r.within_days === 1 ? 'the day before' : r.within_days === 0 ? 'that day' : 'the first day') + ' from';
-      };
-      nameFirst();
-      times.append(fromText, time('from', 'the first day from'),
-                   document.createTextNode('the day itself until'), time('until', 'the day itself until'));
+      const nameFirst = () => times.refresh();
       const top = document.createElement('div');
       top.className = 'top';
       const label = document.createElement('span');
@@ -8825,7 +8922,7 @@ function pvKeypadEditor(box, head, hint, page) {
       v => { const l = v.split(',').map(x => x.trim()).filter(Boolean); set('show_when', !l.length ? '' : l.length === 1 ? l[0] : l); },
       {maxLength: 120, spellcheck: false, placeholder: st.item ? 'e.g. ARMED_AWAY, ARMED_HOME' : 'needs a state'}));
     if (toggle) {
-      const onStates = onField(b.on, b.item, v => set('on', v));
+      const onStates = onField(b.on, b.item, v => set('on', v), {dates: false});   // a Switch, Dimmer or Color
       box.append(pvRow(action, field('Its item', itemField(b.item || '', v => { set('item', v); onStates.setItem(v); },
                                                            'Switch,Dimmer,Color'))),
                  pvRow(field('On when', onStates)), pvRow(showWhen));
