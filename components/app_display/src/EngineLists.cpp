@@ -3,6 +3,7 @@
 */
 
 #include "appdisplay/Engine.h"
+#include "appdisplay/OhIcons.h"
 #include "appdisplay/Cover.h"
 #include "appdisplay/Icons.h"
 #include "EngineDetail.h"
@@ -277,10 +278,17 @@ const cJSON *Engine::rows_of(const cJSON *page) {
     for (const char *key : {"icon", "color", "value_color", "value_style", "format", "factor"})
       if (const cJSON *v = member(page, key))
         cJSON_AddItemToObject(row, key, cJSON_Duplicate(v, true));
+    /* its icon: its metadata's, else its icon in openHAB (its category, by its state: OhIcons.h) where the table
+       has it, else the page's */
     if (const auto own = md.config.find("icon"); own != md.config.end()) {
       cJSON_DeleteItemFromObject(row, "icon");
       cJSON_AddStringToObject(row, "icon", own->second.c_str());
+    } else if (!m.category.empty() && !oh_icon(m.category, nullptr).empty()) {
+      cJSON_DeleteItemFromObject(row, "icon");
+      cJSON_AddStringToObject(row, "icon", "openhab");
     }
+    if (!m.category.empty())
+      cJSON_AddStringToObject(row, "category", m.category.c_str());
     if (const auto badge = md.config.find("badge"); badge != md.config.end() && !badge->second.empty())
       cJSON_AddStringToObject(row, "badge", badge->second.c_str());   // a line badge in the icon's place
     cJSON_AddItemToArray(rows, row);

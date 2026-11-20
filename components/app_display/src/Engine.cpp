@@ -8,6 +8,7 @@
 #include "appdisplay/Engine.h"
 #include "appdisplay/Cover.h"
 #include "appdisplay/Icons.h"
+#include "appdisplay/OhIcons.h"
 #include "sound/Sound.h"
 
 #include <qrcodegen.h>
@@ -1086,7 +1087,22 @@ int Engine::weather_pic(const cJSON *ref, const char *slot) const {
 std::string Engine::glyph(const cJSON *obj, const char *key) const {
   const cJSON *v = member(obj, key);
   // a list of icons (an indicator's animation): its first
-  return icon_glyph(cJSON_IsArray(v) ? cJSON_GetStringValue(cJSON_GetArrayItem(v, 0)) : str(obj, key).c_str());
+  const char *first = cJSON_IsArray(v) ? cJSON_GetStringValue(cJSON_GetArrayItem(v, 0)) : nullptr;
+  return icon_glyph(icon_name(obj, first ? first : str(obj, key)).c_str());
+}
+
+std::string Engine::icon_name(const cJSON *ref, const std::string &name) const {
+  if (name != "openhab")
+    return name;
+  std::string category = str(ref, "category");   // a group member's, from the group's list
+  if (!member(ref, "category") && cb_.category)
+    cb_.category(str(ref, "item"), category);
+  if (category.empty())
+    return {};
+  if (!has_state(ref))
+    return oh_icon(category, nullptr);
+  const appoh::ItemState st = state_of(ref);
+  return oh_icon(category, &st);
 }
 
 /* An indicator's icon in obj: one, or a list of them shown in turn every
@@ -1610,6 +1626,28 @@ void Engine::render() {
 /* The design ships with one background; another one is set at runtime on the
    page and on every object that crops from it, then the page is redrawn. */
 
+namespace {
+/* The items of what in `obj` (a page, home) shows its item's icon in openHAB ("icon": "openhab"). */
+void oh_icon_items(const cJSON *obj, std::vector<std::string> &out) {
+  if (!obj)
+    return;
+  if (cJSON_IsObject(obj)) {
+    const cJSON *icon = cJSON_GetObjectItem(obj, "icon"), *it = cJSON_GetObjectItem(obj, "item");
+    if (cJSON_IsString(icon) && std::strcmp(icon->valuestring, "openhab") == 0 && cJSON_IsString(it) && *it->valuestring)
+      out.push_back(it->valuestring);
+  }
+  for (const cJSON *c = obj->child; c; c = c->next)
+    if (cJSON_IsObject(c) || cJSON_IsArray(c))
+      oh_icon_items(c, out);
+}
+
+bool shows_oh_icon(const cJSON *obj, const std::string &item) {
+  std::vector<std::string> items;
+  oh_icon_items(obj, items);
+  return std::find(items.begin(), items.end(), item) != items.end();
+}
+}  // namespace
+
 void Engine::prefetch_options() {
   std::vector<appoh::Option> out;
   appoh::Limits l;
@@ -1644,13 +1682,23 @@ void Engine::prefetch_options() {
   for (const cJSON *pg = cJSON_IsArray(pages) ? pages->child : nullptr; pg && cb_.label; pg = pg->next)
     for (const cJSON *r : unlabelled_rows(pg))
       cb_.label(str(r, "item"), label, -1);
+  // "icon": "openhab": the items' icons in openHAB (their category), there before their page opens
+  std::vector<std::string> oh;
+  oh_icon_items(config_, oh);
+  std::string category;
+  for (const std::string &item : oh)
+    if (cb_.category)
+      cb_.category(item, category);
 }
 
 /* The volume page (boards/nspanel/nextion/ohpanel_hmi.py volume_page()), over the media
    page that opened it (current_ stays that page): the volume between minus
    and plus, the slider, the mute button. */
+
 void Engine::on_options(const std::string &item) {
   const cJSON *page = current_ == "home" ? nullptr : page_config(current_);
+  // an item's icon in openHAB (its category) may have come: what shows it drawn anew -- after the rest (below)
+  const bool oh_icon = shows_oh_icon(page ? page : member(config_, "home"), item);
   // a group's members: its pages' rows made anew, the one shown drawn anew (its bindings hold the rows going)
   for (const cJSON *p = cJSON_IsArray(member(config_, "pages")) ? member(config_, "pages")->child : nullptr; p; p = p->next)
     if (str(p, "group") == item)
@@ -1708,6 +1756,11 @@ void Engine::on_options(const std::string &item) {
   if (page && type_of(page) == PageType::Light && str(member(page, "color_temperature"), "item") == item &&
       shown_ == "light")
     light_refresh(page);
+  if (oh_icon) {
+    drawn_.clear();
+    bindings_.clear();
+    show_current();
+  }
 }
 
 /* A weather page's days: its "days", or the page itself (a page of one day, as before "days" came). */

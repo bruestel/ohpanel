@@ -116,6 +116,8 @@ struct Callbacks {
   /* An item's label in openHAB (appoh::label), from the same cache: false while not known; asked of openHAB again
      when cached longer ago than `max_age_s` (< 0: never). */
   std::function<bool(const std::string &item, std::string &out, int max_age_s)> label;
+  /* An item's category in openHAB (its icon there: "icon": "openhab"); false while not known (it is fetched). */
+  std::function<bool(const std::string &item, std::string &out)> category;
   /* The state an item will most likely have soon (appoh::expect). */
   std::function<void(const std::string &item, const std::string &state)> expect;
   /* Loads a cover picture (cover_source) as size x size pixels, each scale
@@ -481,6 +483,9 @@ class Engine {
      visibility; true without one. */
   bool visible(const cJSON *ref) const;
   std::function<bool(const std::string &, appoh::ItemState &)> lookup() const;
+  /* An icon's name as drawn: "openhab" the item's icon in openHAB (its category, the row's of a group member), by its
+     state (OhIcons.h); "" while not known or not in the table; any other name as it is. */
+  std::string icon_name(const cJSON *ref, const std::string &name) const;
   const cJSON *button_raw(const cJSON *page, int i);
   bool tile_shown_[8] = {};
   std::string toggle_command(const cJSON *ref) const;

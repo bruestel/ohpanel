@@ -180,6 +180,7 @@ struct Member {
   std::string label;   // the item's label; its name if it has none
   std::map<std::string, Metadata> metadata;   // by namespace, e.g. "plant"
   std::string type = {};   // the item's (a group's: of its base item), "Switch", "Dimmer" ...
+  std::string category = {};   // its icon in openHAB ("door", "oh:classic:light", ...), "" without
   bool operator==(const Member &) const = default;
 };
 bool members(const std::string &group, std::vector<Member> &out, bool refresh = false);
@@ -192,6 +193,10 @@ bool metadata(const std::string &item, std::map<std::string, Metadata> &out, boo
    longer ago than `max_age_s` (< 0: never again); false while not known. openHAB tells nobody when a label changes,
    so an entity page's rows without a label of their own ask with an age as the page opens. */
 bool label(const std::string &item, std::string &out, int max_age_s = -1);
+
+/* An item's category in openHAB -- its icon, "door", "oh:classic:light" ("" without) --, from the same cache as
+   label(), fetched when not cached; false while not known. */
+bool category(const std::string &item, std::string &out);
 
 /* A file from the web (a cover picture): an http(s) address, or a path on
    the openHAB server ("/..."), which -- like an address on it -- goes with

@@ -5,6 +5,7 @@
 
 #include "appdisplay/Engine.h"
 #include "appdisplay/Icons.h"
+#include "appdisplay/OhIcons.h"
 
 #include <cJSON.h>
 
@@ -4089,6 +4090,101 @@ int main(int argc, char **argv) {
     c.set_config(R"({"version": 1, "home": {}})");
     c.idle(t += 10);
     CHECK(r.has(page_cmd("home")));
+    if (g_failures) r.dump();
+  }
+
+  {  // openHAB's icons (an item's category) as the panel's, by the item's state (OhIcons.cpp)
+    const auto st = [](const char *state, const char *type, double numeric = 0, bool has = false) {
+      appoh::ItemState s;
+      s.state = state;
+      s.type = type;
+      s.numeric = numeric;
+      s.has_numeric = has;
+      return s;
+    };
+    const auto open = st("OPEN", "OpenClosed"), closed = st("CLOSED", "OpenClosed"), on = st("ON", "OnOff");
+    const auto dim0 = st("0", "Percent", 0, true), dim55 = st("55", "Percent", 55, true), bat45 = st("45", "Decimal", 45, true);
+    const auto shut70 = st("70", "Percent", 70, true), undef = st("NULL", "UnDef"), wash = st("2", "Decimal", 2, true);
+    CHECK(oh_icon("door", &open) == "door-open" && oh_icon("door", &closed) == "door-closed");
+    CHECK(oh_icon("Door", nullptr) == "door" && oh_icon("door", &undef) == "door");   // no state: the plain one
+    CHECK(oh_icon("oh:classic:light", &dim0) == "lightbulb-outline" && oh_icon("light", &dim55) == "lightbulb-on");
+    CHECK(oh_icon("light", &on) == "lightbulb-on");
+    CHECK(oh_icon("battery", &bat45) == "battery-40");                 // the largest step not above it
+    CHECK(oh_icon("rollershutter", &shut70) == "window-shutter");
+    CHECK(oh_icon("washingmachine_2", &wash) == "washing-machine");
+    CHECK(oh_icon("iconify:mdi:fan-off", nullptr) == "fan-off");       // an MDI icon as it is
+    CHECK(oh_icon("baby_3", nullptr) == "baby-face-outline");          // baby_1 .. _6: one for all
+    CHECK(oh_icon("nosuchicon", &on).empty() && oh_icon("", nullptr).empty());
+    // only steps: a switch ON the top one, OFF the bottom one (an armed alarm is not shown disarmed)
+    const auto off = st("OFF", "OnOff");
+    CHECK(oh_icon("shield", &on) == "shield-check" && oh_icon("shield", &off) == "shield-off-outline");
+    CHECK(oh_icon("dryer", &on) == "tumble-dryer" && oh_icon("batterylevel", &bat45) == "battery-40");   // an alias
+    // a colour's brightness as its number
+    const auto hsb_off = st("120,100,0", "HSB", 0, true);
+    CHECK(oh_icon("light", &hsb_off) == "lightbulb-outline");
+    // "_": only openHAB's families (baby_1 ..); an unknown name stays unknown (the page's icon)
+    CHECK(oh_icon("garden_light", nullptr).empty() && !oh_icon("parents_2_3", nullptr).empty());
+    // MDI: openHAB 4's short form too, only icons the font has
+    CHECK(oh_icon("if:mdi:door-open", nullptr) == "door-open" && oh_icon("iconify:mdi:no-such-icon-x", nullptr).empty());
+
+    // a group's members: their metadata's icon, else their icon in openHAB (by state), else the page's; a fixed row
+    // "icon": "openhab" takes its item's category
+    Callbacks cbo = cb;
+    cbo.members = [](const std::string &group, std::vector<appoh::Member> &out, bool) {
+      if (group != "gOhDoors")
+        return false;
+      appoh::Member a{"Oh_Front", "Front", {}, "Contact", "frontdoor"};
+      appoh::Member b{"Oh_Garage", "Garage", {}, "Contact", "garagedoor"};
+      appoh::Member c{"Oh_Odd", "Odd", {}, "Contact", "myownicon"};
+      appoh::Member d{"Oh_Meta", "Meta", {{"ohpanel", {"", {{"icon", "star"}}}}}, "Contact", "door"};
+      out = {a, b, c, d};
+      return true;
+    };
+    static bool lamp_known = false;   // the lamp's category: fetched (on_options) after the page first shows
+    cbo.category = [](const std::string &item, std::string &out) {
+      if (item != "Oh_Lamp" || !lamp_known)
+        return false;
+      out = "light";
+      return true;
+    };
+    Recorder r;
+    Engine o(r, cbo);
+    o.release_wait(0);
+    CHECK(o.load_design(read("boards/nspanel/nextion/display-manifest-eu.json").c_str(),
+                        read("boards/nspanel/nextion/weather-icons.json").c_str()));
+    set_state("Oh_Front", "OPEN", "OpenClosed");
+    set_state("Oh_Garage", "CLOSED", "OpenClosed");
+    set_state("Oh_Meta", "CLOSED", "OpenClosed");
+    set_state("Oh_Odd", "CLOSED", "OpenClosed");
+    set_state("Oh_Lamp", "ON", "OnOff");
+    o.set_config(R"({"version": 1, "swipe": ["doors", "fixed"], "pages": [
+      {"id": "doors", "type": "entities", "title": "Doors", "group": "gOhDoors", "metadata": "ohpanel", "icon": "lock"},
+      {"id": "fixed", "type": "entities", "title": "Fixed", "rows": [{"item": "Oh_Lamp", "icon": "openhab"}]}]})");
+    int64_t t = 1000;
+    o.idle(t);
+    o.start();
+    o.idle(t += 5000);
+    r.out.clear();
+    o.on_message(loaded("entities"));
+    CHECK(o.current() == "doors");
+    // the members as the group lists them (openHAB's sorted by label): Front, Garage, Odd, Meta
+    CHECK(r.has(std::string("row1_icon.txt=\"") + icon_glyph("door-open") + "\""));   // frontdoor, open
+    CHECK(r.has(std::string("row2_icon.txt=\"") + icon_glyph("garage") + "\""));      // garagedoor, closed
+    CHECK(r.has(std::string("row3_icon.txt=\"") + icon_glyph("lock") + "\""));        // not in the table: the page's
+    CHECK(r.has(std::string("row4_icon.txt=\"") + icon_glyph("star") + "\""));        // its metadata's first
+    set_state("Oh_Front", "CLOSED", "OpenClosed");
+    r.out.clear();
+    o.on_state("Oh_Front");
+    CHECK(r.has(std::string("row1_icon.txt=\"") + icon_glyph("door-closed") + "\""));   // dynamic, as openHAB's
+    o.on_message(event("entities", "swipe", "left"));
+    r.out.clear();
+    o.on_message(loaded("entities"));
+    CHECK(o.current() == "fixed" && !r.has(std::string("row1_icon.txt=\"") + icon_glyph("lightbulb-on") + "\""));
+    lamp_known = true;
+    r.out.clear();
+    o.on_options("Oh_Lamp");   // it has come: the page drawn anew
+    o.on_message(loaded("entities"));
+    CHECK(r.has(std::string("row1_icon.txt=\"") + icon_glyph("lightbulb-on") + "\""));
     if (g_failures) r.dump();
   }
 

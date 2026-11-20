@@ -52,6 +52,7 @@ struct Cached {
   int64_t at = 0;
   std::map<std::string, Metadata> metadata;   // the item's own, by namespace
   std::string label;                          // the item's own ("" without)
+  std::string category;                       // ... its icon in openHAB
 };
 
 /* An item's metadata as openHAB lists it ({"ns": {"value", "config"}}), by namespace. */
@@ -117,7 +118,7 @@ void fetch_item(void *arg) {
   Limits range;
   std::vector<Member> members;
   std::map<std::string, Metadata> own;
-  std::string own_label;
+  std::string own_label, own_category;
   bool ok = false;
   if (cfg.configured()) {
     std::string selector;
@@ -163,11 +164,12 @@ void fetch_item(void *arg) {
           continue;
         const std::string type = text_of(m, "type");
         Member member{name, label.empty() ? name : label, metadata_of(cJSON_GetObjectItem(m, "metadata")),
-                      type == "Group" ? text_of(m, "groupType") : type};
+                      type == "Group" ? text_of(m, "groupType") : type, text_of(m, "category")};
         members.push_back(std::move(member));
       }
       own = metadata_of(cJSON_GetObjectItem(root, "metadata"));
       own_label = item_label(text_of(root, "label").c_str());
+      own_category = text_of(root, "category");
       std::stable_sort(members.begin(), members.end(),
                        [](const Member &a, const Member &b) { return strcasecmp(a.label.c_str(), b.label.c_str()) < 0; });
       ok = root != nullptr;
@@ -197,9 +199,9 @@ void fetch_item(void *arg) {
       moving_changed = moving_items(own) != (it == g_cache.end() ? std::vector<std::string>()
                                                                  : moving_items(it->second.metadata));
       if (it == g_cache.end() || it->second.options != out || !(it->second.limits == range) || regrouped ||
-          it->second.metadata != own || it->second.label != own_label)
+          it->second.metadata != own || it->second.label != own_label || it->second.category != own_category)
         listener = g_listener;   // only news: a page redrawn for nothing would flicker
-      g_cache[*item] = {out, range, members, esp_timer_get_time(), own, own_label};
+      g_cache[*item] = {out, range, members, esp_timer_get_time(), own, own_label, own_category};
     }
   }
   if (ok) {
@@ -306,6 +308,16 @@ bool label(const std::string &item, std::string &out, int max_age_s) {
   const Cached *c = cached_locked(item, old);
   if (c)
     out = c->label;
+  return c != nullptr;
+}
+
+bool category(const std::string &item, std::string &out) {
+  if (item.empty())
+    return false;
+  std::lock_guard<std::mutex> lock(g_mx);
+  const Cached *c = cached_locked(item, false);
+  if (c)
+    out = c->category;
   return c != nullptr;
 }
 

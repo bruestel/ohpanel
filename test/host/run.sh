@@ -28,7 +28,7 @@ python3 tools/gen_display_assets.py --raw test/host/build/icons.bin
 g++ $FLAGS -Icomponents/app_display/include -Icomponents/app_openhab/include -Icomponents/app_config/include \
     -Icomponents/nextion/include -Icomponents/qrcodegen/include -Icomponents/sound/include \
     test/host/engine_test.cpp components/app_display/src/Engine.cpp components/app_display/src/Engine[A-Z]*.cpp \
-    components/app_display/src/Format.cpp components/sound/src/Sound.cpp \
+    components/app_display/src/Format.cpp components/app_display/src/OhIcons.cpp components/sound/src/Sound.cpp \
     components/app_display/src/Logo.cpp components/app_display/src/Cover.cpp \
     components/app_display/src/Icons.cpp components/nextion/src/Protocol.cpp test/host/build/cJSON.o test/host/build/qrcodegen.o \
     -o test/host/build/engine_test
@@ -51,4 +51,5 @@ test/host/build/schema_test
 test/host/build/sound_test
 node test/host/melody_test.js
 python3 tools/check_names.py
+python3 tools/gen_oh_icons.py --check
 python3 test/host/badge_test.py

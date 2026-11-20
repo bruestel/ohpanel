@@ -274,7 +274,7 @@ void Engine::draw_home() {
       // blinking: the icon with the value
       show_text(icon, icon_glyph(!style.icon.empty() ? style.icon.c_str()
                                  : legacy           ? "home-thermometer-outline"
-                                                    : str(v, "icon").c_str()),
+                                                    : icon_name(v, str(v, "icon")).c_str()),
                 style.blink);
       std::string number, unit;
       number_and_unit(v, number, unit, &style);

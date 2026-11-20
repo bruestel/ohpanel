@@ -141,7 +141,11 @@ void Engine::draw_weather(const cJSON *page) {
     txt(c + "_text", str(e, "label"));
     for (const char *part : {"_pic", "_icon", "_value", "_text"})
       vis(c + part, true);
-    bind(e, [this, e, c] { txt(c + "_value", value_of(e)); });
+    bind(e, [this, e, c] {
+      txt(c + "_value", value_of(e));
+      if (str(e, "icon") == "openhab")   // its icon in openHAB: by its state
+        txt(c + "_icon", glyph(e));
+    });
   }
 }
 

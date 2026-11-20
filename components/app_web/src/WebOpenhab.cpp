@@ -194,6 +194,9 @@ esp_err_t get_openhab_options(httpd_req_t *req) {
   // the item's own label (an entity page's row without one of its own shows it)
   if (std::string label; appoh::label(item, label))
     cJSON_AddStringToObject(r, "label", label.c_str());
+  // ... and its icon there (its category: "icon": "openhab")
+  if (std::string category; appoh::category(item, category))
+    cJSON_AddStringToObject(r, "category", category.c_str());
   // the item's range (stateDescription), where openHAB gives one: the light page's colour temperature ends
   appoh::Limits range;
   appoh::limits(item, range);
@@ -230,6 +233,8 @@ esp_err_t get_openhab_options(httpd_req_t *req) {
     cJSON_AddStringToObject(e, "name", m.name.c_str());
     cJSON_AddStringToObject(e, "label", m.label.c_str());
     cJSON_AddStringToObject(e, "type", m.type.c_str());
+    if (!m.category.empty())
+      cJSON_AddStringToObject(e, "category", m.category.c_str());
     add_metadata(e, m.metadata);
     cJSON_AddItemToArray(ml, e);
   }

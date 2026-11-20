@@ -27,6 +27,13 @@ written can be set as well, see [Formatting values](#formatting-values).
   (`ohpanel-equalizer-1` .. `-8`, `ohpanel-equalizer-retro-1` .. `-8` (a hi-fi
   spectrum display with peak hold), `ohpanel-speaker-wave-1` .. `-3`),
   `ohpanel-openhab` and the keypad's code places (`ohpanel-code-empty`, `ohpanel-code-typed`).
+- `"icon": "openhab"` -- on a status icon, a shortcut, a home value row, a fixed entity row, a button
+  tile or a weather card, each with an `item` -- is the item's icon in openHAB (its category, `door`,
+  `light`, `oh:classic:battery`, `iconify:mdi:fan`, `if:mdi:fan`) as one of the panel's, changing
+  with the item's state as openHAB's dynamic icons do (a door open or closed, a battery's level). On a
+  group's page every member without an icon of its own shows its icon in openHAB: the metadata's
+  `icon` first, then openHAB's, then the page's `icon` (also for a category the panel does not know).
+  The table: [openHAB's icons on the panel](openhab-icons.md).
 - `color` is a palette name (`white`, `black`, `red`, `green`, `blue`,
   `yellow`, `brown`, `grey`, `light-grey`, `dark-grey`), one of the theme's
   colours (`theme-accent`, `theme-text`, `theme-dim`, which follow the theme
@@ -457,7 +464,7 @@ tiles, say to see which lights are on and switch them off:
 | Member | | |
 |---|---|---|
 | `group` | item | an openHAB group; its members that are a Switch, Dimmer or Color (or a group of those) become tiles that toggle them, the others are left out; with their labels from openHAB, eight on a sheet (swipe for more, in the swipe row too) |
-| `metadata`, `label` | | name, sort, hide the members and give each an icon of its own as on an entities page (the metadata's value as the name, `order`, `hidden=true`, `icon`), see there |
+| `metadata`, `label` | | name, sort, hide the members and give each an icon of its own as on an entities page (the metadata's value as the name, `order`, `hidden=true`, `icon`), see there; without one a member shows its icon in openHAB (see Conventions) |
 | `icon`, `color`, `value_style` | | apply to every tile |
 | `only_on` | bool | only the members that are on as the page opens (and those whose state is not known yet). A tile switched off stays, grey, until the page opens again, so the tiles do not move under a finger; a light that comes on meanwhile shows then too |
 | `confirm` | `true` or an object | every tile asks before it switches, as a button's `confirm` (also on a page with `buttons`: a button's own `confirm`, `false` too, wins) |
