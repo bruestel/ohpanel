@@ -23,6 +23,9 @@ namespace {
 const char *const TAG = "appoh";
 
 constexpr int kTimeoutMs = 5000;
+/* A picture fetched (a cover, a camera's snapshot): a camera's bridge takes some seconds for a fresh one (3.5 s
+   measured, more over WiFi), and nothing waits on it but the picture's own task. */
+constexpr int kFetchTimeoutMs = 15000;
 
 /* The root document is a few kilobytes; anything far beyond is not openHAB. */
 constexpr size_t kMaxProbeBody = 16 * 1024;
@@ -204,7 +207,7 @@ bool fetch_parts(const std::string &url, size_t limit,
   }
   esp_http_client_config_t hc = {};
   hc.url = full.c_str();
-  hc.timeout_ms = kTimeoutMs;
+  hc.timeout_ms = kFetchTimeoutMs;
   hc.max_redirection_count = 3;
   if (own)
     apply_tls(hc, cfg);
