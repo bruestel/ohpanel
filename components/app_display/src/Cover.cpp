@@ -3,6 +3,11 @@
 #include <algorithm>
 #include <cmath>
 #include <cstring>
+#include <deque>
+
+#ifdef ESP_PLATFORM
+#include <esp_heap_caps.h>
+#endif
 
 namespace appdisplay {
 
@@ -45,19 +50,34 @@ std::vector<uint8_t> blocks(const uint8_t *rgb, int w, int h, int block) {
   return out;
 }
 
-/* The rectangles of one picture (w x h pixels), from the middle outwards. */
-std::vector<Cover::Rect> rects_of(const uint8_t *rgb, int w, int h, int scale, int radius) {
-  Cover out;
+/* Room for a block of `bytes` and some to spare. Built without exceptions, the firmware aborts when an allocation
+   fails: a picture whose rectangles the memory left cannot hold (a camera's snapshot, ten thousands of small ones,
+   beside the picture shown) is refused instead. On the host: always. */
+constexpr size_t kSpare = 32 * 1024;
+bool room_for(size_t bytes) {
+#ifdef ESP_PLATFORM
+  return heap_caps_get_largest_free_block(MALLOC_CAP_8BIT) >= bytes + kSpare;
+#else
+  (void)bytes;
+  return true;
+#endif
+}
+
+/* The rectangles of one picture (w x h pixels), from the middle outwards; none and `ok` false when the memory left
+   cannot hold them. Counted first, then made in one block of their size: no block copied as it grows. */
+std::vector<Cover::Rect> rects_of(const uint8_t *rgb, int w, int h, int scale, int radius, bool &ok) {
   const int width = w * scale, height = h * scale;
 
   // runs of a colour along each row, a run below one of the same place and colour joining it
   struct Run {
-    int x, y, w, h;
+    uint16_t x, y, w, h;
     uint16_t colour;
   };
-  /* The runs of the row above and of this one, by x: two vectors, not a map: a map's nodes are 32 bytes, kept
-     in internal RAM (only larger blocks go to PSRAM), and an 80 px cover's thousands of them took ~80 KB of it. */
-  std::vector<Run> runs;
+  /* The runs in a deque: pieces of 512 bytes, not one block of hundreds of KB copied as it grows (a camera's
+     snapshot has ten thousands). The runs of the row above and of this one, by x: two vectors, not a map: a map's
+     nodes are 32 bytes, kept in internal RAM (only larger blocks go to PSRAM), and an 80 px cover's thousands of them
+     took ~80 KB of it. */
+  std::deque<Run> runs;
   std::vector<size_t> above, here;
   for (int y = 0; y < h; y++) {
     const uint8_t *row = rgb + static_cast<size_t>(y) * w * 3;
@@ -75,7 +95,7 @@ std::vector<Cover::Rect> rects_of(const uint8_t *rgb, int w, int h, int scale, i
         here.push_back(above[a]);
       } else {
         here.push_back(runs.size());
-        runs.push_back({x, y, end - x, 1, c});
+        runs.push_back({static_cast<uint16_t>(x), static_cast<uint16_t>(y), static_cast<uint16_t>(end - x), 1, c});
       }
       x = end;
     }
@@ -93,38 +113,54 @@ std::vector<Cover::Rect> rects_of(const uint8_t *rgb, int w, int h, int scale, i
     if (y >= height - radius) return inset[height - 1 - y];
     return 0;
   };
-  const auto add = [&out](int x, int y, int w, int h, uint16_t c) {
-    if (w > 0 && h > 0)
-      out.rects.push_back({static_cast<uint16_t>(x), static_cast<uint16_t>(y), static_cast<uint16_t>(w),
-                           static_cast<uint16_t>(h), c});
+  // each rectangle of the runs to `add` (x, y, w, h, colour): once counted, once made
+  const auto each = [&](auto &&add) {
+    for (const Run &r : runs) {
+      const int x0 = r.x * scale, x1 = (r.x + r.w) * scale, y0 = r.y * scale, y1 = (r.y + r.h) * scale;
+      // clear of the corners' columns: whole
+      if (x0 >= radius && x1 <= width - radius) {
+        add(x0, y0, x1 - x0, y1 - y0, r.colour);
+        continue;
+      }
+      // the rows of the corners cut to the circle, rows alike together; the rest whole
+      for (int y = y0; y < y1;) {
+        const int in = inset_of(y);
+        int end = y + 1;
+        while (end < y1 && inset_of(end) == in)
+          end++;
+        const int a = std::max(x0, in), b = std::min(x1, width - in);
+        add(a, y, b - a, end - y, r.colour);
+        y = end;
+      }
+    }
   };
-  for (const Run &r : runs) {
-    const int x0 = r.x * scale, x1 = (r.x + r.w) * scale, y0 = r.y * scale, y1 = (r.y + r.h) * scale;
-    // clear of the corners' columns: whole
-    if (x0 >= radius && x1 <= width - radius) {
-      add(x0, y0, x1 - x0, y1 - y0, r.colour);
-      continue;
-    }
-    // the rows of the corners cut to the circle, rows alike together; the rest whole
-    for (int y = y0; y < y1;) {
-      const int in = inset_of(y);
-      int end = y + 1;
-      while (end < y1 && inset_of(end) == in)
-        end++;
-      const int a = std::max(x0, in), b = std::min(x1, width - in);
-      add(a, y, b - a, end - y, r.colour);
-      y = end;
-    }
+  size_t count = 0;
+  each([&count](int, int, int w, int h, uint16_t) {
+    if (w > 0 && h > 0)
+      count++;
+  });
+  std::vector<Cover::Rect> rects;
+  if (!room_for(count * sizeof(Cover::Rect))) {
+    ok = false;
+    return rects;
   }
+  rects.reserve(count);
+  each([&rects](int x, int y, int w, int h, uint16_t c) {
+    if (w > 0 && h > 0)
+      rects.push_back({static_cast<uint16_t>(x), static_cast<uint16_t>(y), static_cast<uint16_t>(w),
+                       static_cast<uint16_t>(h), c});
+  });
+  runs = {};   // its memory back before the sort's
 
   // from the middle outwards: the picture grows from its centre instead of being wiped on from the top
   const auto distance = [width, height](const Cover::Rect &r) {
     const int dx = 2 * r.x + r.w - width, dy = 2 * r.y + r.h - height;   // twice the offset of its centre
     return dx * dx + dy * dy;
   };
-  std::stable_sort(out.rects.begin(), out.rects.end(),
+  // (its buffer asked for without aborting: with none it sorts in place, slower)
+  std::stable_sort(rects.begin(), rects.end(),
                    [&](const Cover::Rect &a, const Cover::Rect &b) { return distance(a) < distance(b); });
-  return out.rects;
+  return rects;
 }
 
 }  // namespace
@@ -141,13 +177,19 @@ Cover picture_rects(const uint8_t *rgb, int w, int h, int scale, int radius, Rev
   out.h = h * scale;
   out.side = std::max(out.w, out.h);
   radius = std::clamp(radius, 0, std::min(out.w, out.h) / 2);
+  bool ok = true;   // false: too many rectangles for the memory left, the picture refused (no rectangles)
   if (reveal == Reveal::Sharpen)   // coarse blocks first, each pass over the one before
     for (const int block : {8, 4}) {
       const std::vector<uint8_t> coarse = blocks(rgb, w, h, block);
-      const std::vector<Cover::Rect> pass = rects_of(coarse.data(), w, h, scale, radius);
+      const std::vector<Cover::Rect> pass = rects_of(coarse.data(), w, h, scale, radius, ok);
+      if (!ok || !room_for((out.rects.size() + pass.size()) * sizeof(Cover::Rect)))
+        return Cover{};
+      out.rects.reserve(out.rects.size() + pass.size());
       out.rects.insert(out.rects.end(), pass.begin(), pass.end());
     }
-  std::vector<Cover::Rect> full = rects_of(rgb, w, h, scale, radius);
+  std::vector<Cover::Rect> full = rects_of(rgb, w, h, scale, radius, ok);
+  if (!ok)
+    return Cover{};
   if (reveal == Reveal::Wipe) {   // row by row from the top, each row from the left
     std::stable_sort(full.begin(), full.end(), [](const Cover::Rect &a, const Cover::Rect &b) {
       return a.y != b.y ? a.y < b.y : a.x < b.x;
@@ -161,7 +203,14 @@ Cover picture_rects(const uint8_t *rgb, int w, int h, int scale, int radius, Rev
       std::swap(full[i - 1], full[seed % i]);
     }
   }
-  out.rects.insert(out.rects.end(), full.begin(), full.end());
+  if (out.rects.empty()) {   // the picture's own block, not a copy of it
+    out.rects = std::move(full);
+  } else {
+    if (!room_for((out.rects.size() + full.size()) * sizeof(Cover::Rect)))
+      return Cover{};
+    out.rects.reserve(out.rects.size() + full.size());
+    out.rects.insert(out.rects.end(), full.begin(), full.end());
+  }
   return out;
 }
 

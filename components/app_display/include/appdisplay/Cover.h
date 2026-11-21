@@ -32,7 +32,8 @@ Reveal reveal_of(const std::string &name);   // unknown or empty: Dissolve
    row by row): each pixel `scale` px large, colours in 5 bits per channel
    (neighbours alike become one rectangle), corners rounded with `radius`
    display px (what lies outside is left out: the box's picture shows
-   there). In the order `reveal` draws them. */
+   there). In the order `reveal` draws them. None (an empty Cover) when the
+   memory left cannot hold them: on the panel the picture is refused. */
 Cover cover_rects(const uint8_t *rgb, int size, int scale, int radius, Reveal reveal = Reveal::Center);
 /* The same for a picture of w x h pixels (the image page's: as wide and high as it is, Engine::draw_image). */
 Cover picture_rects(const uint8_t *rgb, int w, int h, int scale, int radius, Reveal reveal = Reveal::Center);

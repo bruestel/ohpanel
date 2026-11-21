@@ -567,6 +567,11 @@ std::shared_ptr<Cover> load(Request r) {
   const size_t fetched = streaming ? streamed : bytes.size;
   bytes = Chunks{};
   std::shared_ptr<Cover> cover;
+  const auto free_decoded = [&j, &png] {
+    heap_caps_free(j.pixels);
+    j.pixels = nullptr;
+    png.pixels = {};
+  };
   if (why.empty()) {
     const int w = kind.empty() ? j.w : png.w, h = kind.empty() ? j.h : png.h;
     const uint8_t *decoded = kind.empty() ? j.pixels : png.pixels.data();
@@ -574,11 +579,19 @@ std::shared_ptr<Cover> load(Request r) {
       const double f = std::min(static_cast<double>(r.fit_w) / w, static_cast<double>(r.fit_h) / h);
       const int pw = std::clamp(static_cast<int>(std::lround(w * f)), 1, r.fit_w),
                 ph = std::clamp(static_cast<int>(std::lround(h * f)), 1, r.fit_h);
-      const std::vector<uint8_t> pixels = resize(decoded, w, h, pw, ph);
+      std::vector<uint8_t> pixels = resize(decoded, w, h, pw, ph);
+      free_decoded();   // its memory back before the rectangles'
       cover = std::make_shared<Cover>(picture_rects(pixels.data(), pw, ph, r.scale, r.radius, r.reveal));
     } else {
-      const std::vector<uint8_t> pixels = square(decoded, w, h, r.size);
+      std::vector<uint8_t> pixels = square(decoded, w, h, r.size);
+      free_decoded();
       cover = std::make_shared<Cover>(cover_rects(pixels.data(), r.size, r.scale, r.radius, r.reveal));
+    }
+    if (cover->rects.empty()) {   // picture_rects: more rectangles than the memory left holds
+      ESP_LOGW(TAG, "%.80s: %dx%d px, too many rectangles for the memory left (PSRAM largest block %u bytes)",
+               r.source.c_str(), w, h,
+               static_cast<unsigned>(heap_caps_get_largest_free_block(MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)));
+      return nullptr;
     }
     ESP_LOGI(TAG, "%dx%d px%s, %u rectangles, from %u bytes of %.48s", w, h, kind.empty() ? "" : " (PNG)",
              static_cast<unsigned>(cover->rects.size()), static_cast<unsigned>(fetched), r.source.c_str());
