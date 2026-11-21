@@ -466,9 +466,11 @@ dialog.mgallery{width:min(92vw,34rem)}
 .pvarrow:hover:not(:disabled){background:rgba(127,127,127,.15)}
 .pvarrow:disabled{opacity:.3;cursor:default}
 .pvarrow[hidden]{visibility:hidden;display:grid}
-.pv .ed{position:absolute;border:2px dashed rgba(255,255,255,.22);border-radius:.6rem;pointer-events:none;z-index:5}
-.pv .ed.add{border-color:rgba(255,255,255,.3);display:grid;place-items:center}
-.pv .ed.add svg{display:block;fill:rgba(255,255,255,.55)}
+/* the outlines in the theme's text colour (--ed, renderLayout): white on the dark backgrounds, black on White */
+.pv .ed{position:absolute;border:2px dashed color-mix(in srgb,var(--ed,#fff) 22%,transparent);border-radius:.6rem;
+        pointer-events:none;z-index:5}
+.pv .ed.add{border-color:color-mix(in srgb,var(--ed,#fff) 30%,transparent);display:grid;place-items:center}
+.pv .ed.add svg{display:block;fill:color-mix(in srgb,var(--ed,#fff) 55%,transparent)}
 .pv .ed.hover{border-color:rgba(230,74,25,.8)}
 .pv .ed.sel{border:2px solid var(--theme)}
 .pv .ed.drag{border:2px solid var(--theme);background:color-mix(in srgb,var(--theme) 18%,transparent)}
@@ -4690,6 +4692,7 @@ function drawPage(box, cfg, id) {
   const chosen = layout.background && LAYOUT.backgrounds.find(b => b.id === bgId);
   if (chosen) bgPic = chosen.pic;
   box.style.background = LAYOUT.pictures[bgPic] ? 'url(' + LAYOUT.pictures[bgPic] + ')' : '#000';
+  box.style.setProperty('--ed', layout.background ? themeOf(cfg).text : '#fff');   // the edit outlines' colour
   for (const o0 of layout.objects) {
     const want = fill[o0.n] || {};
     if (want.hide) continue;
