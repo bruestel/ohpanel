@@ -157,9 +157,13 @@ std::vector<Cover::Rect> rects_of(const uint8_t *rgb, int w, int h, int scale, i
     const int dx = 2 * r.x + r.w - width, dy = 2 * r.y + r.h - height;   // twice the offset of its centre
     return dx * dx + dy * dy;
   };
-  // (its buffer asked for without aborting: with none it sorts in place, slower)
-  std::stable_sort(rects.begin(), rects.end(),
-                   [&](const Cover::Rect &a, const Cover::Rect &b) { return distance(a) < distance(b); });
+  /* std::sort, in place: stable_sort asks for a buffer of half the rectangles, and on the panel (no exceptions) a
+     buffer it cannot have aborts, nothrow or not. Ties by their place: rectangles never share their top left
+     corner, so the order is the same each time. */
+  std::sort(rects.begin(), rects.end(), [&](const Cover::Rect &a, const Cover::Rect &b) {
+    const int da = distance(a), db = distance(b);
+    return da != db ? da < db : a.y != b.y ? a.y < b.y : a.x < b.x;
+  });
   return rects;
 }
 
@@ -180,6 +184,8 @@ Cover picture_rects(const uint8_t *rgb, int w, int h, int scale, int radius, Rev
   bool ok = true;   // false: too many rectangles for the memory left, the picture refused (no rectangles)
   if (reveal == Reveal::Sharpen)   // coarse blocks first, each pass over the one before
     for (const int block : {8, 4}) {
+      if (!room_for(static_cast<size_t>(w) * h * 3))   // the coarse copy of the picture
+        return Cover{};
       const std::vector<uint8_t> coarse = blocks(rgb, w, h, block);
       const std::vector<Cover::Rect> pass = rects_of(coarse.data(), w, h, scale, radius, ok);
       if (!ok || !room_for((out.rects.size() + pass.size()) * sizeof(Cover::Rect)))
@@ -191,7 +197,7 @@ Cover picture_rects(const uint8_t *rgb, int w, int h, int scale, int radius, Rev
   if (!ok)
     return Cover{};
   if (reveal == Reveal::Wipe) {   // row by row from the top, each row from the left
-    std::stable_sort(full.begin(), full.end(), [](const Cover::Rect &a, const Cover::Rect &b) {
+    std::sort(full.begin(), full.end(), [](const Cover::Rect &a, const Cover::Rect &b) {   // in place (rects_of)
       return a.y != b.y ? a.y < b.y : a.x < b.x;
     });
   } else if (reveal == Reveal::Dissolve) {   // in a random order (the same for the same picture)

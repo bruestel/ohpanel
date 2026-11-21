@@ -39,6 +39,7 @@ const char *const TAG = "cover";
 constexpr size_t kMaxBytes = 400 * 1024;   // a picture held: a data: address's, an Image item's text
 constexpr size_t kMaxStreamBytes = 8 * 1024 * 1024;   // a JPEG's or a PNG's file, decoded as it comes, never held
 constexpr const char *kKeyMark = "#ohpanel:";   // a key's mark after the address (Engine draw_image)
+constexpr size_t kSpareBytes = 32 * 1024;   // left free beside a picture's scaled copy (Cover.cpp room_for: the same)
 constexpr size_t kPool = 3100;             // the decoder's work area (TJpgDec: 3100 bytes at most)
 
 struct Request {
@@ -572,6 +573,14 @@ std::shared_ptr<Cover> load(Request r) {
     j.pixels = nullptr;
     png.pixels = {};
   };
+  // the largest block left (where a picture's buffers go): asked before each, a failed allocation aborts the panel
+  const auto largest = [] { return heap_caps_get_largest_free_block(MALLOC_CAP_8BIT); };
+  const auto refuse = [&](int w, int h, const char *what) {
+    ESP_LOGW(TAG, "%.80s: %dx%d px, %s for the memory left (largest block %u bytes)", r.source.c_str(), w, h, what,
+             static_cast<unsigned>(largest()));
+    heap_caps_free(j.pixels);
+    return std::shared_ptr<Cover>();
+  };
   if (why.empty()) {
     const int w = kind.empty() ? j.w : png.w, h = kind.empty() ? j.h : png.h;
     const uint8_t *decoded = kind.empty() ? j.pixels : png.pixels.data();
@@ -579,20 +588,20 @@ std::shared_ptr<Cover> load(Request r) {
       const double f = std::min(static_cast<double>(r.fit_w) / w, static_cast<double>(r.fit_h) / h);
       const int pw = std::clamp(static_cast<int>(std::lround(w * f)), 1, r.fit_w),
                 ph = std::clamp(static_cast<int>(std::lround(h * f)), 1, r.fit_h);
+      if (largest() < static_cast<size_t>(pw) * ph * 3 + kSpareBytes)   // the scaled copy, beside the decoded one
+        return refuse(w, h, "too large to scale");
       std::vector<uint8_t> pixels = resize(decoded, w, h, pw, ph);
       free_decoded();   // its memory back before the rectangles'
       cover = std::make_shared<Cover>(picture_rects(pixels.data(), pw, ph, r.scale, r.radius, r.reveal));
     } else {
+      if (largest() < static_cast<size_t>(r.size) * r.size * 3 + kSpareBytes)
+        return refuse(w, h, "too large to scale");
       std::vector<uint8_t> pixels = square(decoded, w, h, r.size);
       free_decoded();
       cover = std::make_shared<Cover>(cover_rects(pixels.data(), r.size, r.scale, r.radius, r.reveal));
     }
-    if (cover->rects.empty()) {   // picture_rects: more rectangles than the memory left holds
-      ESP_LOGW(TAG, "%.80s: %dx%d px, too many rectangles for the memory left (PSRAM largest block %u bytes)",
-               r.source.c_str(), w, h,
-               static_cast<unsigned>(heap_caps_get_largest_free_block(MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)));
-      return nullptr;
-    }
+    if (cover->rects.empty())   // picture_rects: more rectangles than the memory left holds
+      return refuse(w, h, "too many rectangles");
     ESP_LOGI(TAG, "%dx%d px%s, %u rectangles, from %u bytes of %.48s", w, h, kind.empty() ? "" : " (PNG)",
              static_cast<unsigned>(cover->rects.size()), static_cast<unsigned>(fetched), r.source.c_str());
   } else {
