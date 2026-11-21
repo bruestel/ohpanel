@@ -466,7 +466,7 @@ dialog.mgallery{width:min(92vw,34rem)}
 .pvarrow:hover:not(:disabled){background:rgba(127,127,127,.15)}
 .pvarrow:disabled{opacity:.3;cursor:default}
 .pvarrow[hidden]{visibility:hidden;display:grid}
-/* the outlines in the theme's text colour (--ed, renderLayout): white on the dark backgrounds, black on White */
+/* the outlines in the theme's text colour (--ed, drawPage): white on the dark backgrounds, black on White */
 .pv .ed{position:absolute;border:2px dashed color-mix(in srgb,var(--ed,#fff) 22%,transparent);border-radius:.6rem;
         pointer-events:none;z-index:5}
 .pv .ed.add{border-color:color-mix(in srgb,var(--ed,#fff) 30%,transparent);display:grid;place-items:center}
@@ -4692,7 +4692,8 @@ function drawPage(box, cfg, id) {
   const chosen = layout.background && LAYOUT.backgrounds.find(b => b.id === bgId);
   if (chosen) bgPic = chosen.pic;
   box.style.background = LAYOUT.pictures[bgPic] ? 'url(' + LAYOUT.pictures[bgPic] + ')' : '#000';
-  box.style.setProperty('--ed', layout.background ? themeOf(cfg).text : '#fff');   // the edit outlines' colour
+  // the edit outlines' colour: the theme's text on its background, white on a page's own picture or on black
+  box.style.setProperty('--ed', layout.background && LAYOUT.pictures[bgPic] ? themeOf(cfg).text : '#fff');
   for (const o0 of layout.objects) {
     const want = fill[o0.n] || {};
     if (want.hide) continue;
