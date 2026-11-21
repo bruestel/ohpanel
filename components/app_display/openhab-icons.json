@@ -45,10 +45,10 @@
   "colorpicker": "palette",
   "colorwheel": "palette",
   "contact": {
-   "": "door",
-   "open": "door-open",
-   "ajar": "door-open",
-   "closed": "door-closed"
+   "": "window-closed-variant",
+   "open": "window-open-variant",
+   "ajar": "window-open-variant",
+   "closed": "window-closed-variant"
   },
   "corridor": "floor-plan",
   "door": {

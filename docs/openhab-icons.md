@@ -58,10 +58,10 @@ not in the table shows the page's icon.
 | `colorlight` | – | `lightbulb-on` |
 | `colorpicker` | – | `palette` |
 | `colorwheel` | – | `palette` |
-| `contact` | – | `door` |
-| `contact` | `open` | `door-open` |
-| `contact` | `ajar` | `door-open` |
-| `contact` | `closed` | `door-closed` |
+| `contact` | – | `window-closed-variant` |
+| `contact` | `open` | `window-open-variant` |
+| `contact` | `ajar` | `window-open-variant` |
+| `contact` | `closed` | `window-closed-variant` |
 | `corridor` | – | `floor-plan` |
 | `door` | – | `door` |
 | `door` | `open` | `door-open` |
