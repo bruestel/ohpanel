@@ -16,18 +16,20 @@ unset WAYLAND_DISPLAY
 
 editor_cleanup() {
     WINEPREFIX="$WINEPREFIX" wineserver -k 2>/dev/null || true
-    [ -n "$XVFB_PID" ] && kill "$XVFB_PID" 2>/dev/null || true
+    WINEPREFIX="$WINEPREFIX" wineserver -w 2>/dev/null || true   # gone for good: an Editor started at once fails otherwise
+    if [ -n "$XVFB_PID" ]; then kill "$XVFB_PID" 2>/dev/null; wait "$XVFB_PID" 2>/dev/null; fi || true   # the display free for the next step
     rm -rf "$WORK"
 }
 trap editor_cleanup EXIT
 
 log() { echo "[$TOOL] $*"; }
 winpath() { printf '%s' "Z:$(printf '%s' "$1" | tr / '\\')"; }
-click() { xdotool mousemove --window "$WINDOW" "$1" "$2" click 1; sleep "${3:-1}"; }
+# a real pointer click: an event sent to a window (`click` chained after `--window`) no longer reaches wine 11
+click() { xdotool mousemove --window "$WINDOW" "$1" "$2"; xdotool click 1; sleep "${3:-1}"; }
 type_text() { xdotool type --delay 20 "$1"; }
-region() { import -window "$WINDOW" png:- 2>/dev/null | magick png:- -crop "$1" +repage -depth 8 "$2" 2>/dev/null; } # <WxH+X+Y> <format:->
+region() { timeout 20 import -window "$WINDOW" png:- 2>/dev/null | magick png:- -crop "$1" +repage -depth 8 "$2" 2>/dev/null; } # <WxH+X+Y> <format:->
 pixel() { region "1x1+$1+$2" txt:- | grep -o -m1 '#[0-9A-F]\{6\}'; }
-screenshot() { import -window "$WINDOW" "$1"; }
+screenshot() { timeout 20 import -window "$WINDOW" "$1"; }
 fail() {
     screenshot "${TARGET%.*}.error.png" 2>/dev/null || true
     echo "[$TOOL] ERROR: $* (screenshot: ${TARGET%.*}.error.png)" >&2
@@ -61,14 +63,16 @@ editor_start() {
     log "Starting Xvfb on $XVFB_DISPLAY"
     Xvfb "$XVFB_DISPLAY" -screen 0 1280x900x24 -nolisten tcp >/dev/null 2>&1 &
     XVFB_PID=$!
-    sleep 1
+    # ready before wine starts: on a display not yet there wine ends at once (the next step started right after one)
+    wait_for "Xvfb" 30 sh -c 'xdotool getdisplaygeometry >/dev/null 2>&1'
     log "Starting Nextion Editor"
     (cd "$EDITOR_DIR" && wine "Nextion Editor.exe" >/dev/null 2>&1 &)
     wait_for "wine desktop" 60 sh -c 'xdotool search --name "^Wine Desktop$" >/dev/null'
     WINDOW="$(xdotool search --name "^Wine Desktop$" | head -1)"
     # the menu bar of the editor replaces the splash screen (teal desktop) once the editor is ready
+    # (its splash checks online for a new version first, which can take minutes)
     editor_ready() { [ "$(pixel 600 38)" = "#BFDBFF" ]; }
-    wait_for "editor startup" 120 editor_ready
+    wait_for "editor startup" 600 editor_ready
     sleep 3
 }
 

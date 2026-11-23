@@ -62,7 +62,7 @@ EXPECTED=$(( $(picture_count "$SOURCE") + COUNT ))
 # again until all are in.
 for round in 1 2 3 4 5 6 7 8 9 10; do
     wait_stable "picture import" 480x180+272+292 8
-    xdotool key Return
+    click 705 451 0.5                           # the message's OK (a Return does not reach it under wine 11)
     sleep 2
     log "Saving"
     before=$(stat -c%Y "$WORK/$NAME.HMI")
@@ -71,6 +71,7 @@ for round in 1 2 3 4 5 6 7 8 9 10; do
     # every 30 s until the file has been written (hundreds of pictures take
     # many minutes).
     for attempt in $(seq 1 40); do
+        click 705 451 1                         # the message's OK, if still open (busy, the Editor ignores clicks)
         click 138 63 2                          # Save
         for _ in $(seq 1 30); do saved && break; sleep 1; done
         saved && break
