@@ -2247,9 +2247,36 @@ function sparkLeave(s, row) {
 
 let relaysSeen = '';   // the relays the preview last drew (redrawn when one switches)
 
+/* The firmware this page came with (the first /info's). Once the panel runs another (updated here, in another tab,
+   by its update check), this page is the old firmware's and would save the configuration by its rules (GitHub #8,
+   forum #174: "none" saved as no touch tone, the new default a click): loaded anew -- not over unsaved panel
+   changes, which a reload would lose: those get a note. An update started here goes on after the reload (the
+   display design offered next: resumeUpdates). */
+let pageVersion = '', pageOldNoted = false;
+function firmwareChanged() {
+  if (typeof panelDirty === 'function' && panelDirty()) {
+    if (pageOldNoted) return;
+    pageOldNoted = true;
+    updateSaveBar();   // the note there, beside the unsaved changes (nothing else writes over it)
+    return;
+  }
+  try { if (UPD && UPD.waiting) sessionStorage.setItem('ohpanelUpdates', '1'); } catch (e) { /* no storage */ }
+  location.reload();
+}
+function resumeUpdates() {
+  let again = false;
+  try {
+    again = sessionStorage.getItem('ohpanelUpdates') === '1';
+    sessionStorage.removeItem('ohpanelUpdates');
+  } catch (e) { /* no storage: the card as usual */ }
+  if (again && info) checkUpdates();
+}
+
 async function refreshInfo() {
   try {
     info = await api('/info');
+    if (!pageVersion) pageVersion = info.version;
+    else if (info.version && info.version !== pageVersion) { firmwareChanged(); if (!pageOldNoted) return; }
     showLock();
     const relays = JSON.stringify(info.relays || null);
     if (relays !== relaysSeen) { relaysSeen = relays; refreshPreview(); }
@@ -2989,7 +3016,9 @@ function updateSaveBar(error) {
   document.querySelector('.navbar').classList.toggle('dirty', dirty || !!error);
   $('saveBar').classList.toggle('err', !!error);
   $('sbText').textContent = error ? 'Not saved: ' + error
-                          : 'Unsaved panel changes' + (XFER_RUNNING ? ' · save once the upload is done' : '');
+                          : 'Unsaved panel changes' + (XFER_RUNNING ? ' · save once the upload is done' : '')
+                            + (pageOldNoted ? ' · the panel now runs OHpanel ' + info.version + ', this page is '
+                               + pageVersion + "'s: save or copy the JSON (Advanced), then reload the page" : '');
   $('sbSave').disabled = XFER_RUNNING;
   $('sbSave').title = XFER_RUNNING ? 'An upload is running: save once it is done' : '';
 }
@@ -11747,12 +11776,14 @@ showTab(hashParts().tab);
 loadSparks();
 // what the page shows first -- the status and the configuration -- before the icon set (266 KB: the panel serves
 // one request at a time, the icons in front would keep the rest waiting)
-Promise.allSettled([
+const firstLoad = Promise.allSettled([
   refreshInfo(),
   // the display's formats (12- or 24-hour clock) for the status page too, not only once the panel page loaded
   // (the panel page asks for it itself: loadPanel)
   hashParts().tab === 'panel' ? null : api('/panel').then(cfg => { if (cfg && !PV.cfg) setDisplay(cfg); }),
-]).then(loadIcons).then(loadLayout);
+]);
+firstLoad.then(loadIcons).then(loadLayout);
+firstLoad.then(resumeUpdates);
 /* every 5 s; every 2 s while the status page shows, whose rows draw what comes in */
 let lastInfo = Date.now();
 setInterval(() => {
