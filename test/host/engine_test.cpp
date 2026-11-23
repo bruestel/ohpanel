@@ -673,6 +673,20 @@ int main(int argc, char **argv) {
     for (int i = 0; i < 40 && e.pending(); i++)
       e.idle(t += 50);
     CHECK(rec.has_prefix("fill "));
+    // left, and shown again after its time: a new picture asked at once, the old one not drawn first (GitHub #10)
+    e.on_message(event("qr", "swipe", "right"));
+    CHECK(e.current() == "home");
+    e.on_message(loaded("home"));
+    e.idle(t += 20000);
+    pictures.clear();
+    e.on_message(event("home", "swipe", "left"));
+    CHECK(e.current() == "cam");
+    rec.out.clear();
+    e.on_message(loaded("qr"));
+    for (int i = 0; i < 10; i++)
+      e.idle(t += 50);
+    CHECK(pictures.size() == 1 && std::get<0>(pictures.back()) == "http://cam/x.jpg#ohpanel:img3" &&
+          !rec.has_prefix("fill "));
     // an Image item: its address from the stream (appoh::rest_state_path), fetched only when it changes
     set_state("CamPic", "/rest/items/CamPic/state?v=0000000000000001", "Raw");
     e.on_message(event("qr", "swipe", "left"));

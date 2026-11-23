@@ -77,9 +77,17 @@ void Engine::draw_image(const cJSON *page) {
     return;
   }
   txt("caption1", "");
+  /* The page just shown (nothing of it drawn yet) and its picture older than "refresh": a new one asked at once
+     instead of the old one drawn first -- a camera's picture takes half a minute to draw, and only then would the
+     refresh count. Not while a newer one is on its way. */
+  const int refresh = image_refresh_s(page);
+  const std::string stored = source + kImageKey + std::to_string(image_gen_);
+  if (refresh > 0 && drawn.empty() && cover_ && cover_->source == stored && cover_asked_ == stored &&
+      now_ms_ - image_loaded_ms_ >= refresh * 1000LL)
+    image_gen_++;
   /* Its key: the address and a mark of this page's (CoverLoad strips it) -- a picture fitted to this page, not the
      media page's square of the same address (they share cover_); a picture fetched again (refresh) a count more. */
-  const std::string key = source + kImageKey + (image_refresh_s(page) > 0 ? std::to_string(image_gen_) : "");
+  const std::string key = source + kImageKey + (refresh > 0 ? std::to_string(image_gen_) : "");
   if (drawn == key)
     return;
   // as the display's settings say (cover_reveal), as the media page's cover -- a picture fetched again too
