@@ -1042,8 +1042,10 @@ tools/station_logo.py logo.jpg --circle --preview logo-preview.png
 
 The days of the forecast, a sheet each: swiped left and right, dots at the
 bottom. A sheet shows the day and its date as the title, the condition's icon,
-the high large with the low under it, and up to six cards of an extra (an
-icon, the value, a small label: wind, rain, UV, ...).
+the high and the low in one line ("↑ 16°  ↓ 11°"; with the condition in words
+the line at the top and the words under it, without them beside the icon's
+middle), and up to six cards of an extra (an icon, the value, a small label:
+wind, rain, UV, ...).
 
 `days` is a list of 1 to 7 days, each:
 

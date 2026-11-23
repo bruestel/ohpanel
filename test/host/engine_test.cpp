@@ -1174,10 +1174,12 @@ int main(int argc, char **argv) {
     rec.out.clear();
     e.on_message(loaded("weather"));
     CHECK(rec.has_prefix("title.txt=\"Heute · "));            // no title of its own: today, then the date
-    // with the condition in words: the high smaller, the low right after it, the condition under them
-    CHECK(rec.has("high_line.txt=\"19°\"") && rec.has("vis high_line,1") && rec.has("vis high,0"));
+    // with the condition in words: the high and the low on the line at the top, each after its arrow, the
+    // condition under them; the line in the middle hidden (forum #173)
+    CHECK(rec.has("high_line.txt=\"19°\"") && rec.has("vis high_line,1") && rec.has("vis line_arrow,1"));
+    CHECK(rec.has("vis high,0") && rec.has("vis high_arrow,0") && rec.has("vis mlow1,0"));
     CHECK(rec.has("condition.txt=\"Light rain\"") && rec.has("vis condition,1"));
-    CHECK(rec.has_prefix("vis low_arrow") && rec.has_prefix("low") && rec.has("vis low_arrow,0") && rec.has("vis low,0"));
+    CHECK(rec.has_prefix("vis low_arrow") && rec.has_prefix("low"));
     {
       const std::string low = rec.with_prefix("low");   // lowK.txt="9°", K the place after "19°"
       CHECK(low.find(".txt=\"9°\"") != std::string::npos && low != "low.txt=\"9°\"");
@@ -1193,7 +1195,9 @@ int main(int argc, char **argv) {
     rec.out.clear();
     e.on_message(loaded("weather"));
     CHECK(rec.has_prefix("title.txt=\"Morgen · ") && rec.has("dots.txt=\"" + small + full + small + "\""));
-    CHECK(rec.has("vis high,1") && rec.has("vis condition,0"));   // no condition that day: the high large, as before
+    // no condition that day: the line in the middle beside the icon, the one at the top hidden
+    CHECK(rec.has("vis high,1") && rec.has("vis high_arrow,1") && rec.has("vis condition,0"));
+    CHECK(rec.has("vis high_line,0") && rec.has_prefix("mlow") && rec.with_prefix("mlow").find(".txt=\"") != std::string::npos);
     e.on_message(event("weather", "swipe", "left"));           // the day after: its weekday
     rec.out.clear();
     e.on_message(loaded("weather"));

@@ -78,46 +78,51 @@ void Engine::draw_weather(const cJSON *page) {
     number_and_unit(ref, number, unit);
     return number.empty() ? number : number + degrees_only(unit);
   };
-  // the temperatures: the high large and the low under it -- or, with the condition in words, the high smaller with
-  // the low right after it (at the place its width needs) and the condition large under them
+  /* The temperatures: the high and the low on one line, the same size, each after its arrow ("↑ 19°  ↓ 9°") -- at
+     the top with the condition in words under it, in the middle beside the icon without (forum #173: a high alone,
+     large, read as the temperature now). The display moves no fields: the design has the line twice, one shown;
+     the low at the place its width needs after the high (weather_line_, as home's). */
   const cJSON *mx = member(d, "max"), *mn = member(d, "min"), *cond = member(d, "condition");
   const auto temps = [this, mx, mn, cond, degrees] {
     const std::string high = mx ? degrees(mx) : "", low = mn ? degrees(mn) : "";
     const std::string words = cond ? value_of(cond) : "";
-    const bool line = !words.empty();
+    struct Line {
+      const char *arrow, *high, *low_arrow, *low;
+    };
+    static constexpr Line kTop{"line_arrow", "high_line", "low_arrow", "low"}, kMid{"high_arrow", "high", "mlow_arrow", "mlow"};
+    const bool top = !words.empty();
+    const Line &on = top ? kTop : kMid, &off = top ? kMid : kTop;
     const int n = std::max(1, weather_line_.n);
     int k = 0;   // the low's place on the line
-    if (line && mn) {
+    if (mn) {
       const int need = weather_line_.high_x + (high.empty() ? 0 : text_width(weather_line_.font, high) + 10);
       k = std::clamp((need - weather_line_.x0 + weather_line_.step - 1) / weather_line_.step + 1, 1, n);
     }
     // the fields going first (hiding repaints the background over them), then those that show
     const auto at = [](const char *part, int j) { return std::string(part) + std::to_string(j); };
-    for (int j = 1; j <= n; j++)
+    vis(off.arrow, false);
+    vis(off.high, false);
+    for (int j = 1; j <= n; j++) {
+      vis(at(off.low_arrow, j), false);
+      vis(at(off.low, j), false);
       if (j != k) {
-        vis(at("low_arrow", j), false);
-        vis(at("low", j), false);
+        vis(at(on.low_arrow, j), false);
+        vis(at(on.low, j), false);
       }
-    if (line) {
-      for (const char *o : {"high", "low_arrow", "low"})
-        vis(o, false);
-      txt("high_line", high);
+    }
+    if (!top)
+      vis("condition", false);
+    txt(on.high, high);
+    vis(on.arrow, mx != nullptr);
+    vis(on.high, mx != nullptr);
+    if (k) {
+      txt(at(on.low, k), low);
+      vis(at(on.low_arrow, k), true);
+      vis(at(on.low, k), true);
+    }
+    if (top) {
       txt("condition", words);
-      vis("high_line", mx != nullptr);
       vis("condition", true);
-      if (k) {
-        txt(at("low", k), low);
-        vis(at("low_arrow", k), true);
-        vis(at("low", k), true);
-      }
-    } else {
-      for (const char *o : {"high_line", "condition"})
-        vis(o, false);
-      txt("high", high);
-      txt("low", low);
-      vis("high", mx != nullptr);
-      vis("low_arrow", mn != nullptr);
-      vis("low", mn != nullptr);
     }
   };
   for (const cJSON *ref : {mx, mn, cond})

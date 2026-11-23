@@ -249,9 +249,7 @@
    "background": true,
    "crop": [
     "title",
-    "high",
-    "low_arrow",
-    "low",
+    "line_arrow",
     "high_line",
     "low_arrow1",
     "low1",
@@ -265,6 +263,24 @@
     "low5",
     "low_arrow6",
     "low6",
+    "low_arrow7",
+    "low7",
+    "high_arrow",
+    "high",
+    "mlow_arrow1",
+    "mlow1",
+    "mlow_arrow2",
+    "mlow2",
+    "mlow_arrow3",
+    "mlow3",
+    "mlow_arrow4",
+    "mlow4",
+    "mlow_arrow5",
+    "mlow5",
+    "mlow_arrow6",
+    "mlow6",
+    "mlow_arrow7",
+    "mlow7",
     "condition",
     "dots",
     "busy1",
@@ -3668,50 +3684,85 @@
     260,
     40
    ],
-   "high": [
-    5,
-    180,
-    15
-   ],
-   "low": [
-    3,
-    152,
-    24
-   ],
    "high_line": [
     4,
     100,
     12
    ],
    "low1": [
-    3,
-    80,
-    13
+    4,
+    98,
+    12
    ],
    "low2": [
-    3,
-    80,
-    13
+    4,
+    92,
+    12
    ],
    "low3": [
-    3,
-    80,
-    13
+    4,
+    86,
+    12
    ],
    "low4": [
-    3,
+    4,
     80,
-    13
+    12
    ],
    "low5": [
-    3,
-    80,
-    13
+    4,
+    74,
+    12
    ],
    "low6": [
-    3,
+    4,
+    68,
+    12
+   ],
+   "low7": [
+    4,
+    62,
+    12
+   ],
+   "high": [
+    4,
+    100,
+    12
+   ],
+   "mlow1": [
+    4,
+    98,
+    12
+   ],
+   "mlow2": [
+    4,
+    92,
+    12
+   ],
+   "mlow3": [
+    4,
+    86,
+    12
+   ],
+   "mlow4": [
+    4,
     80,
-    13
+    12
+   ],
+   "mlow5": [
+    4,
+    74,
+    12
+   ],
+   "mlow6": [
+    4,
+    68,
+    12
+   ],
+   "mlow7": [
+    4,
+    62,
+    12
    ],
    "condition": [
     3,
@@ -15179,11 +15230,11 @@
   "font": 2
  },
  "weather_line": {
-  "x0": 172,
-  "step": 7,
-  "n": 6,
+  "x0": 184,
+  "step": 6,
+  "n": 7,
   "font": 4,
-  "high_x": 128
+  "high_x": 154
  },
  "boxes": {
   "buttons": {
@@ -15987,9 +16038,7 @@
    "swipe_tm",
    "title",
    "weather_pic",
-   "high",
-   "low_arrow",
-   "low",
+   "line_arrow",
    "high_line",
    "low_arrow1",
    "low1",
@@ -16003,6 +16052,24 @@
    "low5",
    "low_arrow6",
    "low6",
+   "low_arrow7",
+   "low7",
+   "high_arrow",
+   "high",
+   "mlow_arrow1",
+   "mlow1",
+   "mlow_arrow2",
+   "mlow2",
+   "mlow_arrow3",
+   "mlow3",
+   "mlow_arrow4",
+   "mlow4",
+   "mlow_arrow5",
+   "mlow5",
+   "mlow_arrow6",
+   "mlow6",
+   "mlow_arrow7",
+   "mlow7",
    "condition",
    "chip1_pic",
    "chip1_icon",
@@ -16769,5 +16836,5 @@
    "busy_tm"
   ]
  },
- "design": "a1f17978"
+ "design": "066ad3d2"
 }

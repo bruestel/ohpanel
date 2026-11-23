@@ -140,16 +140,19 @@ SHORTCUT, SHORTCUT_STEP = 35, 47
 SHORTCUTS = [(RIGHT + 1 - SHORTCUT - k * SHORTCUT_STEP, y) for y in (243, 290, 337) for k in reversed(range(4))]
 
 
-# The weather page: the icon left, the high large beside it, the low under that -- or the high smaller with the
-# low after it and the condition across the page under them --; six cards of an extra in two columns; the dots.
+# The weather page: the icon left, the high and the low beside it, the condition across the page under them; six
+# cards of an extra in two columns; the dots.
 WEATHER_PAGE = (MARGIN + 4, 44, 100, 100)
-WEATHER_HIGH = (128, 46, 180, 58)
-WEATHER_LOW_ARROW = (128, 102, 26, 34)
-WEATHER_LOW = (156, 102, 152, 34)
-WEATHER_LINE_HIGH = (128, 48, 100, 46)
-WEATHER_LINE_LOW_X0, WEATHER_LINE_STEP, WEATHER_LINE_STEPS = 172, 7, 6
-WEATHER_LINE_LOW_Y, WEATHER_LINE_LOW_H = 56, 38
-WEATHER_LINE_LOW_W = 80
+# the high and the low on one line beside the icon, in its middle ("↑ 16°  ↓ 11°"), the condition across the page
+# under it: both lines at the same height (the firmware shows the one of the condition); the smaller arrows (icons24),
+# so that "100°  75°" fits the 180 px beside the icon.
+WEATHER_LINE_TOP_Y, WEATHER_LINE_MID_Y, WEATHER_LINE_H = 71, 71, 46
+WEATHER_LINE_ARROW_X, WEATHER_LINE_ARROW_W, WEATHER_LINE_ARROW_FONT = 128, 26, 7   # icons24
+WEATHER_LINE_HIGH_X, WEATHER_LINE_HIGH_W = 154, 100
+# the low's arrow at 184..220 (after a high of up to "102°"), its field at least 62 px wide: up to "102°" too
+WEATHER_LINE_LOW_X0, WEATHER_LINE_STEP, WEATHER_LINE_STEPS = 184, 6, 7
+WEATHER_LINE_LOW_MIN_W = 60
+WEATHER_LINE_RIGHT = VISIBLE_W - MARGIN
 WEATHER_CONDITION = (MARGIN, 150, VISIBLE_W - 2 * MARGIN, 36)
 WEATHER_CHIP_W, WEATHER_CHIP_H, WEATHER_CHIP_RADIUS = (VISIBLE_W - 2 * MARGIN - 8) // 2, 60, 10   # 144 x 60
 WEATHER_CHIPS = [(MARGIN + c * (WEATHER_CHIP_W + 8), 200 + r * (WEATHER_CHIP_H + 10)) for r in range(3) for c in range(2)]

@@ -179,20 +179,20 @@ SHORTCUTS = [(HOME_RIGHT + 1 - SHORTCUT - k * SHORTCUT_STEP, y) for y in (172, 2
 
 # The weather page (page type "weather", the days of the forecast as sheets):
 # the day and its date as the title; the icon left (boards/nspanel/nextion/assets/
-# weather pictures, 100x100), the high large beside it, the low under it with
-# its arrow, the condition in words under that; below, six cards of an extra (wind, rain, ...): an icon, the value,
+# weather pictures, 100x100), the high and the low beside it, the condition in
+# words under them; below, six cards of an extra (wind, rain, ...): an icon, the value,
 # a small label; the sheets' dots at the bottom.
 WEATHER_PAGE = (MARGIN + 4, 46, 100, 100)    # x, y, w, h of the icon's picture
-WEATHER_HIGH = (128, 48, 330, 58)            # the high, font 5 (48 px)
-WEATHER_LOW_ARROW = (128, 104, 26, 34)       # the low's arrow (24 px icon font) and the low, font 3, beside it
-WEATHER_LOW = (156, 104, 300, 34)
-# with the condition in words: the high a size smaller with the low right after it on one line ("16°  ↓ 11°"), the
-# condition large under them. The display moves no fields: the low and its arrow wait at WEATHER_LINE_STEPS places
-# after the high, the firmware shows the one its width needs (as home's low and high).
-WEATHER_LINE_HIGH = (128, 50, 150, 46)        # font 4 (36 px), bottom-aligned
-WEATHER_LINE_LOW_X0, WEATHER_LINE_STEP, WEATHER_LINE_STEPS = 172, 10, 10   # where the low's arrow may start
-WEATHER_LINE_LOW_Y, WEATHER_LINE_LOW_H = 58, 38
-WEATHER_LINE_LOW_W = 110
+# the high and the low on one line, the same size, each after its arrow ("↑ 16°  ↓ 11°"): with the condition in
+# words at the top, the condition under it; without, in the middle beside the icon. The display moves no fields: a
+# line at each height, the firmware shows one; the low and its arrow wait at WEATHER_LINE_STEPS places after the
+# high, the firmware shows the one its width needs (as home's low and high).
+WEATHER_LINE_TOP_Y, WEATHER_LINE_MID_Y, WEATHER_LINE_H = 50, 73, 46   # font 4 (36 px), bottom-aligned
+WEATHER_LINE_ARROW_X, WEATHER_LINE_ARROW_W, WEATHER_LINE_ARROW_FONT = 128, 32, 8   # icons32
+WEATHER_LINE_HIGH_X, WEATHER_LINE_HIGH_W = 160, 120
+WEATHER_LINE_LOW_X0, WEATHER_LINE_STEP, WEATHER_LINE_STEPS = 200, 6, 10   # where the low's arrow may start
+WEATHER_LINE_LOW_MIN_W = 70                 # the low's field at least, at its last place
+WEATHER_LINE_RIGHT = VISIBLE_W - MARGIN                   # the low reaches no further
 WEATHER_CONDITION = (128, 102, 340, 36)      # font 3 (26 px)
 WEATHER_CHIP_W, WEATHER_CHIP_H, WEATHER_CHIP_RADIUS = 146, 56, 10
 WEATHER_CHIPS = [(MARGIN + c * (WEATHER_CHIP_W + 9), 166 + r * (WEATHER_CHIP_H + 8)) for r in range(2) for c in range(3)]

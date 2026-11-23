@@ -527,27 +527,30 @@ def weather_page(p: Project) -> None:
     """The days of the forecast (page type "weather", boards/nspanel/nextion/layout.py
     WEATHER_*), a sheet each (swiped left and right, dots at the bottom): the
     day and its date as the title, the icon (a picture per background), the
-    high large beside it and the low with its arrow under it -- or, with the
-    condition in words, the high smaller with the low right after it and the
-    condition large under them --, six cards of an
-    extra -- an icon, the value, a small label -- on their pictures."""
+    high and the low beside it on one line, the same size, each after its
+    arrow -- at the top with the condition in words under them, in the middle
+    beside the icon without --, six cards of an extra -- an icon, the value, a
+    small label -- on their pictures."""
     page = new_page(p, "weather", touch=True)
     title(page)
     pics = PICTURES["weather_page"]
     picture(page, "weather_pic", layout.WEATHER_PAGE, pics[sorted(pics)[0]])
-    text(page, "high", layout.WEATHER_HIGH, 5, ycen=1, maxl=12)
-    # Material Design Icons arrow-down-thin, as on home
-    text(page, "low_arrow", layout.WEATHER_LOW_ARROW, ICON_FONT, xcen=1, maxl=10, pco=LIGHT_GREY, txt=bytes.fromhex("EFA6B2"))
-    text(page, "low", layout.WEATHER_LOW, TEXT_FONT, ycen=1, maxl=12, pco=LIGHT_GREY)
-    # with the condition: the high smaller, the low after it (a place per width), the condition under them
-    text(page, "high_line", layout.WEATHER_LINE_HIGH, 4, ycen=2, maxl=12)
-    for k in range(1, layout.WEATHER_LINE_STEPS + 1):
-        x = layout.WEATHER_LINE_LOW_X0 + (k - 1) * layout.WEATHER_LINE_STEP
-        text(page, f"low_arrow{k}", (x, layout.WEATHER_LINE_LOW_Y + 4, 26, layout.WEATHER_LINE_LOW_H - 4), ICON_FONT,
-             xcen=1, ycen=2, maxl=10, pco=LIGHT_GREY, txt=bytes.fromhex("EFA6B2"))
-        text(page, f"low{k}", (x + 26, layout.WEATHER_LINE_LOW_Y, layout.WEATHER_LINE_LOW_W, layout.WEATHER_LINE_LOW_H),
-             TEXT_FONT, ycen=2,
-             maxl=12, pco=LIGHT_GREY)
+    # the line twice (the display moves no fields): at the top ("line_arrow", "high_line", "low_arrowK", "lowK"),
+    # in the middle ("high_arrow", "high", "mlow_arrowK", "mlowK"); Material Design Icons arrow-up-thin and
+    # arrow-down-thin, as on home; the low and its arrow at a place per the high's width, as home's
+    ax, aw, af = layout.WEATHER_LINE_ARROW_X, layout.WEATHER_LINE_ARROW_W, layout.WEATHER_LINE_ARROW_FONT
+    hx, hw, lh = layout.WEATHER_LINE_HIGH_X, layout.WEATHER_LINE_HIGH_W, layout.WEATHER_LINE_H
+    for y, arrow, high, low_arrow, low in ((layout.WEATHER_LINE_TOP_Y, "line_arrow", "high_line", "low_arrow", "low"),
+                                           (layout.WEATHER_LINE_MID_Y, "high_arrow", "high", "mlow_arrow", "mlow")):
+        text(page, arrow, (ax, y + 4, aw, lh - 4), af, xcen=1, ycen=2, maxl=10, txt=bytes.fromhex("EFA6B1"))
+        text(page, high, (hx, y, hw, lh), 4, ycen=2, maxl=12)
+        for k in range(1, layout.WEATHER_LINE_STEPS + 1):
+            x = layout.WEATHER_LINE_LOW_X0 + (k - 1) * layout.WEATHER_LINE_STEP
+            text(page, f"{low_arrow}{k}", (x, y + 4, aw, lh - 4), af, xcen=1, ycen=2, maxl=10, pco=LIGHT_GREY,
+                 txt=bytes.fromhex("EFA6B2"))
+            w = min(120, layout.WEATHER_LINE_RIGHT - (x + aw))
+            assert w >= layout.WEATHER_LINE_LOW_MIN_W, "the low's field too narrow at place %d" % k
+            text(page, f"{low}{k}", (x + aw, y, w, lh), 4, ycen=2, maxl=12, pco=LIGHT_GREY)
     text(page, "condition", layout.WEATHER_CONDITION, TEXT_FONT, ycen=1, maxl=48)
     w, h = layout.WEATHER_CHIP_W, layout.WEATHER_CHIP_H
     for k, (x, y) in enumerate(layout.WEATHER_CHIPS, start=1):
@@ -1311,8 +1314,8 @@ THEME_COLOURS = {
              **{f"low{k}": "th_dim" for k in range(1, layout.RANGE_STEPS + 1)},
              **{f"outdoor_u{k}": "th_dim" for k in range(1, layout.OUTDOOR_UNIT_STEPS + 1)},
              **{f"{row}_u{k}": "th_dim" for row in ("row1", "row2") for k in range(1, layout.VALUE_UNIT_STEPS + 1)}},
-    "weather": {"low": "th_dim", "low_arrow": "th_dim",   # the high leads
-                **{f"{part}{k}": "th_dim" for part in ("low", "low_arrow") for k in range(1, layout.WEATHER_LINE_STEPS + 1)}},
+    "weather": {**{f"{part}{k}": "th_dim" for part in ("low", "low_arrow", "mlow", "mlow_arrow")   # the high leads
+                   for k in range(1, layout.WEATHER_LINE_STEPS + 1)}},
     "qr": {"caption1": "th_text", "caption2": "th_text"},
     "home_clock": {"date": "th_dim"},
 }
@@ -1778,7 +1781,7 @@ def main():
     # the weather page's low after the high (Engine::draw_weather): where its places start, a step apart, how many;
     # the high's font and where it starts
     m["weather_line"] = {"x0": layout.WEATHER_LINE_LOW_X0, "step": layout.WEATHER_LINE_STEP,
-                         "n": layout.WEATHER_LINE_STEPS, "font": 4, "high_x": layout.WEATHER_LINE_HIGH[0]}
+                         "n": layout.WEATHER_LINE_STEPS, "font": 4, "high_x": layout.WEATHER_LINE_HIGH_X}
     m["boxes"] = drawn_boxes(p)
     # the badge fonts' pieces by name: how wide each is (Engine::draw_entities makes a list's badges as wide as its widest)
     m["badges"] = {str(f): own_icons.badge_font_widths(fonts.FONTS[f][1]) for f in (fonts.BADGE_FONT, fonts.BADGE_FONT_SMALL)}

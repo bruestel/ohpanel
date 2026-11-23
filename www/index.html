@@ -4115,30 +4115,32 @@ function fillWeather(page) {
                            : undefined;   // (one day: the row's page dots, drawPage)
   f.weather_pic = d.icon ? {pic: weatherPic(d.icon)} : {hide: true};
   const deg = ref => { if (!ref) return ''; const [num, unit] = numberUnit(ref); return num === '' ? '' : num + (unit.startsWith('°') ? '°' : unit ? ' ' + unit : ''); };
-  // the high large and the low under it; with the condition in words the high smaller, the low right after it (the
-  // place its width needs, as Engine::draw_weather) and the condition large under them
+  // the high and the low on one line, the same size, each after its arrow: at the top with the condition in words
+  // under them, in the middle beside the icon without (the design has both lines; Engine::draw_weather: the low at
+  // the place its width needs after the high)
   const words = d.condition ? shown(d.condition) : '';
   const objs = (LAYOUT.pages.weather || {}).objects || [];
-  const places = objs.filter(o => /^low_arrow\d+$/.test(o.n)).sort((a, b) => a.x - b.x);
-  for (const o of places) { f[o.n] = {hide: true}; f['low' + o.n.slice(9)] = {hide: true}; }
-  if (words) {
-    f.high = {hide: true}; f.low = {hide: true}; f.low_arrow = {hide: true};
-    const hl = objs.find(o => o.n === 'high_line') || {x: 128, f: 4};
-    f.high_line = d.max ? {text: deg(d.max)} : {hide: true};
-    f.condition = {text: words};
-    if (d.min) {
-      const w = d.max ? (textWidth(deg(d.max), hl.f) || 0) + 10 : 0;
-      const at = places.find(o => o.x >= hl.x + w) || places[places.length - 1];
-      if (at) {
-        f[at.n] = {icon: 'arrow-down-thin', color: THEME.dim};
-        f['low' + at.n.slice(9)] = {text: deg(d.min), color: THEME.dim};
-      }
+  const top = !!words;
+  const on = top ? {arrow: 'line_arrow', high: 'high_line', la: 'low_arrow', low: 'low'}
+                 : {arrow: 'high_arrow', high: 'high', la: 'mlow_arrow', low: 'mlow'};
+  const off = top ? {arrow: 'high_arrow', high: 'high', la: 'mlow_arrow', low: 'mlow'}
+                  : {arrow: 'line_arrow', high: 'high_line', la: 'low_arrow', low: 'low'};
+  const placesOf = la => objs.filter(o => new RegExp('^' + la + '\\d+$').test(o.n)).sort((a, b) => a.x - b.x);
+  for (const set of [on, off])
+    for (const o of placesOf(set.la)) { f[o.n] = {hide: true}; f[set.low + o.n.slice(set.la.length)] = {hide: true}; }
+  f[off.arrow] = {hide: true}; f[off.high] = {hide: true};
+  f[on.high] = d.max ? {text: deg(d.max)} : {hide: true};
+  f[on.arrow] = d.max ? {icon: 'arrow-up-thin', color: THEME.text} : {hide: true};
+  f.condition = top ? {text: words} : {hide: true};
+  if (d.min) {
+    const hl = objs.find(o => o.n === on.high) || {x: 160, f: 4};
+    const places = placesOf(on.la);
+    const w = d.max ? (textWidth(deg(d.max), hl.f) || 0) + 10 : 0;
+    const at = places.find(o => o.x >= hl.x + w) || places[places.length - 1];
+    if (at) {
+      f[at.n] = {icon: 'arrow-down-thin', color: THEME.dim};
+      f[on.low + at.n.slice(on.la.length)] = {text: deg(d.min), color: THEME.dim};
     }
-  } else {
-    f.high_line = {hide: true}; f.condition = {hide: true};
-    f.high = d.max ? {text: deg(d.max)} : {hide: true};
-    f.low = d.min ? {text: deg(d.min), color: THEME.dim} : {hide: true};
-    f.low_arrow = d.min ? {icon: 'arrow-down-thin', color: THEME.dim} : {hide: true};   // the design's glyph
   }
   const bg = PALETTE['dark-grey'];
   for (let k = 0; k < 6; k++) {

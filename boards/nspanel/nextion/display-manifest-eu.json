@@ -265,9 +265,7 @@
    "background": true,
    "crop": [
     "title",
-    "high",
-    "low_arrow",
-    "low",
+    "line_arrow",
     "high_line",
     "low_arrow1",
     "low1",
@@ -289,6 +287,28 @@
     "low9",
     "low_arrow10",
     "low10",
+    "high_arrow",
+    "high",
+    "mlow_arrow1",
+    "mlow1",
+    "mlow_arrow2",
+    "mlow2",
+    "mlow_arrow3",
+    "mlow3",
+    "mlow_arrow4",
+    "mlow4",
+    "mlow_arrow5",
+    "mlow5",
+    "mlow_arrow6",
+    "mlow6",
+    "mlow_arrow7",
+    "mlow7",
+    "mlow_arrow8",
+    "mlow8",
+    "mlow_arrow9",
+    "mlow9",
+    "mlow_arrow10",
+    "mlow10",
     "condition",
     "dots",
     "busy1",
@@ -3776,70 +3796,115 @@
     300,
     46
    ],
-   "high": [
-    5,
-    300,
-    25
-   ],
-   "low": [
-    3,
-    270,
-    42
-   ],
    "high_line": [
     4,
-    150,
-    17
+    120,
+    13
    ],
    "low1": [
-    3,
-    110,
-    17
+    4,
+    120,
+    13
    ],
    "low2": [
-    3,
-    110,
-    17
+    4,
+    120,
+    13
    ],
    "low3": [
-    3,
-    110,
-    17
+    4,
+    120,
+    13
    ],
    "low4": [
-    3,
-    110,
-    17
+    4,
+    120,
+    13
    ],
    "low5": [
-    3,
-    110,
-    17
+    4,
+    120,
+    13
    ],
    "low6": [
-    3,
-    110,
-    17
+    4,
+    120,
+    13
    ],
    "low7": [
-    3,
-    110,
-    17
+    4,
+    120,
+    13
    ],
    "low8": [
-    3,
-    110,
-    17
+    4,
+    120,
+    13
    ],
    "low9": [
-    3,
-    110,
-    17
+    4,
+    120,
+    13
    ],
    "low10": [
-    3,
-    110,
-    17
+    4,
+    120,
+    13
+   ],
+   "high": [
+    4,
+    120,
+    13
+   ],
+   "mlow1": [
+    4,
+    120,
+    13
+   ],
+   "mlow2": [
+    4,
+    120,
+    13
+   ],
+   "mlow3": [
+    4,
+    120,
+    13
+   ],
+   "mlow4": [
+    4,
+    120,
+    13
+   ],
+   "mlow5": [
+    4,
+    120,
+    13
+   ],
+   "mlow6": [
+    4,
+    120,
+    13
+   ],
+   "mlow7": [
+    4,
+    120,
+    13
+   ],
+   "mlow8": [
+    4,
+    120,
+    13
+   ],
+   "mlow9": [
+    4,
+    120,
+    13
+   ],
+   "mlow10": [
+    4,
+    120,
+    13
    ],
    "condition": [
     3,
@@ -15307,11 +15372,11 @@
   "font": 2
  },
  "weather_line": {
-  "x0": 172,
-  "step": 10,
+  "x0": 200,
+  "step": 6,
   "n": 10,
   "font": 4,
-  "high_x": 128
+  "high_x": 160
  },
  "boxes": {
   "buttons": {
@@ -16131,9 +16196,7 @@
    "swipe_tm",
    "title",
    "weather_pic",
-   "high",
-   "low_arrow",
-   "low",
+   "line_arrow",
    "high_line",
    "low_arrow1",
    "low1",
@@ -16155,6 +16218,28 @@
    "low9",
    "low_arrow10",
    "low10",
+   "high_arrow",
+   "high",
+   "mlow_arrow1",
+   "mlow1",
+   "mlow_arrow2",
+   "mlow2",
+   "mlow_arrow3",
+   "mlow3",
+   "mlow_arrow4",
+   "mlow4",
+   "mlow_arrow5",
+   "mlow5",
+   "mlow_arrow6",
+   "mlow6",
+   "mlow_arrow7",
+   "mlow7",
+   "mlow_arrow8",
+   "mlow8",
+   "mlow_arrow9",
+   "mlow9",
+   "mlow_arrow10",
+   "mlow10",
    "condition",
    "chip1_pic",
    "chip1_icon",
@@ -16929,5 +17014,5 @@
    "busy_tm"
   ]
  },
- "design": "9ed453be"
+ "design": "bfac3ba0"
 }
