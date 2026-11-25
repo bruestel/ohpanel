@@ -103,7 +103,8 @@ click *Connect*, choose the adapter's port and *Install OHpanel*. Tick *Erase de
 for the second command, put the panel back into the bootloader: power off, IO0 on ground, power on.
 
 When it is written: take the wire off IO0, power the panel off and on (unplug the adapter and plug it in again).
-It starts OHpanel. Disconnect the adapter, close the case and put the panel back on the wall.
+It starts OHpanel, however if the display is not connected it will keep rebooting.
+Disconnect the adapter, close the case and put the panel back on the wall.
 
 ## Join your WiFi
 
