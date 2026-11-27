@@ -466,6 +466,7 @@ int main(int argc, char **argv) {
     e.on_message(event("home", "short1", "release"));
     CHECK(e.current() == "guest-wifi");
     e.on_message(event("guest-wifi", "close", "release"));
+    e.on_message(loaded("home"));   // home's states bound again once it has loaded
     set_state("Battery_Power", "7 W", "Quantity", nullptr, 7, true);
     rec.out.clear();
     e.on_state("Battery_Power");
@@ -4558,7 +4559,7 @@ int main(int argc, char **argv) {
       // only the weather block drawn again, not the page (home's "vis 255,1" would show what its hiding, not sent
       // again, hid: empty fields over the values and the relays' labels)
       CHECK(!r.has_prefix("page ") && !r.has("vis 255,1") && r.has("vis weather_pic,1"));
-      CHECK(r.has("outdoor.txt=\"17°\"") && r.has_suffix_of("high", "\"19°\""));
+      CHECK(r.has("outdoor.txt=\"17°\"") && r.has_suffix_of("low", "\"19°\""));   // the high first, in the field named low
       CHECK(r.has(pic_cmd("weather_pic", "aurora", "weather_home", "partly-cloudy-day-rain")));
       if (g_failures) r.dump();
     }
@@ -4760,7 +4761,7 @@ int main(int argc, char **argv) {
     r.out.clear();
     w.idle(t += 1000);
     CHECK(!r.has_prefix("page ") && !r.has("vis 255,1"));
-    CHECK(r.has_suffix_of("high", "\"23°\"") && r.has(pic_cmd("weather_pic", "aurora", "weather_home", "cloudy")));
+    CHECK(r.has_suffix_of("low", "\"23°\"") && r.has(pic_cmd("weather_pic", "aurora", "weather_home", "cloudy")));
     CHECK(!r.has("outdoor.txt=\"17°\""));   // no "now": no temperature
     // no icon set given: the default one (OpenWeatherMap's ids); below zero rounded as C rounds
     w.set_config(R"({"version": 1, "home": {"weather_feed": {"item": "Wx"}, "weather_page": "wx"},
