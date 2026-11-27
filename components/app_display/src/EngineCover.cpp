@@ -97,12 +97,22 @@ int Engine::cover_style_index(const std::string &style) {
 /* The page's look: its own "style", "reverse", "presets" -- else the item's metadata in the page's namespace
    ("metadata", default "cover": style, reverse, presets "Sun=70, Air=85") -- else a shutter, no presets. */
 Engine::CoverLook Engine::cover_look(const cJSON *page) const {
+  // a group page: the group's own metadata (its presets, for the whole group)
+  return cover_look(page, member(page, "group") ? str(page, "group") : cover_item(page));
+}
+
+/* The cover of a cover page: its item, or the first of a pair (a design without the page of two shows that one). */
+std::string Engine::cover_item(const cJSON *page) const {
+  return member(page, "pair") ? pair_item(page, 0) : str(page, "item");
+}
+
+/* The page's look for one of its items (a pair's: each its own metadata, the page's style for both). */
+Engine::CoverLook Engine::cover_look(const cJSON *page, const std::string &item) const {
   CoverLook l;
   std::map<std::string, appoh::Metadata> md;
   const std::string ns = str(page, "metadata", "cover");
   const appoh::Metadata *m = nullptr;
-  // a group page: the group's own metadata (its presets, for the whole group)
-  if (cb_.metadata && cb_.metadata(str(page, "item", str(page, "group")), md, false) && md.count(ns))
+  if (cb_.metadata && cb_.metadata(item, md, false) && md.count(ns))
     m = &md.at(ns);
   const auto conf = [&](const char *key) -> std::string {
     if (!m)
@@ -302,9 +312,13 @@ void Engine::draw_cover(const cJSON *page) {
     draw_covers(page);
     return;
   }
-  if (!group_asked_ && cb_.metadata && !str(page, "item").empty()) {   // the metadata asked afresh as the page opens
-    std::map<std::string, appoh::Metadata> md;                         // (openHAB tells nobody when it changes)
-    cb_.metadata(str(page, "item"), md, true);
+  if (shown_ == "cover2") {
+    draw_cover2(page);
+    return;
+  }
+  if (!group_asked_ && cb_.metadata && !cover_item(page).empty()) {   // the metadata asked afresh as the page opens
+    std::map<std::string, appoh::Metadata> md;                        // (openHAB tells nobody when it changes)
+    cb_.metadata(cover_item(page), md, true);
     group_asked_ = true;
   }
   const CoverLook look = cover_look(page);
@@ -326,20 +340,15 @@ void Engine::draw_cover(const cJSON *page) {
     vis(n + "_hs", k < static_cast<int>(look.presets.size()));
   }
   bind(page, [this, page] { cover_refresh(page); });
+  if (member(page, "pair") && !cover_item(page).empty())   // a pair on a design without its page: the first
+    bindings_.push_back({cover_item(page), [this, page] { cover_refresh(page); }});
   if (!look.moving.empty())   // the page's "moving", else its item's metadata's
     bindings_.push_back({look.moving, [this, page] { cover_refresh(page); }});
 }
 
-/* What the cover's item (and its "moving" item) says now: the position, the state in words, which way it
-   moves (the tile of that way lit), the drawing, the preset it is at -- not while the finger sets it. */
-void Engine::cover_refresh(const cJSON *page) {
-  const CoverLook look = cover_look(page);
-  const int si = cover_style_index(look.style);
-  const std::string item = str(page, "item");
-  const Texts &t = settings_.texts;
-  const bool dragging = cover_drag_.live(now_ms_);
-  int closed = cover_settled(item, look.reverse);
-  // which way it moves: the "moving" item (UP / DOWN / STOP, the item's terms), else the position changing
+/* Which way a cover moves as shown (+1 closing, -1 opening, 0 still), `closed` as shown: the "moving" item (UP / DOWN /
+   STOP, the item's terms), else the position changing. */
+int Engine::cover_way(const CoverLook &look, const std::string &item, int closed) {
   Motion &m = motion_[item];
   if (closed >= 0) {
     const int p = look.reverse ? 100 - closed : closed;
@@ -370,10 +379,24 @@ void Engine::cover_refresh(const cJSON *page) {
     if ((p == 0 && dir < 0) || (p == 100 && dir > 0) || ((p == 0 || p == 100) && now_ms_ >= m.commanded_until_ms))
       dir = 0;
   }
-  const int shown_dir = look.reverse ? -dir : dir;   // +1: closing as shown
+  return look.reverse ? -dir : dir;
+}
+
+/* What the cover's item (and its "moving" item) says now: the position, the state in words, which way it
+   moves (the tile of that way lit), the drawing, the preset it is at -- not while the finger sets it. */
+void Engine::cover_refresh(const cJSON *page) {
+  const CoverLook look = cover_look(page);
+  const int si = cover_style_index(look.style);
+  const std::string item = cover_item(page);
+  const Texts &t = settings_.texts;
+  const bool dragging = cover_drag_.live(now_ms_);
+  int closed = cover_settled(item, look.reverse);
+  const int shown_dir = cover_way(look, item, closed);   // +1: closing as shown
   if (dragging)
     closed = cover_drag_.value;
-  txt("value", closed >= 0 ? std::to_string(closed) + " %" : value_of(page));
+  txt("value", closed >= 0                ? std::to_string(closed) + " %"
+              : member(page, "pair") ? t.undefined   // a pair's first (a design without the page of two)
+                                     : value_of(page));
   txt("state", closed < 0 ? "" : t.cover_words[si][closed == 0 ? 0 : 1]);
   if (shown_dir && !dragging) {
     txt("moving_icon", icon_glyph(cover_icon(si, shown_dir > 0 ? 2 : 0, look.from_left)));
@@ -471,7 +494,7 @@ void Engine::cover_event(const cJSON *page, const std::string &component) {
   for (const char *n : {"btn1_icon", "btn2_icon", "btn3_icon"})
     sent_.erase(std::string(n) + ".pco");
   const CoverLook look = cover_look(page);
-  const std::string item = str(page, "item");
+  const std::string item = cover_item(page);
   const cJSON *cmds = member(page, "commands");
   if (component == "open_cover" || component == "stop_cover" || component == "close_cover") {
     cover_command(item, component.substr(0, component.find('_')), look.reverse, cmds, look.command_item);
@@ -514,13 +537,13 @@ void Engine::cover_value(const std::string &name, int value) {
   if (!done && (!flag(page, "live", false) || now_ms_ - light_sent_ms_ < kSlideMs))
     return;
   light_sent_ms_ = now_ms_;
-  cover_command(str(page, "item"), std::to_string(closed), look.reverse, member(page, "commands"));
+  cover_command(cover_item(page), std::to_string(closed), look.reverse, member(page, "commands"));
 }
 
 /* Seen moving a while ago, and no more: the page shows it standing. */
 void Engine::cover_tick() {
   const cJSON *page = current_ == "home" ? nullptr : page_config(current_);
-  if (!page || (shown_ != "cover" && shown_ != "covers"))
+  if (!page || (shown_ != "cover" && shown_ != "covers" && shown_ != "cover2"))
     return;
   for (auto it = button_lit_.begin(); it != button_lit_.end();)   // a group page's button lit a while: back
     if (now_ms_ >= it->second) {
@@ -541,9 +564,13 @@ void Engine::cover_tick() {
     preset_tapped_.clear();
     draw_cover_presets(page);
   }
+  if (shown_ == "cover2") {
+    cover2_tick(page);
+    return;
+  }
   if (shown_ != "cover")
     return;
-  Motion &m = motion_[str(page, "item")];
+  Motion &m = motion_[cover_item(page)];
   if (m.dir && m.until_ms && now_ms_ >= m.until_ms) {
     m.dir = 0;
     m.until_ms = 0;
@@ -557,6 +584,218 @@ void Engine::cover_tick() {
     cover_drag_.clear();
     cover_refresh(page);
   }
+}
+
+
+// --------------------------------------------------------- two covers --
+//
+// boards/nspanel/nextion/ohpanel_hmi.py cover2_page, layout.py COVER2_*: a cover page with "pair" (two of {item,
+// label?}): both drawn side by side, each set by a finger on it; three pills -- the first, both, the second --
+// choose what up / stop / down move, both when the page opens.
+
+std::string Engine::pair_item(const cJSON *page, int k) const {
+  const cJSON *pair = member(page, "pair");
+  return str(cJSON_IsArray(pair) ? cJSON_GetArrayItem(pair, k) : nullptr, "item");
+}
+
+/* A pill's name for one of the pair: its "label", else its item's metadata's, else its label in openHAB. */
+std::string Engine::pair_label(const cJSON *page, int k) const {
+  const cJSON *pair = member(page, "pair");
+  const std::string own = str(cJSON_IsArray(pair) ? cJSON_GetArrayItem(pair, k) : nullptr, "label");
+  if (!own.empty())
+    return own;
+  const std::string item = pair_item(page, k);
+  if (const std::string md = cover_look(page, item).label; !md.empty())
+    return md;
+  std::string label;
+  if (cb_.label && cb_.label(item, label, 3600) && !label.empty())
+    return label;
+  return k == 0 ? "1" : "2";
+}
+
+void Engine::draw_cover2(const cJSON *page) {
+  if (!group_asked_ && cb_.metadata) {   // the metadata asked afresh as the page opens (openHAB tells nobody)
+    std::map<std::string, appoh::Metadata> md;
+    for (int k = 0; k < 2; k++)
+      if (!pair_item(page, k).empty())
+        cb_.metadata(pair_item(page, k), md, true);
+    group_asked_ = true;
+  }
+  const CoverLook look = cover_look(page, pair_item(page, 0)), other = cover_look(page, pair_item(page, 1));
+  cover_drawn_key_ = cover_look_key(look) + "|" + cover_look_key(other);
+  txt("title", str(page, "title"));
+  // the buttons' arrows: the style both have, else the page's (up / down for a shutter)
+  const bool same = look.style == other.style && look.from_left == other.from_left;
+  const int si = cover_style_index(same ? look.style : str(page, "style"));
+  const bool from_left = same ? look.from_left : str(page, "from") == "left";
+  for (int k = 0; k < 3; k++) {
+    const std::string n = "btn" + std::to_string(k + 1);
+    txt(n + "_icon", icon_glyph(cover_icon(si, k, from_left)));
+    for (const char *part : {"_icon", "_hs"})
+      vis(n + part, true);
+    vis("pick" + std::to_string(k + 1) + "_hs", true);
+  }
+  for (int k = 0; k < 2; k++) {
+    const std::string item = pair_item(page, k);
+    vis("value" + std::to_string(k + 1), true);
+    vis("draw" + std::to_string(k + 1) + "_hs", true);
+    if (item.empty())
+      continue;
+    bindings_.push_back({item, [this, page] { cover2_refresh(page); }});
+    if (const std::string moving = cover_look(page, item).moving; !moving.empty())
+      bindings_.push_back({moving, [this, page] { cover2_refresh(page); }});
+  }
+  cover2_refresh(page);
+}
+
+/* Both covers as their items say (or the finger sets one): the positions, the drawings, the pills (the one chosen
+   in the accent), the buttons (the way the chosen ones move lit). */
+void Engine::cover2_refresh(const cJSON *page) {
+  const auto pg = boxes_.find("cover2");
+  if (pg == boxes_.end())
+    return;
+  int way_up = 0, way_down = 0;
+  for (int k = 0; k < 2; k++) {
+    const std::string item = pair_item(page, k), n = std::to_string(k + 1);
+    const CoverLook look = cover_look(page, item);
+    int closed = cover_settled(item, look.reverse);
+    const int way = cover_way(look, item, closed);
+    if (cover2_pick_ == 1 || cover2_pick_ == 2 * k) {
+      way_up |= way < 0;
+      way_down |= way > 0;
+    }
+    if (cover_drag_.live(now_ms_) && cover2_held_ == k)
+      closed = cover_drag_.value;
+    txt("value" + n, closed >= 0 ? std::to_string(closed) + " %" : settings_.texts.undefined);
+    if (pg->second.count("draw" + n + "_hs") && !flag(page, "hide_slider")) {
+      const Box &bx = pg->second.at("draw" + n + "_hs");
+      const std::string key = look.style + "|" + std::to_string(closed) + "|" + std::to_string(theme_.accent) +
+                              (look.from_left ? "|l" : "");
+      if (drawn_["cover2_art" + n] != key) {
+        drawn_["cover2_art" + n] = key;
+        draw_cover_art(bx.x, bx.y, bx.w, bx.h, look.style, closed < 0 ? 0 : closed, -1, look.from_left);
+      }
+    }
+  }
+  for (int k = 0; k < 3; k++) {   // the pills: the first, both, the second
+    const std::string n = "pick" + std::to_string(k + 1);
+    if (!pg->second.count(n + "_hs"))
+      continue;
+    const bool at = cover2_pick_ == k;
+    const int colour = at ? theme_.accent : theme_.tile, ink = at ? kWhite : theme_.tile_dim;
+    const Box &bx = pg->second.at(n + "_hs");
+    const std::string label =
+        shorten(2, k == 1 ? settings_.texts.cover_both : pair_label(page, k / 2), bx.w - 12, false);
+    const std::string key = std::to_string(colour) + "|" + label;
+    if (drawn_["cover2_" + n] == key)
+      continue;
+    drawn_["cover2_" + n] = key;
+    pill(bx, colour, ink, label);
+  }
+  for (int k = 0; k < 3; k++) {   // the buttons, the one of the way the chosen ones move lit (as on the cover page)
+    const std::string n = "btn" + std::to_string(k + 1);
+    const bool lit = (k == 0 && way_up) || (k == 2 && way_down);
+    const int bg = lit ? theme_.tile_on : theme_.tile;
+    const std::string key = std::to_string(bg) + (lit ? "+" : "-");
+    if (pg->second.count(n + "_hs") && drawn_["cover2_" + n] != key) {
+      drawn_["cover2_" + n] = key;
+      const Box &bx = pg->second.at(n + "_hs");
+      rounded(bx, 12, bg);
+      num(n + "_icon", "bco", bg);
+      send("ref " + n + "_icon");
+      if (lit && theme_.ring)
+        draw_ring(bx, 10);
+    }
+    num(n + "_icon", "pco", lit ? lit_icon(theme_.accent) : theme_.dim);
+  }
+}
+
+void Engine::cover2_event(const cJSON *page, const std::string &component) {
+  for (const char *n : {"btn1_icon", "btn2_icon", "btn3_icon"})   // a touch coloured it on the display itself
+    sent_.erase(std::string(n) + ".pco");
+  if (component.size() == 5 && component.rfind("pick", 0) == 0 && component[4] >= '1' && component[4] <= '3') {
+    cover2_pick_ = component[4] - '1';
+  } else if (component == "open_cover" || component == "stop_cover" || component == "close_cover") {
+    const cJSON *cmds = member(page, "commands");
+    for (int k = 0; k < 2; k++)
+      if (cover2_pick_ == 1 || cover2_pick_ == 2 * k) {
+        const std::string item = pair_item(page, k);
+        const CoverLook look = cover_look(page, item);
+        cover_command(item, component.substr(0, component.find('_')), look.reverse, cmds, look.command_item);
+      }
+  }
+  cover2_refresh(page);
+}
+
+/* The finger on one of the drawings ("cdrw") or let go ("cdru"): the one it came down on (a finger moving off it
+   still sets that one), read as on the cover page. */
+void Engine::cover2_value(const std::string &name, int value) {
+  const cJSON *page = current_ == "home" ? nullptr : page_config(current_);
+  const auto pg = boxes_.find("cover2");
+  if (!page || pg == boxes_.end() || (name != "cdrw" && name != "cdru"))
+    return;
+  const int px = value / 1000, py = value % 1000;
+  if (!cover_drag_.live(now_ms_) || cover2_dragging_ < 0) {   // came down: on which
+    cover2_dragging_ = -1;
+    for (int k = 0; k < 2; k++)
+      if (const auto it = pg->second.find("draw" + std::to_string(k + 1) + "_hs"); it != pg->second.end()) {
+        const Box &b = it->second;
+        if (px >= b.x - 8 && px < b.x + b.w + 8 && py >= b.y - 8 && py < b.y + b.h + 8)
+          cover2_dragging_ = k;
+      }
+    if (cover2_dragging_ < 0)
+      return;
+  }
+  const int k = cover2_dragging_;
+  cover2_held_ = k;   // shown as the finger sets it, after it let go too (the hold)
+  const auto it = pg->second.find("draw" + std::to_string(k + 1) + "_hs");
+  if (it == pg->second.end())
+    return;
+  const Box &b = it->second;
+  const std::string item = pair_item(page, k);
+  const CoverLook look = cover_look(page, item);
+  double share;
+  if (look.style == "curtain")
+    share = 1 - std::fabs(px - (b.x + b.w / 2.0)) / (b.w / 2.0);
+  else if (look.style == "gate")
+    share = (look.from_left ? px - b.x : b.x + b.w - px) / static_cast<double>(b.w);
+  else if (look.style == "awning")
+    share = (py - b.y - 12) / static_cast<double>(b.h - 12);
+  else
+    share = (py - b.y) / static_cast<double>(b.h);
+  int closed = static_cast<int>(std::lround(std::clamp(share, 0.0, 1.0) * 100));
+  if (closed <= 3) closed = 0;   // the ends within reach of a finger
+  if (closed >= 97) closed = 100;
+  cover_drag_.hold(closed, now_ms_, kCoverDragHoldMs);
+  cover2_refresh(page);
+  const bool done = name == "cdru";
+  if (done)
+    cover2_dragging_ = -2;   // let go: the next touch finds its drawing anew (cover2_held_ keeps this one shown)
+  if (!done && (!flag(page, "live", false) || now_ms_ - light_sent_ms_ < kSlideMs))
+    return;
+  light_sent_ms_ = now_ms_;
+  cover_command(item, std::to_string(closed), look.reverse, member(page, "commands"));
+}
+
+/* The page of two covers a while on: moving no more, the drag over. */
+void Engine::cover2_tick(const cJSON *page) {
+  bool again = false;
+  for (int k = 0; k < 2; k++) {
+    Motion &m = motion_[pair_item(page, k)];
+    if (m.dir && m.until_ms && now_ms_ >= m.until_ms) {
+      m.dir = 0;
+      m.until_ms = 0;
+      again = true;
+    }
+  }
+  if (cover_drag_.due(now_ms_)) {
+    cover_drag_.clear();
+    cover2_dragging_ = -1;
+    cover2_held_ = -1;
+    again = true;
+  }
+  if (again)
+    cover2_refresh(page);
 }
 
 

@@ -770,13 +770,14 @@ page (or `ask` left on as well: the page then opens with the newest).
 ### `cover`
 
 A roller shutter, a blind, an awning, a curtain, a garage door, a gate: one
-(`item`) or a group's members as rows (`group`).
+(`item`), two side by side (`pair`) or a group's members as rows (`group`).
 
 | Key | Value | |
 |---|---|---|
 | `item` | a Rollershutter (or Dimmer) item | the cover |
 | `title` | text | optional with `item`: without it the item's metadata's `label` |
 | `group` | a Group item | instead of `item`: its members as rows |
+| `pair` | two `{"item", "label"?}` | instead of `item`: two covers side by side, see below |
 | `style` | `shutter` (default), `screen`, `awning`, `curtain`, `garage`, `gate` | how it is drawn, its words and its arrows |
 | `reverse` | bool | the item's 0 % is closed / extended (most are the other way round: 0 % open, retracted) |
 | `from` | `right` (default), `left` | a gate: the side it comes in from |
@@ -800,6 +801,21 @@ the position; a grip in the accent colour marks the moving edge; a jump of
 more than 10 points (a binding echoing the command, a device telling its
 target first) shows only once it has lasted 2.5 s, and 1 % / 99 % count as the
 end.
+
+**Two covers.** With `pair` the page shows two covers side by side, the left
+and the right window of a room, each drawn large with its position over it; a
+finger on one sets that one. Three pills at the top choose what up / stop /
+down move: the left one, both (as the page opens) or the right one. A pill's
+name is the entry's `label`, else the item's metadata's `label`, else its label
+in openHAB. `style`, `reverse`, `from`, `live` and the words of `commands` are
+for both; each cover's own style, `moving` and `command_item` come from its
+metadata (`presets`, `moving` and `commands.item` go without `pair`). Needs the
+display design of 0.28.0; an older one shows the left cover alone.
+
+```json
+{"id": "living-blinds", "type": "cover", "title": "Living room",
+ "pair": [{"item": "Blind_Living_Left", "label": "Left"}, {"item": "Blind_Living_Right", "label": "Right"}]}
+```
 
 **Metadata.** What the page leaves out comes from the item's metadata in the
 namespace `cover` (or `metadata`; the web interface's form shows what it finds there): `label` (the

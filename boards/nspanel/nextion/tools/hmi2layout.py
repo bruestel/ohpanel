@@ -36,7 +36,7 @@ from hmidiff import parse_page  # noqa: E402
 from hmipatch import Project  # noqa: E402
 
 # The pages the configuration fills; one template per page type.
-PAGES = ["home", "home_clock", "buttons", "entities", "entities_cards", "entities_rows", "cover", "covers", "light", "system",
+PAGES = ["home", "home_clock", "buttons", "entities", "entities_cards", "entities_rows", "cover", "covers", "cover2", "light", "system",
          "media", "weather", "qr", "settings", "thermostat", "keypad"]
 
 # Object types that draw something: text, scrolling text, button, picture,

@@ -3297,6 +3297,58 @@ int main(int argc, char **argv) {
     e.set_config(read("test/host/data/office.json"));
   }
 
+  {  // two covers side by side ("pair"): the pills choose what up / stop / down move (both as the page opens), a
+     // finger on a drawing sets that cover -- the one it came down on
+    cJSON *doc = cJSON_Parse(read("test/host/data/office.json").c_str());
+    cJSON_AddItemToArray(cJSON_GetObjectItem(doc, "pages"), cJSON_Parse(R"({"id": "pair", "type": "cover",
+        "title": "Living", "pair": [{"item": "Blind_L", "label": "Left"}, {"item": "Blind_R"}]})"));
+    cJSON *lights = nullptr;
+    for (cJSON *pg = cJSON_GetObjectItem(doc, "pages")->child; pg; pg = pg->next)
+      if (std::string(cJSON_GetStringValue(cJSON_GetObjectItem(pg, "id"))) == "lights")
+        lights = pg;
+    cJSON_ReplaceItemInArray(cJSON_GetObjectItem(lights, "buttons"), 0,
+                             cJSON_Parse(R"({"label": "Living", "icon": "blinds", "open": "pair"})"));
+    char *text = cJSON_PrintUnformatted(doc);
+    e.set_config(text);
+    cJSON_free(text);
+    cJSON_Delete(doc);
+    set_state("Blind_L", "30", "Percent", nullptr, 30, true);
+    set_state("Blind_R", "70", "Percent", nullptr, 70, true);
+    e.on_message(loaded("home"));
+    e.on_message(event("home", "swipe", "left"));
+    e.on_message(loaded("buttons"));
+    rec.out.clear();
+    e.on_message(event("buttons", "tile1", "release"));
+    CHECK(e.current() == "pair");
+    CHECK(rec.has(page_cmd("cover2")));                                  // the design's page of two
+    e.on_message(loaded("cover2"));
+    CHECK(rec.has("value1.txt=\"30 %\"") && rec.has("value2.txt=\"70 %\""));
+    commands.clear();
+    e.on_message(event("cover2", "close_cover", "release"));          // both
+    CHECK(commands.size() == 2 && commands[0] == std::make_pair(std::string("Blind_L"), std::string("DOWN")) &&
+          commands[1] == std::make_pair(std::string("Blind_R"), std::string("DOWN")));
+    e.on_message(event("cover2", "pick3", "release"));               // the right one only
+    commands.clear();
+    e.on_message(event("cover2", "open_cover", "release"));
+    CHECK(commands.size() == 1 && commands[0] == std::make_pair(std::string("Blind_R"), std::string("UP")));
+    commands.clear();
+    e.on_message(value("cdrw", 80 * 1000 + 219));                    // a finger on the left drawing, half way down
+    CHECK(commands.empty());                                         // shown only
+    e.on_message(value("cdrw", 200 * 1000 + 219));                   // moving off it: still the left one
+    e.on_message(value("cdru", 200 * 1000 + 219));
+    CHECK(commands.size() == 1 && commands[0].first == "Blind_L");
+    e.on_message(event("cover2", "close", "release"));
+    e.on_message(loaded("buttons"));
+    e.on_message(event("buttons", "tile1", "release"));               // opened again: both chosen
+    e.on_message(loaded("cover2"));
+    commands.clear();
+    e.on_message(event("cover2", "stop_cover", "release"));
+    CHECK(commands.size() == 2);
+    e.on_message(event("cover2", "close", "release"));
+    e.on_message(loaded("buttons"));
+    e.set_config(read("test/host/data/office.json"));
+  }
+
   {  // a separate command item ("commands": "item"): up / stop / down go there, its words as they read (also
      // reversed), the position to the item; on a group page each member's metadata names its own
     cJSON *doc = cJSON_Parse(read("test/host/data/office.json").c_str());

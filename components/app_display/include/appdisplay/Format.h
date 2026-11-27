@@ -56,6 +56,7 @@ struct Texts {
      closing; and the cover group page's row for the whole group. */
   std::array<std::array<std::string, 4>, 6> cover_words;
   std::string cover_all;
+  std::string cover_both;          // the page of two covers: the pill between them
   /* The thermostat page: before its target, and what it does (heating, cooling). */
   std::string thermostat_target, heating, cooling;
   /* The keypad page's messages: the code sent, not accepted (the state did not follow), a button wanting a code. */

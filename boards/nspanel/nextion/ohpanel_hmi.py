@@ -775,6 +775,33 @@ def cover_page(p: Project) -> None:
     on_load(page, loaded(page) + ["vis 255,0", "vis title,1", "vis close_hs,1", "vis close,1"])
 
 
+def cover2_page(p: Project) -> None:
+    """The page of two covers (boards/nspanel/nextion/layout.py COVER2_*; Engine::draw_cover2): three pills at the top
+    -- the first cover, both, the second; the firmware draws them with their labels, a touch area on each -- choose
+    what up / stop / down move; each cover's position over its drawing, drawn by the firmware in its style. A touch
+    on a drawing, and the finger moving, report where ("cdrw": x * 1000 + y) and where it was let go ("cdru") as on
+    the cover page: the firmware tells the two apart by where the finger came down."""
+    page = new_page(p, "cover2", touch=True)
+    title(page)
+    for k, box in enumerate(layout.COVER2_PICKS, start=1):
+        hotspot(page, f"pick{k}_hs", box, event("cover2", f"pick{k}", "release"))
+    for k, box in enumerate(layout.COVER2_VALUES, start=1):
+        text(page, f"value{k}", box, 4, xcen=1, maxl=8)
+    where = ["sys2=tch0*1000", "sys2+=tch1", "printh 91", 'prints "cdrw",0', "printh 00", "prints sys2,0",
+             "printh FF FF FF"]
+    timer(page, "draw_tm", WHEEL_TICK_MS, ["if(tch0>0)", "{"] + ["  " + l for l in where] + ["}"])
+    let_go = ["draw_tm.en=0", "printh 91", 'prints "cdru",0', "printh 00", "prints sys2,0", "printh FF FF FF"]
+    for k, box in enumerate(layout.COVER2_DRAWS, start=1):
+        hotspot(page, f"draw{k}_hs", box, let_go, where + ["draw_tm.en=1"])
+    for k, (x, y, w, h) in enumerate(layout.COVER2_BUTTONS, start=1):
+        icon(page, f"btn{k}_icon", x + w / 2, y + h / 2, ICON_FONT_LARGE, pco=LIGHT_GREY, bco=TILE_OFF_565)
+        hotspot(page, f"btn{k}_hs", (x, y, w, h),
+                event("cover2", ("open_cover", "stop_cover", "close_cover")[k - 1], "release"),
+                [f"btn{k}_icon.pco=th_accent"])
+    close(page)
+    on_load(page, loaded(page) + ["vis 255,0", "vis title,1", "vis close_hs,1", "vis close,1"])
+
+
 def covers_page(p: Project) -> None:
     """The cover group page (boards/nspanel/nextion/layout.py COVERS_*; Engine::draw_covers): the whole group at
     the top ("all", taller, larger buttons), four members a sheet under it -- three, when the group has presets:
@@ -1397,7 +1424,7 @@ def fixed_colours(p: Project) -> int:
 # Engine::render), the timer shows the dots and lights them up one after the
 # other: the panel does not answer.
 BUSY_PAGES = ("home", "weather", "buttons", "entities", "entities_cards", "entities_rows", "qr", "light", "cover", "covers", "media",
-              "settings", "system", "thermostat", "home_clock")
+              "settings", "system", "thermostat", "home_clock", "cover2")
 BUSY_DELAY_MS = 800   # page changes take 120 to 650 ms (measured): no flicker on a normal one
 BUSY_STEP_MS = 300
 BUSY_GLYPH = "EEA79D"  # Material Design Icons "circle-medium" (boards/nspanel/nextion/icons.json), UTF-8
@@ -1565,6 +1592,7 @@ def drawn_boxes(p: Project) -> dict:
             "light": {"wheel_pic": box("light", "wheel_pic"), "swatch": box("light", "swatch"), **sides},
             "qr": {"qr_area": box("qr", "qr_area")},
             "cover": {n: box("cover", n) for n in ["draw_hs"] + [f"{b}{k}_hs" for b in ("btn", "preset") for k in range(1, 4)]},
+            "cover2": {n: box("cover2", n) for n in ["draw1_hs", "draw2_hs"] + [f"{b}{k}_hs" for b in ("btn", "pick") for k in range(1, 4)]},
             "covers": {f"{n}{part}": box("covers", f"{n}{part}")
                        for n in ["all"] + [f"row{r}" for r in range(1, layout.COVERS_ROWS_N + 1)]
                        for part in ("_mini", "_hs", "_up_hs", "_stop_hs", "_down_hs")} |
@@ -1718,7 +1746,7 @@ def own_fonts(p: Project) -> None:
 
 # Every page in the order of their ids (the firmware goes by the manifest).
 PAGES = ("home", "weather", "settings", "boot", "blank", "light", "cover", "buttons", "volpage", "qr", "entities",
-         "media", "system", "netpage", "covers", "thermostat", "splash", "keypad", "home_clock")   # entities: entities_cards and entities_rows come with it
+         "media", "system", "netpage", "covers", "thermostat", "splash", "keypad", "home_clock", "cover2")   # entities: entities_cards and entities_rows come with it
 
 
 def main():
@@ -1744,7 +1772,7 @@ def main():
                 "cover": cover_page, "buttons": buttons_page, "volpage": volume_page,
                 "qr": qr_page, "entities": entities_pages, "media": media_page, "system": system_page,
                 "netpage": network_page, "covers": covers_page, "thermostat": thermostat_page, "splash": splash_page,
-                "keypad": keypad_page, "home_clock": home_clock_page}
+                "keypad": keypad_page, "home_clock": home_clock_page, "cover2": cover2_page}
     for name in PAGES:
         builders[name](p)
     p.remove_pages([SEED_PAGE])

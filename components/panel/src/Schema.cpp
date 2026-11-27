@@ -1136,17 +1136,45 @@ class Validator {
       if (has_rows && (cJSON_GetObjectItem(pg, "icon") || cJSON_GetObjectItem(pg, "value_style")))
         fail(p, "\"icon\", \"color\", \"value_style\" and \"format\" on the page are for \"group\"; give them per row");
     } else if (t == "cover") {
-      allowed(pg, p, {"id", "type", "title", "icon", "item", "group", "hide_slider", "commands", "live", "style",
+      allowed(pg, p, {"id", "type", "title", "icon", "item", "group", "pair", "hide_slider", "commands", "live", "style",
                       "reverse", "presets", "moving", "metadata", "from"});
       one_of(pg, "from", p, {"left", "right"});   // a gate: the side it comes in from (default right)
       boolean(pg, "live", p);   // the position sent while the finger moves on the drawing (default: when let go)
       icon(pg, p);
-      // one cover ("item") or a group's members as rows ("group", its own commands to all of them)
+      // one cover ("item"), a group's members as rows ("group", its own commands to all of them) or two side by side
+      // ("pair": [{item, label?}, {item, label?}], the pills choosing what the buttons move)
       const cJSON *item = cJSON_GetObjectItem(pg, "item"), *group = cJSON_GetObjectItem(pg, "group");
-      if (!item && !group)
-        fail(member(p, "item"), "is required (or \"group\")");
+      const cJSON *pair = cJSON_GetObjectItem(pg, "pair");
+      if (!item && !group && !pair)
+        fail(member(p, "item"), "is required (or \"group\" or \"pair\")");
+      else if (pair && (item || group))
+        fail(member(p, "pair"), "goes without \"item\" or \"group\"");
       else if (item && group)
         fail(member(p, "group"), "goes without \"item\"");
+      if (pair) {
+        const std::string pp = member(p, "pair");
+        if (!cJSON_IsArray(pair) || cJSON_GetArraySize(pair) != 2) {
+          fail(pp, "must be a list of two covers");
+        } else {
+          int k = 0;
+          for (const cJSON *e = pair->child; e; e = e->next, k++) {
+            const std::string ep = pp + "[" + std::to_string(k) + "]";
+            if (!object(e, ep))
+              continue;
+            allowed(e, ep, {"item", "label"});
+            if (const cJSON *ei = cJSON_GetObjectItem(e, "item"))
+              item_name(ei, member(ep, "item"));
+            else
+              fail(member(ep, "item"), "is required");
+            string(e, "label", ep, false, 16);
+          }
+        }
+        for (const char *key : {"presets", "moving"})   // each cover's own, in its metadata
+          if (cJSON_GetObjectItem(pg, key))
+            fail(member(p, key), "goes without \"pair\" (give each cover's in its metadata)");
+        if (cJSON_GetObjectItem(cJSON_GetObjectItem(pg, "commands"), "item"))
+          fail(member(member(p, "commands"), "item"), "goes without \"pair\" (each cover's \"command_item\" in its metadata)");
+      }
       if (item)
         item_name(item, member(p, "item"));
       if (group)

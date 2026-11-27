@@ -256,6 +256,13 @@ COVER_BUTTONS = [(MARGIN + k * 103, 316, 90, 64) for k in range(3)]
 COVER_PRESETS = [(MARGIN + k * 103, 396, 90, 40) for k in range(3)]
 COVER_PRESET_INSET = 8
 
+# The page of two covers (ohpanel_hmi.py cover2_page; Engine::draw_cover2): three pills at the top choose what the
+# buttons move (the first, both, the second), each cover's position over its drawing, the buttons in a row under them
+COVER2_PICKS = [(MARGIN + k * 100, 48, 96, 34) for k in range(3)]
+COVER2_VALUES = [(22, 88, 120, 40), (178, 88, 120, 40)]   # font 4 (36 px): "100 %" 90 px
+COVER2_DRAWS = [(22, 132, 120, 236), (178, 132, 120, 236)]
+COVER2_BUTTONS = [(MARGIN + k * 103, 384, 90, 76) for k in range(3)]
+
 # The thermostat page: the ring under the title, minus and plus under it on the left and the right, the modes as
 # pills under them.
 THERMO_CENTRE = (VISIBLE_W // 2, 186)

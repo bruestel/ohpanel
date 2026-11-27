@@ -641,6 +641,20 @@ class Engine {
     std::string command_item;        // where up / stop / down go ("commands": "item", metadata "command_item"); "": the item
   };
   CoverLook cover_look(const cJSON *page) const;
+  CoverLook cover_look(const cJSON *page, const std::string &item) const;   // for one of its items (a pair's)
+  std::string cover_item(const cJSON *page) const;   // its item, a pair's first
+  int cover_way(const CoverLook &look, const std::string &item, int closed);   // moving as shown: +1 closing, -1, 0
+  // the page of two covers (a cover page with "pair"; the design's "cover2")
+  std::string pair_item(const cJSON *page, int k) const;
+  std::string pair_label(const cJSON *page, int k) const;
+  void draw_cover2(const cJSON *page);
+  void cover2_refresh(const cJSON *page);
+  void cover2_event(const cJSON *page, const std::string &component);
+  void cover2_value(const std::string &name, int value);   // a drawing touched ("cdrw") or let go ("cdru")
+  void cover2_tick(const cJSON *page);
+  int cover2_pick_ = 1;        // what up / stop / down move: 0 the first, 1 both, 2 the second (both as it opens)
+  int cover2_dragging_ = -1;   // the drawing the finger came down on; < 0: none
+  int cover2_held_ = -1;       // the cover cover_drag_ holds the finger's position for
   CoverLook member_look(const cJSON *group_page, const appoh::Member &m) const;
   static int cover_style_index(const std::string &style);
   static std::string cover_look_key(const CoverLook &look);   // what of the look the page shows, to compare

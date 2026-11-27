@@ -624,6 +624,19 @@
     "busy2",
     "busy3"
    ]
+  },
+  "cover2": {
+   "id": 21,
+   "background": true,
+   "crop": [
+    "title",
+    "value1",
+    "value2",
+    "busy1",
+    "busy2",
+    "busy3"
+   ],
+   "close": true
   }
  },
  "pictures": {
@@ -2041,6 +2054,23 @@
     2,
     74,
     16
+   ]
+  },
+  "cover2": {
+   "title": [
+    3,
+    260,
+    40
+   ],
+   "value1": [
+    4,
+    120,
+    8
+   ],
+   "value2": [
+    4,
+    120,
+    8
    ]
   },
   "covers": {
@@ -15439,6 +15469,56 @@
     40
    ]
   },
+  "cover2": {
+   "draw1_hs": [
+    22,
+    132,
+    120,
+    236
+   ],
+   "draw2_hs": [
+    178,
+    132,
+    120,
+    236
+   ],
+   "btn1_hs": [
+    12,
+    384,
+    90,
+    76
+   ],
+   "btn2_hs": [
+    115,
+    384,
+    90,
+    76
+   ],
+   "btn3_hs": [
+    218,
+    384,
+    90,
+    76
+   ],
+   "pick1_hs": [
+    12,
+    48,
+    96,
+    34
+   ],
+   "pick2_hs": [
+    112,
+    48,
+    96,
+    34
+   ],
+   "pick3_hs": [
+    212,
+    48,
+    96,
+    34
+   ]
+  },
   "covers": {
    "all_mini": [
     22,
@@ -16834,7 +16914,32 @@
    "busy2",
    "busy3",
    "busy_tm"
+  ],
+  "cover2": [
+   "swipe",
+   "swipe_tm",
+   "title",
+   "pick1_hs",
+   "pick2_hs",
+   "pick3_hs",
+   "value1",
+   "value2",
+   "draw_tm",
+   "draw1_hs",
+   "draw2_hs",
+   "btn1_icon",
+   "btn1_hs",
+   "btn2_icon",
+   "btn2_hs",
+   "btn3_icon",
+   "btn3_hs",
+   "close_hs",
+   "close",
+   "busy1",
+   "busy2",
+   "busy3",
+   "busy_tm"
   ]
  },
- "design": "066ad3d2"
+ "design": "6841a838"
 }

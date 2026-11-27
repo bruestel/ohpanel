@@ -723,23 +723,33 @@ void Engine::pill_shape(const Box &b, int colour) {
 }
 
 /* A pill: its ends discs of radius r (2r + 1 px across), the middle as high -- else the ends stand out --; the label
-   drawn on it (a field's corners would stand out of it). */
+   drawn on it (a field's corners would stand out of it) on the pill's colour, not without a background: the font's
+   smoothed edges are mixed with the background given, black would fray them. Its box as high as the text and in
+   from the ends as far as the round ends leave that height (it would cut into them). */
 void Engine::pill(const Box &b, int colour, int ink, const std::string &label, const std::string &glyph) {
-  const int r = (b.h - 1) / 2, top = b.y + (b.h - (2 * r + 1)) / 2;
+  const int r = (b.h - 1) / 2, top = b.y + (b.h - (2 * r + 1)) / 2, cy = top + r;
   pill_shape(b, colour);
+  constexpr int kTextH = 24;   // font 2's 22 px and one each side; the icon font's 24
+  const int hh = std::min(kTextH / 2, r);
+  const int inset = r - static_cast<int>(std::sqrt(std::max(0, r * r - hh * hh))) + 1;
+  const std::string bg = std::to_string(colour);
   if (glyph.empty()) {
-    send("xstr " + std::to_string(b.x + 6) + "," + std::to_string(top) + "," + std::to_string(b.w - 12) + "," +
-         std::to_string(2 * r + 1) + ",2," + std::to_string(ink) + ",0,1,1,3,\"" + nextion::quote(label) + "\"");
+    send("xstr " + std::to_string(b.x + inset) + "," + std::to_string(cy - hh) + "," + std::to_string(b.w - 2 * inset) +
+         "," + std::to_string(2 * hh) + ",2," + std::to_string(ink) + "," + bg + ",1,1,1,\"" +
+         nextion::quote(shorten(2, label, b.w - 2 * inset - 2, false)) +
+         "\"");
     return;
   }
   // the icon (24 px font, 3 px higher: it draws its icons low in its cell) and the label, centred together
   constexpr int kIconW = 24, kGap = 6, kIconUp = 3;
-  const std::string word = shorten(2, label, b.w - 12 - kIconW - kGap, false);
+  const std::string word = shorten(2, label, b.w - 2 * inset - kIconW - kGap, false);
   const int tw = text_width(2, word), x = b.x + (b.w - (kIconW + kGap + tw)) / 2;
-  send("xstr " + std::to_string(x) + "," + std::to_string(top - kIconUp) + "," + std::to_string(kIconW) + "," +
-       std::to_string(2 * r + 1) + ",7," + std::to_string(ink) + ",0,1,1,3,\"" + nextion::quote(glyph) + "\"");
-  send("xstr " + std::to_string(x + kIconW + kGap) + "," + std::to_string(top) + "," + std::to_string(tw + 2) + "," +
-       std::to_string(2 * r + 1) + ",2," + std::to_string(ink) + ",0,0,1,3,\"" + nextion::quote(word) + "\"");
+  // its box not above the pill (a low pill: raised less, its background would show over the page)
+  const int iy = std::max(top, cy - hh - kIconUp), ih = cy + hh - kIconUp - iy;
+  send("xstr " + std::to_string(x) + "," + std::to_string(iy) + "," + std::to_string(kIconW + kGap) + "," +
+       std::to_string(ih) + ",7," + std::to_string(ink) + "," + bg + ",0,1,1,\"" + nextion::quote(glyph) + "\"");
+  send("xstr " + std::to_string(x + kIconW + kGap) + "," + std::to_string(cy - hh) + "," + std::to_string(tw + 2) + "," +
+       std::to_string(2 * hh) + ",2," + std::to_string(ink) + "," + bg + ",0,1,1,\"" + nextion::quote(word) + "\"");
 }
 
 void Engine::restore(int x, int y, int w, int h) {
@@ -814,6 +824,7 @@ std::string Engine::template_of(const cJSON *page) const {
   if (type_of(page) == PageType::MediaFavorites) return "buttons";   // tiles as on a button page
   if (type_of(page) == PageType::Image) return "qr";   // its title and close cross; the picture where the code goes
   if (type_of(page) == PageType::Cover && member(page, "group") && pages_.count("covers")) return "covers";   // its rows
+  if (type_of(page) == PageType::Cover && member(page, "pair") && pages_.count("cover2")) return "cover2";   // two
   if (type_of(page) == PageType::Entities) {
     const std::string style = str(page, "style");
     if ((style == "cards" || style == "rows") && pages_.count("entities_" + style))
@@ -1284,6 +1295,9 @@ void Engine::open(const std::string &id, bool remember, bool last_sheet) {
   }
   sheet_ = last_sheet ? std::max(0, sheets_of(page) - 1) : 0;   // a swipe back: where it ends
   light_view_ = 0;
+  cover2_pick_ = 1;   // both
+  cover2_dragging_ = -1;
+  cover2_held_ = -1;
   station_sheet_ = 0;
   favorites_asked_ = false;
   group_asked_ = false;
@@ -1306,7 +1320,7 @@ void Engine::back() {
 /* left/right walk the configured row -- or the sheets of a long entity list (not in the row). */
 void Engine::swipe(const std::string &direction) {
   const cJSON *page = current_ == "home" ? nullptr : page_config(current_);
-  if ((shown_ == "cover" && now_ms_ - cover_drag_.since_ms < 1000) ||
+  if (((shown_ == "cover" || shown_ == "cover2") && now_ms_ - cover_drag_.since_ms < 1000) ||
       (shown_ == "thermostat" && !thermo_swiped_ && now_ms_ - thermo_drag_.since_ms < 1000))
     return;   // a finger moving on the cover's drawing, on the thermostat's ring (not off it sideways): not a swipe
   const std::vector<std::string> &row = swipe_row();
@@ -1676,6 +1690,9 @@ void Engine::prefetch_options() {
       std::vector<appoh::Member> members;
       if (cb_.metadata && !str(pg, "item").empty())
         cb_.metadata(str(pg, "item"), md, false);
+      for (int k = 0; cb_.metadata && k < 2; k++)   // a pair's
+        if (const std::string it = pair_item(pg, k); !it.empty())
+          cb_.metadata(it, md, false);
       if (cb_.members && !str(pg, "group").empty())
         cb_.members(str(pg, "group"), members, false);
       if (cb_.metadata && !str(pg, "group").empty())   // the group's presets
@@ -1734,7 +1751,18 @@ void Engine::on_options(const std::string &item) {
   }
   // a cover's metadata: only if it changes what the page shows (its style, presets) -- the page anew then (its
   // pills where they are now); else only what it says
-  if (page && type_of(page) == PageType::Cover && shown_ == "cover" && str(page, "item") == item) {
+  if (page && type_of(page) == PageType::Cover && shown_ == "cover2" &&
+      (pair_item(page, 0) == item || pair_item(page, 1) == item)) {
+    if (cover_look_key(cover_look(page, pair_item(page, 0))) + "|" + cover_look_key(cover_look(page, pair_item(page, 1))) !=
+        cover_drawn_key_) {
+      drawn_.clear();
+      bindings_.clear();
+      show_physical("cover2");
+    } else {
+      cover2_refresh(page);
+    }
+  }
+  if (page && type_of(page) == PageType::Cover && shown_ == "cover" && cover_item(page) == item) {
     if (cover_look_key(cover_look(page)) != cover_drawn_key_) {
       drawn_.clear();
       bindings_.clear();
@@ -1861,6 +1889,8 @@ void Engine::on_message(const nextion::Message &m) {
         light_value(m.name, static_cast<int>(m.value));
       else if (!asleep_ && shown_ == "cover")
         cover_value(m.name, static_cast<int>(m.value));
+      else if (!asleep_ && shown_ == "cover2")
+        cover2_value(m.name, static_cast<int>(m.value));
       else if (!asleep_ && shown_ == "thermostat")
         thermo_value(m.name, static_cast<int>(m.value));
       break;
@@ -1970,6 +2000,8 @@ void Engine::act(const std::string &page, const std::string &component, const st
       act_button(cfg, component[4] - '1');
   } else if (page == "cover" && value == "release") {
     cover_event(cfg, component);
+  } else if (page == "cover2" && value == "release") {
+    cover2_event(cfg, component);
   } else if (page == "covers" && value == "release") {
     covers_event(cfg, component);
   } else if (page == "thermostat" && value == "release") {
