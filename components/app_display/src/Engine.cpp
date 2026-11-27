@@ -726,30 +726,31 @@ void Engine::pill_shape(const Box &b, int colour) {
    drawn on it (a field's corners would stand out of it) on the pill's colour, not without a background: the font's
    smoothed edges are mixed with the background given, black would fray them. Its box as high as the text and in
    from the ends as far as the round ends leave that height (it would cut into them). */
-void Engine::pill(const Box &b, int colour, int ink, const std::string &label, const std::string &glyph) {
+void Engine::pill(const Box &b, int colour, int ink, const std::string &label, const std::string &glyph, int font) {
   const int r = (b.h - 1) / 2, top = b.y + (b.h - (2 * r + 1)) / 2, cy = top + r;
   pill_shape(b, colour);
-  constexpr int kTextH = 24;   // font 2's 22 px and one each side; the icon font's 24
-  const int hh = std::min(kTextH / 2, r);
+  const int text_h = font == 1 ? 20 : 24;   // the font's 18 or 22 px and one each side; the icon font's 24
+  const int hh = std::min((glyph.empty() ? text_h : 24) / 2, r);
   const int inset = r - static_cast<int>(std::sqrt(std::max(0, r * r - hh * hh))) + 1;
   const std::string bg = std::to_string(colour);
   if (glyph.empty()) {
     send("xstr " + std::to_string(b.x + inset) + "," + std::to_string(cy - hh) + "," + std::to_string(b.w - 2 * inset) +
-         "," + std::to_string(2 * hh) + ",2," + std::to_string(ink) + "," + bg + ",1,1,1,\"" +
-         nextion::quote(shorten(2, label, b.w - 2 * inset - 2, false)) +
+         "," + std::to_string(2 * hh) + "," + std::to_string(font) + "," + std::to_string(ink) + "," + bg + ",1,1,1,\"" +
+         nextion::quote(shorten(font, label, b.w - 2 * inset - 2, false)) +
          "\"");
     return;
   }
   // the icon (24 px font, 3 px higher: it draws its icons low in its cell) and the label, centred together
   constexpr int kIconW = 24, kGap = 6, kIconUp = 3;
-  const std::string word = shorten(2, label, b.w - 2 * inset - kIconW - kGap, false);
-  const int tw = text_width(2, word), x = b.x + (b.w - (kIconW + kGap + tw)) / 2;
+  const std::string word = shorten(font, label, b.w - 2 * inset - kIconW - kGap, false);
+  const int tw = text_width(font, word), x = b.x + (b.w - (kIconW + kGap + tw)) / 2;
   // its box not above the pill (a low pill: raised less, its background would show over the page)
   const int iy = std::max(top, cy - hh - kIconUp), ih = cy + hh - kIconUp - iy;
   send("xstr " + std::to_string(x) + "," + std::to_string(iy) + "," + std::to_string(kIconW + kGap) + "," +
        std::to_string(ih) + ",7," + std::to_string(ink) + "," + bg + ",0,1,1,\"" + nextion::quote(glyph) + "\"");
   send("xstr " + std::to_string(x + kIconW + kGap) + "," + std::to_string(cy - hh) + "," + std::to_string(tw + 2) + "," +
-       std::to_string(2 * hh) + ",2," + std::to_string(ink) + "," + bg + ",0,1,1,\"" + nextion::quote(word) + "\"");
+       std::to_string(2 * hh) + "," + std::to_string(font) + "," + std::to_string(ink) + "," + bg + ",0,1,1,\"" +
+       nextion::quote(word) + "\"");
 }
 
 void Engine::restore(int x, int y, int w, int h) {

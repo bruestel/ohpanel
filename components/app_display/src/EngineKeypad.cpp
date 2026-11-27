@@ -196,17 +196,7 @@ void Engine::keypad_refresh(const cJSON *page) {
     if (drawn_[n] == key)
       continue;
     drawn_[n] = key;
-    // a pill (Engine::pill_shape), the icon and the label on it, centred together
-    const int r = (bx.h - 1) / 2, top = bx.y + (bx.h - (2 * r + 1)) / 2;
-    pill_shape(bx, fill_colour);
-    const int tw = text_width(font, label), x = bx.x + (bx.w - (icon_w + gap + tw)) / 2;
-    if (!glyph.empty())
-      send("xstr " + std::to_string(x) + "," + std::to_string(top - kIconUp) + "," + std::to_string(icon_w) + "," +
-           std::to_string(2 * r + 1) + "," + std::to_string(kIconFont) + "," + std::to_string(ink) + ",0,1,1,3,\"" +
-           nextion::quote(glyph) + "\"");
-    send("xstr " + std::to_string(x + icon_w + gap) + "," + std::to_string(top) + "," + std::to_string(tw + 2) + "," +
-         std::to_string(2 * r + 1) + "," + std::to_string(font) + "," + std::to_string(ink) + ",0,0,1,3,\"" +
-         nextion::quote(label) + "\"");
+    pill(bx, fill_colour, ink, label, glyph, font);   // the icon and the label on it, centred together
   }
 }
 
