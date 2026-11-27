@@ -888,8 +888,9 @@ class Validator {
     // its look: the clock top right (default), or large across the width with the shortcuts in a row
     one_of(h, "style", path, {"normal", "clock"});
     slots(h, "relays", path, kMaxRelays, [&](const cJSON *e, const std::string &p) {
-      allowed(e, p, {"label", "item", "relay", "hidden", "open"});
+      allowed(e, p, {"label", "text", "item", "relay", "hidden", "open"});
       string(e, "label", p, false, 24);
+      item_ref(e, "text", p);   // the label from an item's state, the fixed one while it has none
       optional_item(e, p);
       boolean(e, "hidden", p);
       // a button that opens a page (or the next or previous one in the swipe row): nothing else -- its relay is left

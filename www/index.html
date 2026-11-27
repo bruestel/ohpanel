@@ -159,6 +159,10 @@ table.tasks td{padding:.3rem .4rem;border-bottom:1px solid var(--line)}
 table.tasks th:not(:first-child),table.tasks td:not(:first-child){text-align:right}
 table.tasks td.low{color:var(--err)}
 details.raw summary{cursor:pointer;color:var(--dim);font-size:13px;margin-bottom:.4rem}
+details.adv{margin-bottom:.9rem}
+details.adv summary{cursor:pointer;color:var(--dim);font-size:13px}
+details.adv[open] summary{margin-bottom:.4rem}
+details.adv>div{display:grid;gap:.75rem;border:1px solid var(--line);border-radius:8px;padding:.6rem}
 
 form{display:grid;gap:.75rem}
 label,.field{display:grid;gap:4px;font-size:13px;color:var(--dim)}
@@ -3686,10 +3690,13 @@ function fillHome(cfg, template = 'home') {
     f[side + '_bar'] = r ? {text: '', bg: on ? THEME.accent : PALETTE['dark-grey']} : {hide: true};
     // upright beside the panel's buttons (the NSPanel US on its side: Engine::relay_label), read from the bottom up
     const upright = layoutBox('home', side + '_label');
-    if (!upright) { f[side + '_text'] = {text: r ? (r.label || '') : ''}; return; }
+    // its label: an item's state while it has one ("text"), else the fixed one
+    const textSt = r && r.text ? stateOf(r.text) : null;
+    const label = r ? (textSt && textSt.type !== 'UnDef' && shown(r.text)) || r.label || '' : '';
+    if (!upright) { f[side + '_text'] = {text: label}; return; }
     f[side + '_text'] = {hide: true};
     f[side + '_label'] = {draw: {box: upright, fn: ctx => {
-      if (!r || !r.label) return;
+      if (!label) return;
       const [x, y, w, hh] = upright;
       ctx.save();
       ctx.translate(x + w / 2, y + hh / 2);
@@ -3697,7 +3704,7 @@ function fillHome(cfg, template = 'home') {
       ctx.font = '15px Ubuntu, system-ui, sans-serif';
       ctx.fillStyle = i === 0 ? '#ffffff' : PALETTE['light-grey'];
       ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-      ctx.fillText(r.label, 0, 1, hh);
+      ctx.fillText(label, 0, 1, hh);
       ctx.restore();
     }}};
   });
@@ -7731,6 +7738,36 @@ function pvEditor() {
       ['open', 'Opens a page, the relay follows an item', 'A press wakes the screen and shows the page, such as the departures, or steps through the swipe row: the next page, or the one before.', 'relay'],
       ['hidden', 'Does nothing and does not show, the relay follows an item', 'Neither label nor bar on the panel: a relay only openHAB sees.', ''],
     ];
+    /* Advanced, framed and folded unless this browser left it open: the label from an item's state
+       (a rule can write it), the label above while it has none */
+    const advanced = document.createElement('details');
+    advanced.className = 'adv';
+    try { advanced.open = localStorage.getItem('ohpanel.relay.advanced.open') === '1'; } catch (err) { /* no storage */ }
+    advanced.addEventListener('toggle', () => {
+      try { localStorage.setItem('ohpanel.relay.advanced.open', advanced.open ? '1' : '0'); } catch (err) { /* no storage */ }
+    });
+    advanced.innerHTML = '<summary>Advanced</summary>';
+    const advBody = document.createElement('div');
+    advanced.append(advBody);
+    const textRef = Object.assign({}, e.text || {});
+    let textReady = false;   // formatField reports once as it is built: no change yet
+    const storeText = () => textReady && pvSlotEdit(slot, x => {
+      x = x || {};
+      if (textRef.item) x.text = Object.fromEntries(Object.entries(textRef).filter(([, v]) => v !== undefined && v !== ''));
+      else delete x.text;
+      return x;
+    });
+    const textFormat = formatField(textRef, (format, factor) => {
+      textRef.format = format || undefined; textRef.factor = factor === '' ? undefined : factor; storeText();
+    });
+    textFormat.hidden = !textRef.item;
+    textReady = true;
+    advBody.append(
+      pvRow(field('Label from an item (optional)', itemField(textRef.item || '', v => {
+        textRef.item = v || undefined; textFormat.hidden = !v; storeText();
+      }))),
+      note('The item\u2019s state is the label; while it has none (or an empty one), the label above shows.'),
+      textFormat);
     const picks = document.createElement('div');
     picks.className = 'picks';
     picks.setAttribute('role', 'radiogroup');
@@ -7741,6 +7778,7 @@ function pvEditor() {
       buttonField.hidden = mode === 'none' || mode === 'hidden' || mode === 'open';
       openField.hidden = mode !== 'open';
       labelRow.hidden = mode === 'hidden';
+      advanced.hidden = mode === 'hidden';
       relayField.hidden = mode === 'relay' || mode === 'item';
       relayField.firstChild.textContent = mode === 'open' ? 'Item of the relay (optional: else it is left alone)' : 'Item of the relay (optional)';
       buttonField.firstChild.textContent = mode === 'both' ? 'Item of the button (optional)' : 'Item (optional)';
@@ -7765,7 +7803,7 @@ function pvEditor() {
     const ask = document.createElement('div');
     ask.className = 'field';
     ask.textContent = 'What does the button do?';
-    box.append(labelRow, ask, picks, pvSlotButtons(slot, 2));
+    box.append(labelRow, ask, picks, advanced, pvSlotButtons(slot, 2));
   } else if (slot && slot.kind === 'info') {
     const e = slot.entry || {};
     head.textContent = 'Info line ' + (slot.i + 1);

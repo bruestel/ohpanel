@@ -326,8 +326,10 @@ weather, status icons and info lines do not show; the hardware buttons still swi
 | `shortcuts` | up to 12 indicators | the large icons, three rows of four, numbered as read (the first four the top row, right-aligned); each may `open` a page, tapped while it is shown |
 | `info` | up to 2 lines | two text lines below the value rows, see below |
 
-A **relay** is `{"label", "item"?, "relay"?, "hidden"?, "open"?}` and describes one of the two
-hardware buttons with the relay next to it:
+A **relay** is `{"label", "text"?, "item"?, "relay"?, "hidden"?, "open"?}` and describes one of the two
+hardware buttons with the relay next to it. `text` (`{item, format?, factor?}`, in the web interface under
+*Advanced*) takes the label from an item's state, e.g. a String item a rule writes; while that item is NULL, UNDEF
+or empty, `label` shows.
 
 - without `item`, the button switches the relay directly;
 - with `item` (a Switch), the relay is exposed to openHAB through that item:

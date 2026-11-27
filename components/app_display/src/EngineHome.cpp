@@ -200,11 +200,16 @@ void Engine::draw_relays() {
     }
     // the relay where the button switches it (at once) or has no item, else the button's item
     const bool is_on = member(r, "item") && relay_ref(r) != r ? on(r) : relays_[i];
+    // its label: an item's state ("text", forum #181) while it has one (not NULL, UNDEF, empty), else the fixed one
+    const cJSON *text = member(r, "text");
+    std::string label = has_state(text) && !state_of(text).undefined() ? value_of(text) : "";
+    if (label.empty())
+      label = str(r, "label");
     if (upright) {
       vis(side + "_text", false);
-      relay_label(pg->second.at(side + "_label"), side, str(r, "label"), i == 0 ? theme_.text : theme_.dim);
+      relay_label(pg->second.at(side + "_label"), side, label, i == 0 ? theme_.text : theme_.dim);
     } else {
-      txt(side + "_text", str(r, "label"));
+      txt(side + "_text", label);
     }
     // the bar under it (boards/nspanel/nextion/ohpanel_hmi.py home_page): the accent while on
     num(side + "_bar", "bco", is_on ? theme_.accent : theme_.tile);
@@ -288,6 +293,8 @@ void Engine::draw_home() {
       bind(r, [this] { draw_relays(); });
       if (cJSON_IsObject(member(r, "relay")))   // an item of its own
         bind(member(r, "relay"), [this] { draw_relays(); });
+      if (cJSON_IsObject(member(r, "text")))    // its label from an item
+        bind(member(r, "text"), [this] { draw_relays(); });
     }
   draw_relays();
 

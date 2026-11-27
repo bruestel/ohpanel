@@ -4510,6 +4510,30 @@ int main(int argc, char **argv) {
       if (g_failures) r.dump();
     }
   }
+  {  // a relay's label from an item's state ("text", forum #181), the fixed one while it has none
+    Recorder r;
+    Engine w(r, cb);
+    w.release_wait(0);
+    CHECK(w.load_design(read("boards/nspanel/nextion/display-manifest-eu.json").c_str(),
+                        read("boards/nspanel/nextion/weather-icons.json").c_str()));
+    w.set_config(R"({"version": 1, "home": {"relays": [
+      {"label": "Light", "item": "Lamp", "relay": false, "text": {"item": "Lamp_Name"}}, {"label": "Fan"}]}})");
+    set_state("Lamp_Name", "NULL", "UnDef");
+    int64_t t = 1000;
+    w.tick(1791196439);
+    w.idle(t);
+    w.start();
+    w.idle(t += 5000);
+    r.out.clear();
+    w.on_message(loaded("home"));
+    CHECK(r.has("relay1_text.txt=\"Light\"") && r.has("relay2_text.txt=\"Fan\""));   // no state yet: the label
+    r.out.clear();
+    set_state("Lamp_Name", "Reading lamp", "String");
+    w.on_state("Lamp_Name");
+    w.idle(t += 100);
+    CHECK(r.has("relay1_text.txt=\"Reading lamp\"") && !r.has_prefix("relay2_text.txt="));
+    if (g_failures) r.dump();
+  }
   {  // the weather from one item: the days a rule writes as JSON ("feed"), home's weather block from today's
      // ("weather_feed"); the days before today left out; drawn anew when the item changes and when a day begins
     Recorder r;
