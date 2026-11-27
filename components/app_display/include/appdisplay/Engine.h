@@ -353,7 +353,13 @@ class Engine {
   void show_text(const std::string &obj, const std::string &text, int blink_ms);
   RuleStyle style_of(const cJSON *ref, const cJSON *rules = nullptr) const;
   const std::vector<std::string> &swipe_row() const { return swipe_row_; }
-  std::string start_page() const { return swipe_row_.front(); }   // the row's first: where "back" ends
+  // where "back" ends: the page display.start_page's item names while it names one, else the row's first
+  std::string start_page() const { return start_over_.empty() ? swipe_row_.front() : start_over_; }
+  bool startable(const std::string &id) const;   // home or a page of a type the swipe row takes
+  std::string start_item_;   // display.start_page's item
+  std::string start_over_;   // the swipe row's page its state names ("": the row's first)
+  void start_state();
+  std::string start_state_id() const;
   int sheets_of(const cJSON *page);   // a list's, the weather's, a cover group's sheets (else 1)
   void step_row(bool forward);
   void button_opens(const std::string &id);   // a hardware button opens a page (or steps the swipe row)

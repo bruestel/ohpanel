@@ -1147,6 +1147,12 @@ pre.box{margin:0;padding:.6rem .7rem;max-height:18rem;overflow:auto;background:v
           <code>settings</code>) opens that page and wakes the screen. The panel then sets the item to NULL, so a
           rule sees it done and can ask for the same page again. An id the panel does not know is left as it is.</p>
         <div class="screen"><div class="field">Item<div id="vOpenPage"></div></div></div>
+        <h3 class="screenh">The start page</h3>
+        <p class="sub">A String item: while its state is the id of a page in the swipe row, that page is the start
+          page: the panel goes back to it after a while and wakes on it, swiping still reaches the others. Empty, NULL
+          or a page not in the row: the row's first, as configured. A rule, or <code>expire</code> on the item, sets it for a while, such as
+          the fermentation page while brewing.</p>
+        <div class="screen"><div class="field">Item<div id="vStartPage"></div></div></div>
         <h3 class="screenh">The page on screen</h3>
         <p class="sub">A String item: the id of each page that opens (<code>home</code> for home) is sent to it as a
           command, so a rule can act on it, such as turning on an amplifier when the media page opens. The same page
@@ -5819,6 +5825,11 @@ function syncDisplaySelects(cfg) {
     $('vOpenPage').innerHTML = '';
     $('vOpenPage').appendChild(itemField((d.open_page || {}).item || '',
                                          v => editDisplay('open_page', v.trim() ? {item: v.trim()} : '', ''), 'String'));
+  }
+  if (!$('vStartPage').contains(document.activeElement)) {
+    $('vStartPage').innerHTML = '';
+    $('vStartPage').appendChild(itemField((d.start_page || {}).item || '',
+                                          v => editDisplay('start_page', v.trim() ? {item: v.trim()} : '', ''), 'String'));
   }
   if (!$('vCurPage').contains(document.activeElement)) {
     $('vCurPage').innerHTML = '';

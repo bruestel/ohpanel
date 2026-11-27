@@ -445,6 +445,10 @@ void Engine::set_config(const std::string &json) {
     open_known_ = false;
   }
   page_item_ = str(member(member(config_, "display"), "current_page"), "item");
+  start_item_ = str(member(member(config_, "display"), "start_page"), "item");
+  start_over_.clear();
+  if (const std::string id = start_state_id(); !id.empty())
+    start_over_ = id;   // taken as it is: what is shown is settled below
   if (settings_.sound.play_item != play_item_) {
     play_item_ = settings_.sound.play_item;
     play_known_ = false;
@@ -1435,17 +1439,21 @@ void Engine::fade_tick() {
    it, and pages of the types that may be in it -- buttons, entities, weather, QR, info (the configuration checks
    that too, Schema); the others open from a tile or a shortcut. Its first is the start page (start_page()); none
    (no row): home alone. */
+bool Engine::startable(const std::string &id) const {
+  // the same types as the configuration's check (panel/Schema.cpp swipe_type: another component)
+  const PageType type = type_of(page_config(id));
+  return id == "home" || type == PageType::Buttons || type == PageType::Entities || type == PageType::Weather ||
+         type == PageType::Qr || type == PageType::System || type == PageType::Thermostat ||
+         type == PageType::Keypad || type == PageType::Image;
+}
+
 void Engine::make_swipe_row() {
   swipe_row_.clear();
   const cJSON *list = member(config_, "swipe");
   for (const cJSON *e = cJSON_IsArray(list) ? list->child : nullptr; e; e = e->next) {
     if (!cJSON_IsString(e) || std::find(swipe_row_.begin(), swipe_row_.end(), e->valuestring) != swipe_row_.end())
       continue;
-    // the same types as the configuration's check (panel/Schema.cpp swipe_type: another component)
-    const PageType type = type_of(page_config(e->valuestring));
-    if (std::string(e->valuestring) == "home" || type == PageType::Buttons || type == PageType::Entities ||
-        type == PageType::Weather || type == PageType::Qr || type == PageType::System ||
-        type == PageType::Thermostat || type == PageType::Keypad || type == PageType::Image)
+    if (startable(e->valuestring))
       swipe_row_.push_back(e->valuestring);
   }
   if (swipe_row_.empty())
@@ -2128,6 +2136,8 @@ void Engine::on_state(const std::string &item) {
     notify_state();
   if (item == open_item_)
     open_state();
+  if (item == start_item_)
+    start_state();
   if (item == play_item_)
     play_state();
   screen_item(item);
@@ -2220,6 +2230,43 @@ void Engine::open_state() {
   }
   if (cb_.update)
     cb_.update(open_item_, "NULL");
+}
+
+// ------------------------------------------------------- start from item --
+
+/* The page display.start_page's item names: one of the swipe row's, so a swipe still reaches the others; "" for
+   none (NULL, UNDEF, empty, an id not in the row). */
+std::string Engine::start_state_id() const {
+  appoh::ItemState st;
+  if (start_item_.empty() || !cb_.state || !cb_.state(start_item_, st) || st.undefined())
+    return "";
+  return std::find(swipe_row_.begin(), swipe_row_.end(), st.state) != swipe_row_.end() ? st.state : "";
+}
+
+/* display.start_page's item changed: its page is the start page now (home_after, waking, the close cross), until
+   it names none -- the row's first again. A panel on the start page before goes to the new one at once; one on
+   another page later, as always. */
+void Engine::start_state() {
+  const std::string id = start_state_id();
+  if (id == start_over_)
+    return;
+  const std::string before = start_page();
+  start_over_ = id;
+  const std::string now = start_page();
+  if (before == now || !started_)
+    return;
+  if (current_ == before) {
+    history_.clear();
+    if (asleep_)
+      current_ = now;          // woken there
+    else if (fade_.phase == 1)
+      fade_.target = now;      // a swipe fading out: it lands there instead
+    else
+      open(now, false);
+  } else if (current_ == now && !asleep_) {
+    history_.clear();
+    show_current();            // the start page now: no close cross
+  }
 }
 
 // ------------------------------------------------------------------ sound --

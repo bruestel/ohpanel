@@ -4535,6 +4535,39 @@ int main(int argc, char **argv) {
     CHECK(r.has("relay1_text.txt=\"Reading lamp\"") && !r.has_prefix("relay2_text.txt="));
     if (g_failures) r.dump();
   }
+  {  // the start page from an item (display.start_page): a page it names is the start page while it names one
+    Recorder r;
+    Engine w(r, cb);
+    w.release_wait(0);
+    CHECK(w.load_design(read("boards/nspanel/nextion/display-manifest-eu.json").c_str(),
+                        read("boards/nspanel/nextion/weather-icons.json").c_str()));
+    set_state("Start_Page", "NULL", "UnDef");
+    w.set_config(R"({"version": 1, "swipe": ["home", "a"], "display": {"start_page": {"item": "Start_Page"}},
+      "pages": [{"id": "a", "type": "entities", "title": "A", "entities": []},
+                {"id": "cellar", "type": "entities", "title": "Cellar", "entities": []}]})");
+    int64_t t = 1000;
+    w.tick(1791196439);
+    w.idle(t);
+    w.start();
+    w.idle(t += 5000);
+    CHECK(w.current() == "home");
+    set_state("Start_Page", "a", "String");        // on the start page: the new one at once
+    w.on_state("Start_Page");
+    CHECK(w.current() == "a");
+    set_state("Start_Page", "nope", "String");     // not a page: the row's first again
+    w.on_state("Start_Page");
+    CHECK(w.current() == "home");
+    set_state("Start_Page", "cellar", "String");   // a page, but not in the row: none either
+    w.on_state("Start_Page");
+    CHECK(w.current() == "home");
+    set_state("Start_Page", "a", "String");
+    w.on_state("Start_Page");
+    CHECK(w.current() == "a");
+    set_state("Start_Page", "", "String");         // empty: the row's first
+    w.on_state("Start_Page");
+    CHECK(w.current() == "home");
+    if (g_failures) r.dump();
+  }
   {  // more than a press (forum #179): a double press opens a page, a hold toggles an item, a triple press switches
      // the relay; every one told to the "events" item as Tasmota names them
     Recorder r;

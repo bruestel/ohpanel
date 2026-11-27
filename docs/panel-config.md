@@ -104,6 +104,7 @@ with a `format` it shows the whole text instead.
 | `sound` | object | the buzzer: a tone for touches and notifications, their volumes, an item that plays one, see below |
 | `notifications` | `{"item", "wake_and_keep_on"?}` | a String item whose new states show as notifications, see below |
 | `open_page` | `{"item"}` | a String item: a page id set on it opens that page, see below |
+| `start_page` | `{"item"}` | a String item: while its state is the id of a page in the swipe row, that page is the start page, see below |
 | `current_page` | `{"item"}` | a String item the id of each page that opens is sent to, see below |
 | `background` | background id | the picture behind every page: `aurora` (default), `dunes`, `forest`, `black`, `white`: the backgrounds of the display design, listed in `boards/nspanel/nextion/display-manifest-<variant>.json`. **White** is a light one: black on white, a tile that is on marked by a ring in the accent -- see [White](#the-white-background). One the design does not have (`candy`, before 0.25.0) shows as the default |
 | `theme` | `{"accent", "text", "dim"}`, each a colour (see above) | the colours the panel draws with; each one left out is the background's own (Aurora: a light blue accent, white text, light grey dim). `accent` marks what is active or chosen: lit buttons and icons, sliders, the chosen pill, the thermostat's ring, the QR code; `text` is the texts' colour; `dim` the quieter ones: the date, small labels, inactive icons. The web interface's *Display* card picks them, and resets one to the background's |
@@ -255,6 +256,24 @@ for while the panel was away: it is set to NULL and opens nothing.
 ```
 // an openHAB rule (DSL): the alarm's keypad when the door opens while it is armed
 Panel_Page.sendCommand("alarm")
+```
+
+`display.start_page.item` names a String item; while its state is the id of a
+page in the swipe row, that page is the start page:
+`home_after` goes back to it, a screen woken shows it, it has no close cross,
+and the close cross of other pages goes to it. Empty, NULL, UNDEF or an id the
+panel does not know: the swipe row's first, as configured. A panel showing the
+start page when it changes goes to the new one at once; on another page it goes
+there later, as always. Only the row's pages, so a swipe still reaches the
+others. A rule sets it for a while, or `expire` on the item clears it:
+
+```
+// the fermentation page while brewing, until tomorrow 6:00 (openHAB DSL rule)
+Panel_StartPage.sendCommand("cellar")
+createTimer(now.plusDays(1).withHour(6).withMinute(0), [ | Panel_StartPage.postUpdate("") ])
+```
+```
+String Panel_StartPage { expire="12h,state=" }   // or: back after 12 hours
 ```
 
 `display.current_page.item` names a String item; the id of each page that
