@@ -184,6 +184,8 @@ void Engine::draw_clock() {
 }
 
 void Engine::draw_relays() {
+  if (!expected_.empty())
+    return;   // a page on its way: home's labels drawn as it loads (upright ones would land on the next page)
   const cJSON *home = member(config_, "home");
   // upright labels (the NSPanel US on its side: the design marks where, the manifest's "boxes")
   const auto pg = boxes_.find(shown_);   // home's, or the clock style's

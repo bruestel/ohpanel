@@ -888,7 +888,7 @@ class Validator {
     // its look: the clock top right (default), or large across the width with the shortcuts in a row
     one_of(h, "style", path, {"normal", "clock"});
     slots(h, "relays", path, kMaxRelays, [&](const cJSON *e, const std::string &p) {
-      allowed(e, p, {"label", "text", "item", "relay", "hidden", "open"});
+      allowed(e, p, {"label", "text", "item", "relay", "hidden", "open", "events", "double", "triple", "hold"});
       string(e, "label", p, false, 24);
       item_ref(e, "text", p);   // the label from an item's state, the fixed one while it has none
       optional_item(e, p);
@@ -905,6 +905,31 @@ class Validator {
           fail(member(p, "relay"), "the button opens a page: it switches no relay (\"relay\": {\"item\"} gives the relay an item)");
         if (cJSON_IsTrue(cJSON_GetObjectItem(e, "hidden")))
           fail(member(p, "hidden"), "a button that opens a page shows its label");
+      }
+      // every press, double, triple press, hold and its end to an item, as a command (SINGLE ... CLEAR): for rules
+      if (const cJSON *v = cJSON_GetObjectItem(e, "events"))
+        item_name(v, member(p, "events"));
+      // what a double or triple press and a hold do: one of what a press does -- switch the relay, toggle an item,
+      // open a page (or step the swipe row)
+      for (const char *g : {"double", "triple", "hold"}) {
+        const cJSON *act = cJSON_GetObjectItem(e, g);
+        const std::string gp = member(p, g);
+        if (!act || !object(act, gp))
+          continue;
+        allowed(act, gp, {"relay", "item", "open"});
+        const int n = !!cJSON_GetObjectItem(act, "relay") + !!cJSON_GetObjectItem(act, "item") +
+                      !!cJSON_GetObjectItem(act, "open");
+        if (n != 1) {
+          fail(gp, "takes one of \"relay\": true, \"item\" or \"open\"");
+          continue;
+        }
+        if (const cJSON *v = cJSON_GetObjectItem(act, "relay"); v && !cJSON_IsTrue(v))
+          fail(member(gp, "relay"), "must be true (the button's relay switched)");
+        if (const cJSON *v = cJSON_GetObjectItem(act, "item"))
+          item_name(v, member(gp, "item"));
+        if (const cJSON *v = cJSON_GetObjectItem(act, "open");
+            !(cJSON_IsString(v) && (std::strcmp(v->valuestring, "next") == 0 || std::strcmp(v->valuestring, "previous") == 0)))
+          open(act, gp);
       }
       // true, false or an item of its own
       if (const cJSON *own = cJSON_GetObjectItem(e, "relay"); cJSON_IsObject(own)) {

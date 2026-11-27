@@ -264,41 +264,29 @@ static void restart_soon() {
 }
 
 /* The front buttons: a press of one button alone acts (relay or item, see
-   home.relays); both together belong to the recovery hold, the right one held
-   long opens the hotspot (recovery.cpp). A press counts on release, after a
-   short debounce, if it was short and the other button stayed up. */
+   home.relays), and as the configuration wants, a double or triple press and a
+   hold too (appdisplay::ButtonGesture); both together belong to the recovery
+   hold, the right one held long opens the hotspot (recovery.cpp). */
 struct ButtonWatch {
   gpio_num_t pin;
-  int64_t down_since = 0;
-  bool other_seen = false;
+  appdisplay::ButtonGesture gesture;
 };
 
 static void watch_buttons(ButtonWatch (&b)[2], int64_t now) {
-  constexpr int64_t kDebounceUs = 40000;
-  constexpr int64_t kLongUs = 2000000;  // longer: a hold, given up on -- switches nothing
   for (int i = 0; i < 2; i++) {
-    const bool pressed = board::key_pressed(b[i].pin);
-    const bool other = board::key_pressed(b[1 - i].pin);
-    if (pressed) {
-      if (b[i].down_since == 0) {
-        b[i].down_since = now;
-        b[i].other_seen = false;
-      }
-      b[i].other_seen = b[i].other_seen || other;
-    } else if (b[i].down_since != 0) {
-      const int64_t held = now - b[i].down_since;
-      if (held > kDebounceUs && held < kLongUs && !b[i].other_seen) {
-        appdisplay::hardware_button(i);   // the relay (or item), as always
-        // and in the hotspot a press ends it: the one opened by hand closes (the home network again), the
-        // one without a network starts the panel afresh -- once the relay's new state is stored (restored
-        // after the restart)
-        if (appnet::hotspot_by_hand())
-          appnet::close_hotspot();
-        else if (appnet::provisioning())
-          restart_soon();
-      }
-      b[i].down_since = 0;
-    }
+    const appdisplay::Gesture g = b[i].gesture.step(board::key_pressed(b[i].pin), board::key_pressed(b[1 - i].pin), now,
+                                                    appdisplay::button_wants(i));
+    if (g == appdisplay::Gesture::None)
+      continue;
+    appdisplay::hardware_button(i, g);   // the relay (or item, or page), as configured
+    // and in the hotspot a press ends it: the one opened by hand closes (the home network again), the one without a
+    // network starts the panel afresh -- once the relay's new state is stored (restored after the restart)
+    if (g == appdisplay::Gesture::Hold || g == appdisplay::Gesture::Clear)
+      continue;   // a hold may be the way to the recovery's (both, or the right one 15 s)
+    if (appnet::hotspot_by_hand())
+      appnet::close_hotspot();
+    else if (appnet::provisioning())
+      restart_soon();
   }
 }
 

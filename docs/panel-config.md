@@ -326,7 +326,7 @@ weather, status icons and info lines do not show; the hardware buttons still swi
 | `shortcuts` | up to 12 indicators | the large icons, three rows of four, numbered as read (the first four the top row, right-aligned); each may `open` a page, tapped while it is shown |
 | `info` | up to 2 lines | two text lines below the value rows, see below |
 
-A **relay** is `{"label", "text"?, "item"?, "relay"?, "hidden"?, "open"?}` and describes one of the two
+A **relay** is `{"label", "text"?, "item"?, "relay"?, "hidden"?, "open"?, "double"?, "triple"?, "hold"?, "events"?}` and describes one of the two
 hardware buttons with the relay next to it. `text` (`{item, format?, factor?}`, in the web interface under
 *Advanced*) takes the label from an item's state, e.g. a String item a rule writes; while that item is NULL, UNDEF
 or empty, `label` shows.
@@ -372,6 +372,26 @@ panel by hand.
 button and the relay work as configured, unseen:
 `{"relay": {"item": "Heating_Contact"}, "hidden": true}` is a relay only openHAB
 sees.
+
+**More than a press** (in the web interface under *Advanced*): `double`, `triple` and `hold` say
+what the button does pressed twice, three times in a row or held (0.8 s), each one of what a press
+does:
+
+- `{"relay": true}` switches the button's relay, also one a press leaves alone (one that follows an item of its
+  own, `"relay": {"item"}`: that item is sent `ON` or `OFF`, the relay follows it; the web interface does not offer
+  it for a button that "does nothing", whose load must not be switched at the wall);
+- `{"item": "..."}` toggles an item, as a tile does;
+- `{"open": "..."}` opens a page, or `next` / `previous` in the swipe row.
+
+`events` names an item (a String) that is sent every press as a command, as Tasmota names them:
+`SINGLE`, `DOUBLE`, `TRIPLE`, `HOLD` and `CLEAR` (let go after a hold), for a rule on "received
+command"; without openHAB they are lost. A single press still does what the button does, and pressed
+twice or three times with nothing set for it, each press does. With `double`,
+`triple` or `events` a single press waits a third of a second for the next one before it acts;
+without them it acts at once, as before. A hold counts only with `hold` or `events`; else a press up
+to 2 s is a press and a longer one nothing. Both buttons together and the right one held 15 s stay
+the recovery (a hold may act before). For example
+`{"label": "Light", "item": "Hall_Light", "double": {"open": "departures"}, "hold": {"item": "Hall_All_Off"}}`.
 
 The relays keep their state through a restart or power cut; with an item,
 openHAB's state takes over once the panel is connected. An item that is NULL

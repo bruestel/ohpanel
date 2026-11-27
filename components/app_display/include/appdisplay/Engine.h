@@ -15,6 +15,7 @@
 
 #pragma once
 
+#include "appdisplay/ButtonGesture.h"
 #include "appdisplay/Cover.h"
 #include "appdisplay/Format.h"
 #include "appdisplay/Logo.h"
@@ -206,8 +207,16 @@ class Engine {
   /* Leaves the boot page for home once the panel is ready. */
   void start();
 
-  /* A hardware button was pressed (index 0/1). */
+  /* A hardware button was pressed (index 0/1): what a single press does. */
   void hardware_button(int index);
+
+  /* A hardware button pressed once, twice, three times, held or let go after a hold: told to its "events" item, and
+     what the configuration has for it done. */
+  void hardware_gesture(int index, Gesture gesture);
+
+  /* What a hardware button listens for: double or triple presses and a hold only where its configuration has
+     something for them (a single press then waits for the next one a moment). */
+  GestureWants button_wants(int index) const;
 
   /* Configured id of the logical page shown ("home" or a page id). */
   const std::string &current() const { return current_; }
@@ -347,6 +356,8 @@ class Engine {
   std::string start_page() const { return swipe_row_.front(); }   // the row's first: where "back" ends
   int sheets_of(const cJSON *page);   // a list's, the weather's, a cover group's sheets (else 1)
   void step_row(bool forward);
+  void button_opens(const std::string &id);   // a hardware button opens a page (or steps the swipe row)
+  void button_relay(int index);               // a hardware button switches its relay
   bool in_swipe_row() const;   // the page shown is in the swipe row (of more than one): its dots are the row's
   std::string sheet_dots(int sheets, int at) const;   // a dot a sheet, `at` full
   void make_swipe_row();   // swipe_row_ from the configuration (set_config)

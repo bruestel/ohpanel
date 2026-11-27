@@ -7,6 +7,7 @@
 
 #pragma once
 
+#include "appdisplay/ButtonGesture.h"
 #include "appdisplay/Engine.h"
 #include "nextion/Display.h"
 
@@ -36,7 +37,9 @@ void config_changed(const std::string &json);
 void state_changed(const std::string &item);
 void status(const PanelStatus &status);
 void start();
-void hardware_button(int index);
+void hardware_button(int index, Gesture gesture = Gesture::Single);
+/* What a front button listens for in the configuration now (Engine::button_wants): read from any task. */
+GestureWants button_wants(int index);
 void relay_state(int index, bool on);
 
 /* What the display said about itself (answer to "connect", asked each time

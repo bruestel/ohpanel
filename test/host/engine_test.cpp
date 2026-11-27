@@ -3,6 +3,7 @@
    design, driven by the events the display sends.
 */
 
+#include "appdisplay/ButtonGesture.h"
 #include "appdisplay/Engine.h"
 #include "appdisplay/Icons.h"
 #include "appdisplay/OhIcons.h"
@@ -4533,6 +4534,91 @@ int main(int argc, char **argv) {
     w.idle(t += 100);
     CHECK(r.has("relay1_text.txt=\"Reading lamp\"") && !r.has_prefix("relay2_text.txt="));
     if (g_failures) r.dump();
+  }
+  {  // more than a press (forum #179): a double press opens a page, a hold toggles an item, a triple press switches
+     // the relay; every one told to the "events" item as Tasmota names them
+    Recorder r;
+    Engine w(r, cb);
+    w.release_wait(0);
+    CHECK(w.load_design(read("boards/nspanel/nextion/display-manifest-eu.json").c_str(),
+                        read("boards/nspanel/nextion/weather-icons.json").c_str()));
+    w.set_config(R"({"version": 1, "home": {"relays": [
+      {"label": "Light", "events": "Btn1_Event", "double": {"open": "p2"}, "hold": {"item": "All_Off"},
+       "triple": {"relay": true}},
+      {"label": "Fan", "double": {"relay": true}}]},
+      "pages": [{"id": "p2", "type": "entities", "title": "Two", "entities": []}]})");
+    PanelStatus online;
+    online.openhab = true;
+    w.set_status(online);
+    int64_t t = 1000;
+    w.tick(1791196439);
+    w.idle(t);
+    w.start();
+    w.idle(t += 5000);
+    w.on_message(loaded("home"));
+    // what each button listens for: the first all (events), the second a double press, no hold
+    CHECK(w.button_wants(0).presses == 3 && w.button_wants(0).hold);
+    CHECK(w.button_wants(1).presses == 2 && !w.button_wants(1).hold);
+    commands.clear();
+    relays.clear();
+    w.hardware_gesture(0, Gesture::Double);
+    CHECK(commands.size() == 1 && commands[0] == std::make_pair(std::string("Btn1_Event"), std::string("DOUBLE")));
+    CHECK(w.current() == "p2");
+    commands.clear();
+    w.hardware_gesture(0, Gesture::Hold);
+    CHECK(commands.size() == 2 && commands[0].second == "HOLD" && commands[1].first == "All_Off");
+    commands.clear();
+    w.hardware_gesture(0, Gesture::Clear);   // only told
+    CHECK(commands.size() == 1 && commands[0].second == "CLEAR" && relays.empty());
+    w.hardware_gesture(0, Gesture::Triple);
+    CHECK(!relays.empty() && relays.back() == std::make_pair(0, true));
+    w.hardware_gesture(0, Gesture::Single);   // a single press as before: the relay (no item)
+    CHECK(relays.back() == std::make_pair(0, false));
+    commands.clear();
+    w.hardware_gesture(1, Gesture::Hold);     // nothing for it, no events item
+    CHECK(commands.empty() && relays.back() == std::make_pair(0, false));
+    w.hardware_gesture(1, Gesture::Double);
+    CHECK(relays.back() == std::make_pair(1, true));
+    relays.clear();
+    w.hardware_gesture(1, Gesture::Triple);   // nothing for it: three presses, as before
+    CHECK(relays.size() == 3 && relays.back() == std::make_pair(1, false));
+    if (g_failures) r.dump();
+  }
+  {  // the presses told apart: a press acts on release, at once with nothing more wanted; else after the gap, or
+     // at once once as many as wanted came; a hold while down, its end on release; both buttons: nothing
+    ButtonGesture b;
+    const GestureWants one{1, false}, all{3, true};
+    int64_t t = 0;
+    auto press = [&](GestureWants w, int64_t ms, bool other = false) {
+      Gesture g = b.step(true, other, t += 1000, w);
+      for (int64_t at = 20; at < ms; at += 20)
+        if (const Gesture x = b.step(true, other, t += 20000, w); x != Gesture::None) g = x;
+      const Gesture up = b.step(false, false, t += 20000, w);
+      return up != Gesture::None ? up : g;
+    };
+    auto wait = [&](GestureWants w, int64_t ms) {
+      Gesture g = Gesture::None;
+      for (int64_t at = 0; at < ms; at += 20)
+        if (const Gesture x = b.step(false, false, t += 20000, w); x != Gesture::None) g = x;
+      return g;
+    };
+    CHECK(press(one, 100) == Gesture::Single);
+    CHECK(press(one, 1500) == Gesture::Single);       // no hold wanted: up to 2 s a press
+    CHECK(press(one, 2500) == Gesture::None);         // longer: nothing
+    CHECK(press(one, 100, true) == Gesture::None);    // the other one down too: the recovery's
+    CHECK(press(all, 100) == Gesture::None && wait(all, 500) == Gesture::Single);
+    CHECK(press(all, 100) == Gesture::None && wait(all, 100) == Gesture::None && press(all, 100) == Gesture::None &&
+          wait(all, 500) == Gesture::Double);
+    CHECK(press(all, 100) == Gesture::None && press(all, 100) == Gesture::None && press(all, 100) == Gesture::Triple);
+    CHECK(press({2, false}, 100) == Gesture::None && press({2, false}, 100) == Gesture::Double);   // no wait for a third
+    // a bounce between: the press before still waits for its next one
+    CHECK(press(all, 100) == Gesture::None && press(all, 20) == Gesture::None && wait(all, 500) == Gesture::Single);
+    // held: HOLD while down, CLEAR on release, no press
+    bool held = false;
+    b.step(true, false, t += 1000, all);
+    for (int i = 0; i < 50; i++)
+      held = held || b.step(true, false, t += 20000, all) == Gesture::Hold;
+    CHECK(held && b.step(false, false, t += 20000, all) == Gesture::Clear && wait(all, 500) == Gesture::None);
   }
   {  // the weather from one item: the days a rule writes as JSON ("feed"), home's weather block from today's
      // ("weather_feed"); the days before today left out; drawn anew when the item changes and when a day begins

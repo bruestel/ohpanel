@@ -7762,12 +7762,51 @@ function pvEditor() {
     });
     textFormat.hidden = !textRef.item;
     textReady = true;
-    advBody.append(
+    const textPart = document.createElement('div');
+    textPart.className = 'stack';
+    textPart.append(
       pvRow(field('Label from an item (optional)', itemField(textRef.item || '', v => {
         textRef.item = v || undefined; textFormat.hidden = !v; storeText();
       }))),
       note('The item\u2019s state is the label; while it has none (or an empty one), the label above shows.'),
       textFormat);
+    /* A double or triple press and a hold: each one of what a press does (Engine::hardware_gesture), and every one
+       told to an item as a command, as Tasmota names them */
+    const gesture = (key, title) => {
+      const a = e[key] && typeof e[key] === 'object' ? e[key] : {};
+      let kind = a.open ? 'open' : a.item ? 'item' : a.relay ? 'relay' : '', item = a.item || '', page = a.open || '';
+      const store = () => pvSlotEdit(slot, x => {
+        x = x || {};
+        if (kind === 'relay') x[key] = {relay: true};
+        else if (kind === 'item' && item) x[key] = {item};
+        else if (kind === 'open' && page) x[key] = {open: page};
+        else delete x[key];
+        return x;
+      });
+      const itemBox = field('Item', itemField(item, v => { item = v; store(); }, 'Switch'));
+      const pageBox = field('Page it opens', selectInput(pvPageOptions().concat([{group: 'Through the swipe row', options: [
+        ['next', 'The next page'], ['previous', 'The page before']]}]), page, v => { page = v; store(); }));
+      const draw = () => { itemBox.hidden = kind !== 'item'; pageBox.hidden = kind !== 'open'; };
+      draw();
+      const sel = selectInput([['', 'Nothing'], ['relay', 'Switches the relay'], ['item', 'Switches an item'],
+                               ['open', 'Opens a page']], kind, v => { kind = v; draw(); store(); });
+      gestureRelays.push(sel.querySelector('option[value="relay"]'));
+      return pvRow(field(title, sel), itemBox, pageBox);
+    };
+    const gestureRelays = [];   // not offered where the relay must not be switched at the wall (mode "none")
+    let events = e.events || '';
+    advBody.append(
+      textPart,
+      gesture('double', 'Pressed twice'),
+      gesture('triple', 'Pressed three times'),
+      gesture('hold', 'Held'),
+      pvRow(field('Every press to an item (optional)', itemField(events, v => {
+        events = v;
+        pvSlotEdit(slot, x => { x = x || {}; if (v) x.events = v; else delete x.events; return x; });
+      }, 'String'))),
+      note('The item is sent SINGLE, DOUBLE, TRIPLE, HOLD and CLEAR (let go after a hold) as a command, for a rule. '
+           + 'Pressed twice or three times, or every press to an item: a single press waits a moment (a third of a '
+           + 'second) for the next one. A hold counts after 0.8 s.'));
     const picks = document.createElement('div');
     picks.className = 'picks';
     picks.setAttribute('role', 'radiogroup');
@@ -7778,7 +7817,8 @@ function pvEditor() {
       buttonField.hidden = mode === 'none' || mode === 'hidden' || mode === 'open';
       openField.hidden = mode !== 'open';
       labelRow.hidden = mode === 'hidden';
-      advanced.hidden = mode === 'hidden';
+      textPart.hidden = mode === 'hidden';
+      gestureRelays.forEach(o => { o.hidden = o.disabled = mode === 'none' && !o.selected; });
       relayField.hidden = mode === 'relay' || mode === 'item';
       relayField.firstChild.textContent = mode === 'open' ? 'Item of the relay (optional: else it is left alone)' : 'Item of the relay (optional)';
       buttonField.firstChild.textContent = mode === 'both' ? 'Item of the button (optional)' : 'Item (optional)';

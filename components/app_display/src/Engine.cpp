@@ -1225,6 +1225,9 @@ void Engine::show_physical(const std::string &wanted) {
   logo_queue_.clear();
   cover_job_.reset();
   anims_.clear();   // their frames too: until the display reports the next page they went to its objects (0x1A)
+  // and the states drawn on the page going: a state coming before the next page has loaded drew there (home's
+  // upright labels, written straight onto the screen, over the next page); the next page binds its own as it loads
+  bindings_.clear();
   // the start page (not home) has no close cross: the page hides it as it loads (ohpanel_hmi.py no_close_on_start)
   const cJSON *cfg = current_ == "home" ? nullptr : page_config(current_);
   const bool no_close = cfg && current_ == start_page() && name == template_of(cfg);
@@ -2018,21 +2021,8 @@ void Engine::hardware_button(int index) {
   const cJSON *r = slot(member(config_, "home"), "relays", index);
   // a button that opens a page ("open"): that page, the screen woken for it -- also at night, unlike a switch: one
   // presses it to look --; no relay switched by it (one with an item of its own follows that)
-  if (const std::string id = str(r, "open"); id == "next" || id == "previous") {
-    step_row(id == "next");
-    return;
-  } else if (!id.empty()) {
-    if (id != "home" && !page_config(id))
-      return;
-    touched_ms_ = now_ms_;
-    if (asleep_) {
-      asleep_ = false;       // woken on that page, not the start page (screen_tick)
-      open(id);
-    } else if (fade_.phase == 1) {
-      fade_.target = id;     // a swipe fading out: it lands there instead
-    } else if (id != current_) {
-      open(id);
-    }
+  if (const std::string id = str(r, "open"); !id.empty()) {
+    button_opens(id);
     return;
   }
   const std::string item = str(r, "item");
@@ -2044,16 +2034,93 @@ void Engine::hardware_button(int index) {
       cb_.command(item, toggle_command(r));
     return;
   }
+  button_relay(index);
+}
+
+void Engine::button_opens(const std::string &id) {
+  if (id == "next" || id == "previous") {
+    step_row(id == "next");
+    return;
+  }
+  if (id != "home" && !page_config(id))
+    return;
+  touched_ms_ = now_ms_;
+  if (asleep_) {
+    asleep_ = false;       // woken on that page, not the start page (screen_tick)
+    open(id);
+  } else if (fade_.phase == 1) {
+    fade_.target = id;     // a swipe fading out: it lands there instead
+  } else if (id != current_) {
+    open(id);
+  }
+}
+
+/* The button's relay switched: at once, its item (the button's, or one of its own) told. A relay that follows an
+   item of its own ("relay": {"item"}) switches as that item does: the item is sent the command, the relay follows its
+   state (follow_relays) -- without openHAB nothing happens. */
+void Engine::button_relay(int index) {
+  const cJSON *r = slot(member(config_, "home"), "relays", index);
+  const cJSON *ref = relay_ref(r);
+  if (ref && ref != r) {
+    if (cb_.command && status_.openhab)
+      cb_.command(str(ref, "item"), relays_[index] ? "OFF" : "ON");
+    return;
+  }
   relays_[index] = !relays_[index];
   if (cb_.relay)
     cb_.relay(index, relays_[index]);
-  if (!item.empty()) {
+  if (const std::string item = str(ref, "item"); !item.empty()) {
     relay_pending_[index] = !status_.openhab;
     if (cb_.command && status_.openhab)
       cb_.command(item, relays_[index] ? "ON" : "OFF");
   }
   if (home_shown())
     draw_relays();
+}
+
+namespace {
+const char *gesture_key(Gesture g) {
+  return g == Gesture::Double ? "double" : g == Gesture::Triple ? "triple" : g == Gesture::Hold ? "hold" : nullptr;
+}
+}  // namespace
+
+void Engine::hardware_gesture(int index, Gesture gesture) {
+  const cJSON *r = slot(member(config_, "home"), "relays", index);
+  // its "events" item hears every one, as Tasmota names them: a rule decides
+  if (const std::string events = str(r, "events"); !events.empty() && cb_.command && status_.openhab)
+    cb_.command(events, gesture_name(gesture));
+  if (gesture == Gesture::Single) {
+    hardware_button(index);
+    return;
+  }
+  const char *key = gesture_key(gesture);
+  const cJSON *act = key ? member(r, key) : nullptr;
+  if (!cJSON_IsObject(act)) {
+    // pressed twice or three times with nothing for it (waited for by "events" or a "triple"): each press what a
+    // press does, as before
+    for (int n = gesture == Gesture::Double ? 2 : gesture == Gesture::Triple ? 3 : 0; n > 0; n--)
+      hardware_button(index);
+    return;
+  }
+  if (!asleep_)
+    touched_ms_ = now_ms_;
+  if (const std::string id = str(act, "open"); !id.empty())
+    button_opens(id);
+  else if (const std::string item = str(act, "item"); !item.empty()) {
+    if (cb_.command && status_.openhab)
+      cb_.command(item, toggle_command(act));
+  } else if (flag(act, "relay")) {
+    button_relay(index);
+  }
+}
+
+GestureWants Engine::button_wants(int index) const {
+  const cJSON *r = slot(member(config_, "home"), "relays", index);
+  GestureWants w;
+  const bool events = !str(r, "events").empty();
+  w.presses = events || cJSON_IsObject(member(r, "triple")) ? 3 : cJSON_IsObject(member(r, "double")) ? 2 : 1;
+  w.hold = events || cJSON_IsObject(member(r, "hold"));
+  return w;
 }
 
 void Engine::on_state(const std::string &item) {

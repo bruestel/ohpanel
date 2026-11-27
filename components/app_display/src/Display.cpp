@@ -48,7 +48,11 @@ struct Job {
   bool on = false;
   int64_t at_ms = 0;   // a message: when it came (a swipe and a release are told apart by it)
   std::shared_ptr<Cover> cover;   // a cover loaded (text: its source)
+  Gesture gesture = Gesture::Single;   // a button: what it did
 };
+
+/* What each front button listens for, the configuration's (button_wants): presses in a row, and 8 for a hold. */
+std::atomic<int> g_wants[2] = {1, 1};
 
 QueueHandle_t g_queue = nullptr;
 
@@ -493,10 +497,16 @@ void task(void *) {
           }
           break;
         case Job::Kind::State: engine.on_state(job->text); break;
-        case Job::Kind::Config: engine.set_config(job->text); break;
+        case Job::Kind::Config:
+          engine.set_config(job->text);
+          for (int i = 0; i < 2; i++) {
+            const GestureWants w = engine.button_wants(i);
+            g_wants[i] = w.presses | (w.hold ? 8 : 0);
+          }
+          break;
         case Job::Kind::Status: engine.set_status(job->status); break;
         case Job::Kind::Start: engine.start(); break;
-        case Job::Kind::Button: engine.hardware_button(job->index); break;
+        case Job::Kind::Button: engine.hardware_gesture(job->index, job->gesture); break;
         case Job::Kind::Relay: engine.set_relay(job->index, job->on); break;
         case Job::Kind::Away: link_down(engine, Link::Upload); break;   // an upload begins
         case Job::Kind::Options: engine.on_options(job->text); break;
@@ -558,7 +568,15 @@ void config_changed(const std::string &json) { post(new Job{Job::Kind::Config, {
 void state_changed(const std::string &item) { post(new Job{Job::Kind::State, {}, item, {}, 0, false}); }
 void status(const PanelStatus &s) { post(new Job{Job::Kind::Status, {}, {}, s, 0, false}); }
 void start() { post(new Job{Job::Kind::Start, {}, {}, {}, 0, false}); }
-void hardware_button(int index) { post(new Job{Job::Kind::Button, {}, {}, {}, index, false}); }
+void hardware_button(int index, Gesture gesture) {
+  Job *job = new Job{Job::Kind::Button, {}, {}, {}, index, false};
+  job->gesture = gesture;
+  post(job);
+}
+GestureWants button_wants(int index) {
+  const int v = g_wants[index & 1];
+  return {v & 7, (v & 8) != 0};
+}
 void relay_state(int index, bool on) { post(new Job{Job::Kind::Relay, {}, {}, {}, index, on}); }
 
 DesignCheck design_check() {
