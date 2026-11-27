@@ -85,8 +85,9 @@ a{color:var(--accent)}
   <div class="card">
     <h2>Afterwards</h2>
     <ol>
-      <li>Take the wire off <code>IO0</code>, unplug the adapter and plug it in again: OHpanel starts.</li>
-      <li>Close the panel and put it back on the wall.</li>
+      <li>Take the wire off <code>IO0</code> and disconnect the adapter.</li>
+      <li>Close the panel, put it back on the wall and switch mains on: OHpanel starts. The adapter's 3.3&nbsp;V are
+        enough for flashing, not for running it: fed by the adapter, the panel may restart again and again.</li>
       <li>Join its open WiFi <code>ohpanel-xxxxxx</code>, choose your network, connect openHAB and write the display
         design (<code id="tftName">ohpanel-nspanel-eu-display-&lt;version&gt;.tft</code>, about 15 minutes):
         <a href="https://github.com/bruestel/ohpanel/blob/main/docs/install.md#join-your-wifi">step by step</a>.</li>

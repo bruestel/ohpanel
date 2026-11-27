@@ -102,8 +102,12 @@ click *Connect*, choose the adapter's port and *Install OHpanel*. Tick *Erase de
 `--after no_reset` keeps the panel in its bootloader after the erase. Without it, or when esptool cannot connect
 for the second command, put the panel back into the bootloader: power off, IO0 on ground, power on.
 
-When it is written: take the wire off IO0, power the panel off and on (unplug the adapter and plug it in again).
-It starts OHpanel. Disconnect the adapter, close the case and put the panel back on the wall.
+When it is written: take the wire off IO0 and disconnect the adapter. Close the case, put the panel back on the
+wall and switch mains on: it starts OHpanel.
+
+> [!NOTE]
+> The serial adapter's 3.3 V are enough for flashing, not for running OHpanel: once the WiFi starts, a panel fed
+> by the adapter may restart again and again. Run it mounted, on mains, and write the display design from there.
 
 ## Join your WiFi
 
@@ -145,8 +149,7 @@ about **15 minutes** over WiFi; the screen stays dark meanwhile, then shows OHpa
 > interface says so and names the file. Firmware and display design of the same release belong together.
 
 > [!NOTE]
-> Still powered by the serial adapter? Some adapters cannot feed the display while it takes a new design. If the
-> upload fails, put the panel on mains and write it again.
+> Write it with the panel on mains: the serial adapter cannot feed the display while it takes a new design.
 
 ## Your first pages
 
