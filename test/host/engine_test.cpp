@@ -313,11 +313,20 @@ int main(int argc, char **argv) {
   CHECK(rec.has("clock.txt=\"12:33\""));
   // outdoors as weather apps show it: degrees only, the sign in the number's size and colour (its wide field)
   CHECK(rec.has("outdoor.txt=\"17°\"") && rec.has("vis outdoor,1") && rec.has("vis outdoor_n4,0"));
-  // today's low and high: "↓9° ↑19°", the low in a field as wide as it (21 px: three half digits),
-  // the high's arrow and value right after it
-  CHECK(rec.has("low3.txt=\"9°\"") && rec.has("vis low3,1") && rec.has("vis low_arrow,1"));
-  CHECK(rec.has("high3.txt=\"19°\"") && rec.has("vis high_arrow3,1") && rec.has("vis high3,1"));
-  CHECK(rec.has("vis high0,0") && rec.pos("vis high0,0") < rec.pos("vis high3,1"));   // hidden first
+  // today's high and low: "↑19° ↓9°", the high first as on the weather page (forum #182): in the design's first
+  // field (lowK, as wide as it), its arrow written up; the low's arrow (written down) and value right after it
+  {
+    CHECK(rec.has("low_arrow.txt=\"\xEF\xA6\xB1\"") && rec.has("vis low_arrow,1"));
+    int k = 0;   // the high's place: as many half digits as "19°" needs
+    for (int j = 1; j <= 7 && !k; j++)
+      if (rec.has("low" + std::to_string(j) + ".txt=\"19°\""))
+        k = j;
+    CHECK(k > 0 && rec.has("vis low" + std::to_string(k) + ",1"));
+    const std::string K = std::to_string(k);
+    CHECK(rec.has("high_arrow" + K + ".txt=\"\xEF\xA6\xB2\"") && rec.has("high" + K + ".txt=\"9°\""));
+    CHECK(rec.has("vis high_arrow" + K + ",1") && rec.has("vis high" + K + ",1"));
+    CHECK(rec.has("vis high0,0") && rec.pos("vis high0,0") < rec.pos("vis high" + K + ",1"));   // hidden first
+  }
   CHECK(rec.has("date.txt=\"Mo, 5. Okt. 26\""));
   CHECK(rec.has("date.font=3"));                          // fits: the design's font
   CHECK(!rec.has_prefix("date.pco="));                    // coloured by the page (th_dim)
@@ -2280,7 +2289,7 @@ int main(int argc, char **argv) {
   {  // without an outdoor temperature in the configuration it does not show
     cJSON *doc = cJSON_Parse(read("test/host/data/office.json").c_str());
     cJSON_DeleteItemFromObject(cJSON_GetObjectItem(doc, "home"), "outdoor_temperature");
-    cJSON_DeleteItemFromObject(cJSON_GetObjectItem(doc, "home"), "outdoor_low");  // a high alone: in front
+    cJSON_DeleteItemFromObject(cJSON_GetObjectItem(doc, "home"), "outdoor_high");  // a low alone: in front
     // a second value row, and the first info line's left field as a red badge
     cJSON *home = cJSON_GetObjectItem(doc, "home");
     cJSON_AddItemToArray(cJSON_GetObjectItem(home, "values"),
@@ -2297,7 +2306,8 @@ int main(int argc, char **argv) {
     rec.out.clear();
     e.on_message(loaded("home"));
     CHECK(rec.has("vis outdoor,0"));
-    CHECK(rec.has("high0.txt=\"19°\"") && rec.has("vis high_arrow0,1") && rec.has("vis low_arrow,0"));
+    CHECK(rec.has("high0.txt=\"9°\"") && rec.has("vis high_arrow0,1") && rec.has("vis low_arrow,0"));
+    CHECK(rec.has("high_arrow0.txt=\"\xEF\xA6\xB2\""));   // its arrow down
     CHECK(rec.has("vis row1_icon,1"));
     CHECK(rec.has("vis weather_pic,1"));
     CHECK(rec.has("vis row2,1"));
@@ -4523,7 +4533,7 @@ int main(int argc, char **argv) {
     r.out.clear();
     w.on_message(loaded("home"));
     CHECK(r.has("outdoor.txt=\"17°\""));                                  // "now"
-    CHECK(r.has_suffix_of("low", "\"9°\"") && r.has_suffix_of("high", "\"19°\""));   // today's, in whole degrees
+    CHECK(r.has_suffix_of("low", "\"19°\"") && r.has_suffix_of("high", "\"9°\""));   // today's, in whole degrees: the high first
     CHECK(r.has(pic_cmd("weather_pic", "aurora", "weather_home", "partly-cloudy-day-rain")));   // bom "shower"
     w.on_message(event("home", "weather", "release"));
     CHECK(w.current() == "wx");
@@ -4564,7 +4574,7 @@ int main(int argc, char **argv) {
     r.out.clear();
     w.on_message(loaded("home"));
     CHECK(r.has(pic_cmd("weather_pic", "aurora", "weather_home", "rain")));
-    CHECK(r.has_suffix_of("low", "\"-3°\"") && r.has_suffix_of("high", "\"0°\""));
+    CHECK(r.has_suffix_of("low", "\"0°\"") && r.has_suffix_of("high", "\"-3°\""));   // the high first
     // no state, or a text: the page says so in one day; home shows no weather
     set_state("Wx", "No connection to the BOM", "String");
     w.on_state("Wx");

@@ -3647,18 +3647,19 @@ function fillHome(cfg, template = 'home') {
     f.outdoor = {hide: true};
     placeUnit(f, 'outdoor_u', '', '');
   }
-  // today's low and high under it: "↓9° ↑22°" (Engine::draw_range): the low in the field as
-  // wide as it, the high's arrow and value right after it (place 0, in front, without a low)
+  // today's high and low under it: "↑22° ↓9°", the high first as on the weather page (Engine::draw_range): the
+  // high in the first field, as wide as it (the design's low1..n), the low's arrow and value right after it (its
+  // high_arrowN/highN; place 0, in front, without a high)
   const r = LAYOUT.range || {}, rn = r.n || 0, rstep = r.step || 1;
   const rtext = ref => { const [num, unit] = numberUnit(ref), u = degrees(unit); return num + (u && u !== '°' ? ' ' : '') + u; };
-  const low = wLow ? rtext(wLow) : null, high = wHigh ? rtext(wHigh) : null;
-  const rk = low === null ? 0 : Math.max(1, Math.min(rn, Math.ceil((textWidth(low, r.font) || 0) / rstep)));
-  f.low_arrow = low === null ? {hide: true} : {icon: 'arrow-down', color: THEME.dim};
+  const first = wHigh ? rtext(wHigh) : null, second = wLow ? rtext(wLow) : null;
+  const rk = first === null ? 0 : Math.max(1, Math.min(rn, Math.ceil((textWidth(first, r.font) || 0) / rstep)));
+  f.low_arrow = first === null ? {hide: true} : {icon: 'arrow-up', color: THEME.dim};
   for (let j = 0; j <= rn; j++) {
-    if (j) f['low' + j] = low !== null && j === rk ? {text: low, color: THEME.dim} : {hide: true};
-    const on = high !== null && j === rk;
-    f['high_arrow' + j] = on ? {icon: 'arrow-up', color: THEME.dim} : {hide: true};
-    f['high' + j] = on ? {text: high, color: THEME.dim} : {hide: true};
+    if (j) f['low' + j] = first !== null && j === rk ? {text: first, color: THEME.dim} : {hide: true};
+    const on = second !== null && j === rk;
+    f['high_arrow' + j] = on ? {icon: 'arrow-down', color: THEME.dim} : {hide: true};
+    f['high' + j] = on ? {text: second, color: THEME.dim} : {hide: true};
   }
   // the value rows (indoor_temperature: the older name of the first)
   homeValues(h).forEach((v, i) => {
@@ -7643,9 +7644,9 @@ function pvEditor() {
     };
     box.append(pvRow(field('Item', itemField((h[k] || {}).item, pick, 'Number')), field('Decimals', decimals)),
                // today's high and low, under it (e.g. a weather add-on's daily forecast channels)
-               pvRow(field("Today's low (item)", itemField((h.outdoor_low || {}).item, v => pvHomeRef('outdoor_low', 'item', v), 'Number')),
-                     field("Today's high (item)", itemField((h.outdoor_high || {}).item, v => pvHomeRef('outdoor_high', 'item', v), 'Number'))),
-               ...(h.style === 'clock' ? [note("The large clock shows the temperature only: today's low and high show on home in its normal style.")] : []),
+               pvRow(field("Today's high (item)", itemField((h.outdoor_high || {}).item, v => pvHomeRef('outdoor_high', 'item', v), 'Number')),
+                     field("Today's low (item)", itemField((h.outdoor_low || {}).item, v => pvHomeRef('outdoor_low', 'item', v), 'Number'))),
+               ...(h.style === 'clock' ? [note("The large clock shows the temperature only: today's high and low show on home in its normal style.")] : []),
                pvButtons(h[k] ? [['Remove', 'danger', () => {
                  pvEdit(cfg => { if (cfg.home) ['outdoor_high', 'outdoor_low'].forEach(m => delete cfg.home[m]); });
                  pvHomeHide(k);

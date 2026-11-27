@@ -19,7 +19,7 @@ metadata. Mostly the configuration names what each field says; a group's rows (a
 Switch Kitchen_Ceiling             "Kitchen ceiling light"
 Switch Kitchen_Counter_Switch      "Counter light"                   { channel="<light>:switch" }
 
-// weather: outdoor temperature, today's low and high, the condition's icon code (home.weather_icon, "codes")
+// weather: outdoor temperature, today's high and low, the condition's icon code (home.weather_icon, "codes")
 Number:Temperature Weather_Temperature "Outdoor temperature [%.1f %unit%]" { channel="openweathermap:onecall:<api>:<place>:current#temperature" }
 Number:Temperature Weather_Today_Min   "Today low [%.1f %unit%]"     { channel="openweathermap:onecall:<api>:<place>:forecastToday#min-temperature" }
 Number:Temperature Weather_Today_Max   "Today high [%.1f %unit%]"    { channel="openweathermap:onecall:<api>:<place>:forecastToday#max-temperature" }

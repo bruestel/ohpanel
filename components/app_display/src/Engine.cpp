@@ -924,40 +924,46 @@ void Engine::show_number(const std::string &prefix, bool shown, const std::strin
   place(k, true);
 }
 
-/* Today's low and high under the outdoor temperature: "↓9° ↑22°"
-   (home_page in boards/nspanel/nextion/ohpanel_hmi.py, manifest "range"). The low in the
-   field as wide as it (low1..n, half digits), the high's arrow and value
-   right after it (high_arrowN/highN, the same place; place 0, at the low's own
-   place, for a high without a low). Fields that go are hidden first: hiding
-   repaints the background over a field's box. */
+/* Today's high and low under the outdoor temperature: "↑22° ↓9°", the high first as on the weather page (forum
+   #182) (home_page in boards/nspanel/nextion/ohpanel_hmi.py, manifest "range"). The design names its fields for
+   the old order, low first: the first value goes in the field as wide as it (low1..n, half digits, its arrow
+   low_arrow), the second's arrow and value right after it (high_arrowN/highN, the same place; place 0, at the
+   first's own place, for a second without a first). The firmware writes the arrows, so a design of before
+   0.27.6 shows the new order too. Fields that go are hidden first: hiding repaints the background over a
+   field's box. */
 void Engine::draw_range(const cJSON *home) {
-  const cJSON *lo = home_weather(home, "outdoor_low"), *hi = home_weather(home, "outdoor_high");
+  const cJSON *hi = home_weather(home, "outdoor_high"), *lo = home_weather(home, "outdoor_low");
   const auto text = [this](const cJSON *ref) {
     std::string number, unit;
     number_and_unit(ref, number, unit);
     return number + degrees_only(unit);
   };
-  const std::string low = lo ? text(lo) : "", high = hi ? text(hi) : "";
+  static const std::string kUp = "\xEF\xA6\xB1", kDown = "\xEF\xA6\xB2";   // MDI arrow-up-thin / arrow-down-thin
+  // the first value and the second: the high, then the low (a low alone at place 0, in front)
+  const cJSON *first = hi, *second = lo;
+  const std::string a = first ? text(first) : "", b = second ? text(second) : "";
   const int n = std::max(1, range_.n), step = std::max(1, range_.step);
-  const int k = lo ? std::clamp((text_width(range_.font, low) + step - 1) / step, 1, n) : 0;
+  const int k = first ? std::clamp((text_width(range_.font, a) + step - 1) / step, 1, n) : 0;
   const auto at = [](const char *part, int j) { return std::string(part) + std::to_string(j); };
-  if (!lo)
+  if (!first)
     vis("low_arrow", false);
   for (int j = 0; j <= n; j++) {
-    if (j && (!lo || j != k))
+    if (j && (!first || j != k))
       vis(at("low", j), false);
-    if (!hi || j != k) {
+    if (!second || j != k) {
       vis(at("high_arrow", j), false);
       vis(at("high", j), false);
     }
   }
-  if (lo) {
-    txt(at("low", k), low);
+  if (first) {
+    txt("low_arrow", kUp);
+    txt(at("low", k), a);
     vis("low_arrow", true);
     vis(at("low", k), true);
   }
-  if (hi) {
-    txt(at("high", k), high);
+  if (second) {
+    txt(at("high_arrow", k), kDown);
+    txt(at("high", k), b);
     vis(at("high_arrow", k), true);
     vis(at("high", k), true);
   }
