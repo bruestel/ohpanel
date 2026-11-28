@@ -203,13 +203,22 @@ void close_keep() {
     esp_http_client_close(g_keep);
 }
 
+/* The source openHAB gives this panel's commands and states (its event log:
+   "source: kitchen=>org.openhab.core.io.rest$admin"): the device name, so a
+   rule can tell the panels apart (issue #12). Read once: a new name, like the
+   hostname, takes effect at the next start. */
+const std::string &source_name() {
+  static const std::string name = appcfg::device().name;
+  return name;
+}
+
 /* One request on `client`: the address, the method, the headers, the body. */
 esp_err_t perform(esp_http_client_handle_t client, const std::string &url, esp_http_client_method_t method,
                   const char *content_type, const std::string &body) {
   esp_http_client_set_url(client, url.c_str());
   esp_http_client_set_method(client, method);
   esp_http_client_set_header(client, "Content-Type", content_type);
-  esp_http_client_set_header(client, "X-OpenHAB-Source", "ohpanel");
+  esp_http_client_set_header(client, "X-OpenHAB-Source", source_name().c_str());
   esp_http_client_set_post_field(client, body.data(), static_cast<int>(body.size()));
   return esp_http_client_perform(client);
 }
